@@ -10,7 +10,7 @@ import lombok.Setter;
 import java.util.Date;
 
 @Entity
-@Table(name = "Match")
+@Table(name = "GameMatch")
 @Getter
 @Setter
 public class Match {
@@ -30,9 +30,11 @@ public class Match {
     @JoinColumn(name = "player2_id", nullable = false)
     private User player2;
 
-    private int score_winner;
+    @Column(name = "player1_score")
+    private int player1Score;
 
-    private int score_lose;
+    @Column(name = "player2_score")
+    private int player2Score;
 
     @ManyToOne
     @JoinColumn(name = "theme_id")
@@ -40,8 +42,6 @@ public class Match {
 
     @Column(name = "board_size")
     private String boardSize;
-
-    private Long winner_id;
 
     @Column(name = "time_per_move")
     private int timePerMove;
@@ -56,4 +56,29 @@ public class Match {
 
     @Enumerated(EnumType.STRING)
     private MatchStatus status = MatchStatus.PLAYING;
+
+    public User getOpponent(User user) {
+        if (user.equals(player1)) return player2;
+        else return player1;
+    }
+
+    public int getScoreFor(User user) {
+        if (user == null) return 0;
+        if (user.equals(player1)) return player1Score;
+        if (user.equals(player2)) return player2Score;
+        return 0;
+    }
+
+    public Long getWinnerId() {
+        if (player1Score > player2Score) return player1.getId();
+        if (player2Score > player1Score) return player2.getId();
+        return null;
+    }
+
+    public MatchStatus getResultFor(User user) {
+        if (user == null) return null;
+        Long winnerId = getWinnerId();
+        if (winnerId == null) return MatchStatus.PLAYING;
+        return winnerId.equals(user.getId()) ? MatchStatus.WIN : MatchStatus.LOSE;
+    }
 }

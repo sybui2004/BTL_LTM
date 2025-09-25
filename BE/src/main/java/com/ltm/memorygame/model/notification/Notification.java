@@ -1,7 +1,6 @@
 package com.ltm.memorygame.model.notification;
 
 import jakarta.persistence.*;
-import org.springframework.data.annotation.Id;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -25,7 +24,7 @@ public class Notification {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "type_id", nullable = false)
-    private int typeId;
+    private NotificationType type;
 
     @Column(columnDefinition = "TEXT")
     private String content;

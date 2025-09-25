@@ -2,7 +2,8 @@ package com.ltm.memorygame.model.enums;
 
 public enum MatchStatus {
     PLAYING("PLAYING"),
-    FINISHED("FINISHED");
+    WIN("WIN"),
+    LOSE("LOSE");
 
     private final String value;
 

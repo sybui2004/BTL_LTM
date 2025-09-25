@@ -1,14 +1,14 @@
 package com.ltm.memorygame.model.user;
 
-
+import com.ltm.memorygame.model.enums.UserStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-
 import java.util.Date;
 
+
 @Entity
-@Table(name = "User")
+@Table(name = "users")
 @Getter
 @Setter
 public class User {
@@ -28,8 +28,12 @@ public class User {
     @Column(unique = true)
     private String email;
 
-    @Column(name = "profile_pic")
-    private String profilePic;
+    @Column(name = "avatar_url")
+    private String avatarUrl;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserStatus status = UserStatus.OFFLINE;
 
     @Column(name = "created_at")
     @Temporal(TemporalType.TIMESTAMP)
@@ -39,6 +43,6 @@ public class User {
     @Temporal(TemporalType.TIMESTAMP)
     private Date updatedAt;
 
-    @OneToOne(mappedBy = "User", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private UserSetting userSetting;
 }

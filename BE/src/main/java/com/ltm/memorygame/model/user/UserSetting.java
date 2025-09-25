@@ -27,8 +27,5 @@ public class UserSetting {
     @Column(name = "notification_enabled")
     private boolean notification = true;
 
-    @Enumerated(EnumType.STRING)
-    private UserStatus status;
-
     private String language = "en";
 }
