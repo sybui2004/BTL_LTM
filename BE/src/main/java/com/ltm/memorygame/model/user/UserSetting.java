@@ -1,6 +1,5 @@
 package com.ltm.memorygame.model.user;
 
-import com.ltm.memorygame.model.enums.UserStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;

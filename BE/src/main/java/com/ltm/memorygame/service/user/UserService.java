@@ -62,6 +62,12 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
+    public User getEntityById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchElementException("User not found: " + userId));
+    }
+
+    @Transactional(readOnly = true)
     public List<UserRankingProjection> getRanking() {
         return userRepository.getUserRankingNative();
     }

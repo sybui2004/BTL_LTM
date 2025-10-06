@@ -9,7 +9,6 @@ import com.ltm.memorygame.model.user.User;
 import com.ltm.memorygame.model.user.UserSetting;
 import org.springframework.stereotype.Component;
 
-import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 

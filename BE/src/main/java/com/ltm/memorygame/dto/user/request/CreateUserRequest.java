@@ -1,17 +1,13 @@
 package com.ltm.memorygame.dto.user.request;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-
+@Builder
 public class CreateUserRequest {
-
     private String username;
     private String password;
     private String displayName;
