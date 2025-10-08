@@ -8,7 +8,7 @@ import lombok.Setter;
 import java.util.Date;
 
 @Entity
-@Table(name = "WorldMessage")
+@Table(name = "world_message")
 @Getter
 @Setter
 public class WorldMessage {
@@ -27,4 +27,6 @@ public class WorldMessage {
     @Column(name = "created_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date createdAt = new Date();
+    
+
 }
