@@ -3,7 +3,6 @@ package com.ltm.memorygame.controller;
 import com.ltm.memorygame.dao.user.UserRankingProjection;
 import com.ltm.memorygame.dto.user.request.CreateUserRequest;
 import com.ltm.memorygame.dto.user.response.UserProfileDTO;
-import com.ltm.memorygame.dto.user.response.UserRankingDTO;
 import com.ltm.memorygame.dto.user.response.UserResponseDTO;
 import com.ltm.memorygame.service.user.UserService;
 import lombok.RequiredArgsConstructor;
