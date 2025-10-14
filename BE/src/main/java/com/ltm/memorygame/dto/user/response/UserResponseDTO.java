@@ -1,9 +1,7 @@
 package com.ltm.memorygame.dto.user.response;
 
-import com.ltm.memorygame.dto.game.response.MatchHistoryDTO;
 import lombok.*;
 import java.util.Date;
-import java.util.List;
 
 @Getter
 @Setter
