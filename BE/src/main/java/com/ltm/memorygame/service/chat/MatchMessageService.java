@@ -1,6 +1,5 @@
 package com.ltm.memorygame.service.chat;
 
-import java.time.Instant;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
@@ -10,11 +9,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.stream.Collectors;
 
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import com.ltm.memorygame.dto.chat.response.MatchMessageDto;
+import com.ltm.memorygame.dto.chat.response.MatchMessageDTO;
+import com.ltm.memorygame.dto.chat.response.StickerResponse;
 import com.ltm.memorygame.mapper.MessageMapper;
+import com.ltm.memorygame.model.enums.MessageType;
 
 import lombok.RequiredArgsConstructor;
 
@@ -22,21 +23,17 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class MatchMessageService {
 
-    private final SimpMessagingTemplate messagingTemplate;
 
     // Bộ đệm tin nhắn tạm: mỗi phòng có tối đa 200 tin
     private static final int MAX_ROOM_MESSAGES = 200;
-    private final Map<String, Deque<MatchMessageDto>> roomBuffers = new ConcurrentHashMap<>();
+    private final Map<String, Deque<MatchMessageDTO>> roomBuffers = new ConcurrentHashMap<>();
 
 
-    // Gửi tin nhắn trong phòng và broadcast tới tất cả người trong room.
-    public MatchMessageDto sendMatchMessage(String roomId, Long fromUserId, String content) {
-        if (content == null || content.isBlank()) {
-            throw new IllegalArgumentException("Message content cannot be empty");
-        }
+    // gửi text (được lưu lại trong deque)
+    public MatchMessageDTO sendMatchText(String roomId, Long fromUserId, String content) {
         
-        MatchMessageDto message = MessageMapper.toMatchMessageDto(roomId, fromUserId, content.trim());
-        Deque<MatchMessageDto> buffer = roomBuffers.computeIfAbsent(roomId, k -> new ConcurrentLinkedDeque<>());
+        MatchMessageDTO message = MessageMapper.toMatchMessageDTO(roomId, fromUserId, content.trim(), MessageType.TEXT, null);
+        Deque<MatchMessageDTO> buffer = roomBuffers.computeIfAbsent(roomId, k -> new ConcurrentLinkedDeque<>());
 
         if (buffer.size() >= MAX_ROOM_MESSAGES) {
             buffer.pollFirst();
@@ -44,26 +41,29 @@ public class MatchMessageService {
         buffer.addLast(message);
 
         // Gửi realtime
-        messagingTemplate.convertAndSend("/topic/room." + roomId, message);
         return message;
     }
 
+    // gửi sticker (không lưu vào deque)
+     public MatchMessageDTO sendSticker(String roomId, Long fromUserId, StickerResponse sticker) {
+        //realtime
+        return MessageMapper.toMatchMessageDTO(
+                roomId, fromUserId, null, MessageType.STICKER, sticker
+        );
+    }
     
     //Lấy snapshot các tin nhắn hiện có trong room phòng khi break giữa chừng
-    public List<MatchMessageDto> getMatchHistory(String roomId) {
-        Deque<MatchMessageDto> buffer = roomBuffers.get(roomId);
+    @Transactional
+    public List<MatchMessageDTO> getMatchMessageHistory(String roomId) {
+        Deque<MatchMessageDTO> buffer = roomBuffers.get(roomId);
         if (buffer == null) return Collections.emptyList();
         return buffer.stream()
-                .sorted(Comparator.comparing(MatchMessageDto::getCreatedAt))
+                .sorted(Comparator.comparing(MatchMessageDTO::getCreatedAt))
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Xóa lịch sử tạm sau khi trận kết thúc.
-     */
+    // Xóa lịch sử tạm sau khi trận kết thúc.
     public void clearMatch(String roomId) {
         roomBuffers.remove(roomId);
-        messagingTemplate.convertAndSend("/topic/room." + roomId, 
-                "Room " + roomId + " chat cleared at " + Instant.now());
     }
 }

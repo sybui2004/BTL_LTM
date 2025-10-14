@@ -1,4 +1,4 @@
-package com.ltm.memorygame.dto.chat.response;
+package com.ltm.memorygame.dto.user.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,10 +13,10 @@ import lombok.Setter;
 @Builder
 
 //Snapshot trạng thái một user để hiển thị nhanh bên FE.
-public class PresenceUserDto {
+public class UserPresenceDTO {
     private Long userId;
     private String displayName; 
     private String username;    
     private String avatarUrl;   
-    private String status;      // ONLINE | BUSY | OFFLINE
+    private String status;     
 }

@@ -2,6 +2,8 @@ package com.ltm.memorygame.dto.chat.response;
 
 import java.time.Instant;
 
+import com.ltm.memorygame.model.enums.MessageType;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -19,5 +21,7 @@ public class WorldMessageResponse {
     private String senderName;
     private String content;
     private String avatarUrl;
+    private MessageType messageType;
+    private StickerResponse sticker;
     private Instant createdAt;
 }

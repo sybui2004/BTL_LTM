@@ -1,7 +1,6 @@
 package com.ltm.memorygame.dao.chat;
 
-import java.util.List;
-
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -12,6 +11,6 @@ import com.ltm.memorygame.model.chat.WorldMessage;
 public interface WorldMessageRepository extends JpaRepository<WorldMessage, Long> {
 
     // Lấy danh sách tin nhắn global mới nhất (desc), truyền limit bằng Pageable
-    List<WorldMessage> findAllByOrderByCreatedAtDesc(Pageable pageable);
+    Page<WorldMessage> findAllByOrderByCreatedAtDesc(Pageable pageable);
 
 }

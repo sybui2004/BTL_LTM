@@ -1,63 +1,32 @@
 package com.ltm.memorygame.controller.chat;
 
-import java.security.Principal;
-import java.util.List;
-
+import org.springframework.data.domain.Page;
 import org.springframework.messaging.handler.annotation.Header;
-import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.messaging.simp.annotation.SendToUser;
-import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import com.ltm.memorygame.dao.user.UserRepository;
-import com.ltm.memorygame.dto.chat.request.WorldMessageRequest;
 import com.ltm.memorygame.dto.chat.response.WorldMessageResponse;
-import com.ltm.memorygame.model.user.User;
 import com.ltm.memorygame.service.chat.WorldMessageService;
 
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
-@Controller
+@RestController
 @RequiredArgsConstructor
+@RequestMapping("/api/chat/world")
 public class WorldMessageController {
 
     private final WorldMessageService worldMessageService;
-    private final UserRepository userRepository;
-
-//Client gửi STOMP đến /app/world
-    @MessageMapping("/world")
-    public void sendWorldMessage(
-            @Valid @Payload WorldMessageRequest request,
-            @Header(name = "X-User-Id", required = false) Long headerUserId,
-            Principal principal
-    ) {
-        User sender = resolveSender(headerUserId, principal);
-
-        worldMessageService.postWorldMessage(sender, request.getContent());
-    }
 
     //Lấy lịch sử 100 tin nhắn của kênh thế giới
-    @MessageMapping("/world.history")
-    @SendToUser("/queue/world.history")
-    public List<WorldMessageResponse> getWorldHistory(
-            Principal principal,
-            @Header(name = "limit", required = false) Integer limit
+    @GetMapping("/")
+    public Page<WorldMessageResponse> getWorldHistory(
+            @Header(name = "page", required = false) Integer page,
+            @Header(name = "size", required = false) Integer size
     ) {
-        int l = (limit == null || limit <= 0 || limit > 100) ? 100 : limit;
-        return worldMessageService.getRecentMessages(l);
+        int p = (page == null || page < 0) ? 0 : page;
+        int s = (size == null || size <= 0 || size > 100) ? 20 : size;
+        return worldMessageService.getRecentMessages(p, s);
     }
 
-// helper
-    private User resolveSender(Long headerUserId, Principal principal) {
-        if (headerUserId != null) {
-            return userRepository.findById(headerUserId)
-                    .orElseThrow(() -> new IllegalArgumentException("Sender not found (id=" + headerUserId + ")"));
-        }
-        if (principal == null || principal.getName() == null) {
-            throw new IllegalStateException("Missing user identity (no X-User-Id and no Principal)");
-        }
-        return userRepository.findByUsername(principal.getName())
-                .orElseThrow(() -> new IllegalArgumentException("Sender not found (username=" + principal.getName() + ")"));
-    }
 }

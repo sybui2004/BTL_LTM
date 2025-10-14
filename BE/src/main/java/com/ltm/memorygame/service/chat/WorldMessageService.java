@@ -1,12 +1,11 @@
 package com.ltm.memorygame.service.chat;
 
 import java.time.Instant;
-import java.util.List;
-import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.ltm.memorygame.dao.chat.WorldMessageRepository;
 import com.ltm.memorygame.dto.chat.response.WorldMessageResponse;
@@ -21,9 +20,8 @@ import lombok.RequiredArgsConstructor;
 public class WorldMessageService {
 
     private final WorldMessageRepository worldMessageRepository;
-    private final SimpMessagingTemplate messagingTemplate;
 
-    //Lưu tin nhắn toàn cầu và broadcast ra /topic/global
+    //Lưu tin nhắn toàn cầu 
     public WorldMessageResponse postWorldMessage(User sender, String content) {
         if (content == null || content.isBlank()) {
             throw new IllegalArgumentException("Message content cannot be empty");
@@ -37,18 +35,16 @@ public class WorldMessageService {
         WorldMessage saved = worldMessageRepository.save(message);
         WorldMessageResponse response = MessageMapper.toWorldMessageResponse(saved);
 
-        // phát realtime tới tất cả client
-        messagingTemplate.convertAndSend("/topic/global", response);
+        // realtime
         return response;
     }
 
-
     //Lấy danh sách 100 tin nhắn gần nhất (mặc định)
-
-    public List<WorldMessageResponse> getRecentMessages(int limit) {
-        List<WorldMessage> messages = worldMessageRepository.findAllByOrderByCreatedAtDesc(PageRequest.of(0, limit));
-        return messages.stream()
-                .map(MessageMapper::toWorldMessageResponse)
-                .collect(Collectors.toList());
+    @Transactional(readOnly = true)
+    public Page<WorldMessageResponse> getRecentMessages(int page, int size) {
+        Page<WorldMessage> messages
+                = worldMessageRepository.findAllByOrderByCreatedAtDesc(PageRequest.of(page, size));
+        return messages.map(MessageMapper::toWorldMessageResponse);
     }
+
 }

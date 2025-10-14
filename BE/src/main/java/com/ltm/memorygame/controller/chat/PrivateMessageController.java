@@ -1,63 +1,44 @@
 package com.ltm.memorygame.controller.chat;
 
-import java.security.Principal;
+import java.util.List;
 
 import org.springframework.data.domain.Page;
-import org.springframework.messaging.handler.annotation.DestinationVariable;
-import org.springframework.messaging.handler.annotation.Header;
-import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.messaging.simp.annotation.SendToUser;
-import org.springframework.stereotype.Controller;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import com.ltm.memorygame.dao.game.MatchRepository;
-import com.ltm.memorygame.dao.user.UserRepository;
-import com.ltm.memorygame.dto.chat.request.PrivateMessageRequest;
+import com.ltm.memorygame.dto.chat.response.ConversationPreviewDTO;
 import com.ltm.memorygame.dto.chat.response.PrivateMessageResponse;
-import com.ltm.memorygame.model.game.Match;
-import com.ltm.memorygame.model.user.User;
 import com.ltm.memorygame.service.chat.PrivateMessageService;
 
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
-@Controller
+@RestController
 @RequiredArgsConstructor
+@RequestMapping("/api/chat/private")
 public class PrivateMessageController {
 
     private final PrivateMessageService privateMessageService;
-    private final UserRepository userRepository;
-    private final MatchRepository matchRepository;
-
-    // Gửi tin nhắn private qua STOMP: /app/private.send
-@MessageMapping("/private.send")
-public void sendMessage(Principal principal, @Valid @Payload PrivateMessageRequest req) {
-    Long meId = Long.valueOf(principal.getName());
-
-    User sender = userRepository.findById(meId)
-            .orElseThrow(() -> new IllegalArgumentException("Sender not found"));
-    User receiver = userRepository.findById(req.getToUserId())
-            .orElseThrow(() -> new IllegalArgumentException("Receiver not found"));
-    Match match = (req.getMatchId() != null)
-            ? matchRepository.findById(req.getMatchId()).orElse(null)
-            : null;
-
-    privateMessageService.sendPrivateMessage(sender, receiver, req.getContent(), match);
-}
-        // Nếu muốn echo lại cho người gửi (client hiện tin ngay), có thể:
-        // privateMessageService.echoToSender(meId, ...) hoặc convertAndSendToUser ở đây.
-    // }
-
-    // Lấy lịch sử giữa "me" và otherUserId, trả về cho đúng user gọi
     
-    @SendToUser("/queue/private.history")
-    public Page<PrivateMessageResponse> getHistory(Principal principal,
-                                                   @DestinationVariable Long otherUserId,
-                                                   @Header(name = "page", required = false) Integer page,
-                                                   @Header(name = "size", required = false) Integer size) {
-        Long meId = Long.valueOf(principal.getName());
+    // lấy tất cả message của 1 đoạn chat
+    @GetMapping("/{otherUserId}")  
+    public Page<PrivateMessageResponse> getPrivateMessageHistory(
+            @RequestHeader("userId") Long userId,
+            @PathVariable("otherUserId") Long otherUserId,
+            @RequestHeader(name = "page", required = false) Integer page,
+            @RequestHeader(name = "size", required = false) Integer size) {
+
         int p = (page == null || page < 0) ? 0 : page;
         int s = (size == null || size <= 0 || size > 100) ? 20 : size;
-        return privateMessageService.getConversation(meId, otherUserId, p, s);
+        return privateMessageService.getPrivateMessageHistory(userId, otherUserId, p, s);
+    }
+    
+    // lấy danh sách người nhắn tin
+    @GetMapping("/conversations/{userId}")
+    public ResponseEntity<List<ConversationPreviewDTO>> listConversations(@PathVariable Long userId) {
+        return ResponseEntity.ok(privateMessageService.getLatestConversations(userId));
     }
 }

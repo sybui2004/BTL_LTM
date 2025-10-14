@@ -1,44 +1,28 @@
 package com.ltm.memorygame.controller.chat;
 
-import java.security.Principal;
 import java.util.List;
 
-import org.springframework.messaging.handler.annotation.DestinationVariable;
-import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.messaging.simp.annotation.SubscribeMapping;
-import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import com.ltm.memorygame.dto.chat.request.MatchMessageRequest;
-import com.ltm.memorygame.dto.chat.response.MatchMessageDto;
+import com.ltm.memorygame.dto.chat.response.MatchMessageDTO;
 import com.ltm.memorygame.service.chat.MatchMessageService;
 
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-@Controller
+@RestController
 @RequiredArgsConstructor
 @Slf4j
+@RequestMapping("/api/chat/match")
 public class MatchMessageController {
 
     private final MatchMessageService matchMessageService;
-
-    // Client gửi tin nhắn vào: /app/room.send.{roomId}
-
-    @MessageMapping("/room.send.{roomId}")
-    public void handleRoomMessage(@DestinationVariable String roomId,
-                                  @Valid @Payload MatchMessageRequest request,
-                                  Principal principal) {
-        Long fromUserId = Long.valueOf(principal.getName());
-        matchMessageService.sendMatchMessage(roomId, fromUserId, request.getContent());
-    }
-
-    
-    // Khi client subscribe /topic/room.{roomId}, server trả snapshot tin nhắn hiện có
-    
-    @SubscribeMapping("/topic/room.{roomId}")
-    public List<MatchMessageDto> getRoomHistory(@DestinationVariable String roomId) {
-        return matchMessageService.getMatchHistory(roomId);
+    // lấy lich sử chat trong trận đã được lưu vào RAM
+    @GetMapping("/")
+    public List<MatchMessageDTO> getMatchMessageHistory(@PathVariable String roomId) {
+        return matchMessageService.getMatchMessageHistory(roomId);
     }
 }

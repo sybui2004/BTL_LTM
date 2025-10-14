@@ -1,6 +1,8 @@
 package com.ltm.memorygame.dto.chat.request;
 
-import jakarta.validation.constraints.NotBlank;
+import com.ltm.memorygame.model.enums.MessageType;
+
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -14,7 +16,12 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class WorldMessageRequest {
-    @NotBlank
+
     @Size(max = 2000)
     private String content;
+
+    @NotNull
+    private MessageType messageType;
+    
+    private Long stickerId; 
 }
