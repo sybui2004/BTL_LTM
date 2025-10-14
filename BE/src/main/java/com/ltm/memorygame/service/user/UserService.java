@@ -68,6 +68,11 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
+    public boolean existsByUsername(String username) {
+        return userRepository.existsByUsername(username);
+    }
+
+    @Transactional(readOnly = true)
     public List<UserRankingProjection> getRanking() {
         return userRepository.getUserRankingNative();
     }
