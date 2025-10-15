@@ -6,6 +6,7 @@ import com.ltm.memorygame.dto.user.request.CreateUserRequest;
 import com.ltm.memorygame.dto.user.response.UserProfileDTO;
 import com.ltm.memorygame.dto.user.response.UserResponseDTO;
 import com.ltm.memorygame.mapper.UserMapper;
+import com.ltm.memorygame.model.enums.UserStatus;
 import com.ltm.memorygame.model.game.Match;
 import com.ltm.memorygame.model.user.User;
 import com.ltm.memorygame.model.user.UserSetting;
@@ -35,6 +36,7 @@ public class UserService {
         user.setEmail(request.getEmail());
         user.setAvatarUrl(request.getAvatarUrl());
         user.setCreatedAt(new Date());
+        user.setStatus(UserStatus.OFFLINE);
 
         UserSetting setting = new UserSetting();
         setting.setUser(user);

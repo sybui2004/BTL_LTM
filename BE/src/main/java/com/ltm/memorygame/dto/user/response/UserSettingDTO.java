@@ -16,8 +16,6 @@ public class UserSettingDTO {
 
     private boolean notification;
 
-    private UserStatus status;
-
     private String language;
 
 }
