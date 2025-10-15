@@ -1,18 +1,26 @@
 package com.ltm.memorygame.tcp;
 
-import lombok.*;
+import lombok.Getter;
+import lombok.Setter;
 
-import java.util.List;
+import java.util.Map;
 
-@Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Getter
 public class TCPMessage {
-    private String type; // JOIN, MOVE, EXIT, UPDATE
-    private Long roomId;
-    private Long playerId;
-    private List<Integer> cards; // chỉ dùng cho MOVE
-    private String content; // Optional, thông báo, lỗi, kết quả
+    private String type;
+    private Map<String, Object> data;
+    private String sender;
+    private String receiver;
+    private long timestamp;
+    private String status;
+
+    public TCPMessage(String type, Map<String, Object> data, String sender, String receiver) {
+        this.type = type;
+        this.data = data;
+        this.sender = sender;
+        this.receiver = receiver;
+        this.timestamp = System.currentTimeMillis();
+        this.status = "OK";
+    }
 }

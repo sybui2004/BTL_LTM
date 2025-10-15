@@ -2,13 +2,17 @@ package com.ltm.memorygame.controller;
 
 import com.ltm.memorygame.dto.game.request.CreateRoomRequest;
 import com.ltm.memorygame.dto.game.response.RoomResponseDTO;
+import com.ltm.memorygame.dto.game.response.MatchResponseDTO;
+import com.ltm.memorygame.dto.game.request.CreateMatchRequest;
 import com.ltm.memorygame.service.room.RoomService;
+import com.ltm.memorygame.facade.RoomFacadeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import com.ltm.memorygame.dto.game.request.RoomExitRequest;
+import com.ltm.memorygame.dto.game.request.RoomActionRequest;
 
 @RestController
 @RequestMapping("/api/rooms")
@@ -16,6 +20,7 @@ import com.ltm.memorygame.dto.game.request.RoomExitRequest;
 public class RoomController {
 
     private final RoomService roomService;
+    private final RoomFacadeService roomFacadeService;
 
     @PostMapping
     public ResponseEntity<RoomResponseDTO> createRoom(@RequestBody CreateRoomRequest request) {
@@ -38,7 +43,12 @@ public class RoomController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<RoomResponseDTO> getUser(@PathVariable Long id) {
+    public ResponseEntity<RoomResponseDTO> getRoom(@PathVariable Long id) {
         return ResponseEntity.ok(roomService.getRoom(id));
+    }
+
+    @PostMapping("/start")
+    public ResponseEntity<MatchResponseDTO> startMatch(@RequestBody CreateMatchRequest request) {
+        return ResponseEntity.ok(roomFacadeService.startMatch(request));
     }
 }

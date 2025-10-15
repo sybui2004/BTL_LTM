@@ -1,5 +1,6 @@
 package com.ltm.memorygame.dto.user.response;
 
+import com.ltm.memorygame.model.enums.UserStatus;
 import lombok.*;
 import java.util.Date;
 
@@ -22,6 +23,8 @@ public class UserResponseDTO {
     private String avatarUrl;
 
     private Date createdAt;
+
+    private UserStatus status;
 
     private UserSettingDTO userSetting;
 

@@ -6,6 +6,7 @@ import com.ltm.memorygame.dto.user.request.CreateUserRequest;
 import com.ltm.memorygame.dto.user.response.UserProfileDTO;
 import com.ltm.memorygame.dto.user.response.UserResponseDTO;
 import com.ltm.memorygame.mapper.UserMapper;
+import com.ltm.memorygame.model.enums.UserStatus;
 import com.ltm.memorygame.model.game.Match;
 import com.ltm.memorygame.model.user.User;
 import com.ltm.memorygame.model.user.UserSetting;
@@ -35,6 +36,7 @@ public class UserService {
         user.setEmail(request.getEmail());
         user.setAvatarUrl(request.getAvatarUrl());
         user.setCreatedAt(new Date());
+        user.setStatus(UserStatus.OFFLINE);
 
         UserSetting setting = new UserSetting();
         setting.setUser(user);
@@ -46,15 +48,12 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public UserResponseDTO getUser(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new NoSuchElementException("User not found: " + userId));
-        return userMapper.toUserResponseDTO(user);
+        return userMapper.toUserResponseDTO(getEntityById(userId));
     }
 
     @Transactional(readOnly = true)
     public UserProfileDTO getUserProfile(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new NoSuchElementException("User not found" + userId));
+        User user = getEntityById(userId);
 
         List<Match> matches = matchRepository.findTop20ByPlayer1OrPlayer2OrderByStartTimeDesc(user, user);
 
@@ -65,6 +64,11 @@ public class UserService {
     public User getEntityById(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("User not found: " + userId));
+    }
+
+    @Transactional(readOnly = true)
+    public boolean existsByUsername(String username) {
+        return userRepository.existsByUsername(username);
     }
 
     @Transactional(readOnly = true)

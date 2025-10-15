@@ -1,73 +1,69 @@
 package com.ltm.memorygame.tcp;
 
-import com.ltm.memorygame.service.room.RoomService;
-import com.ltm.memorygame.service.notification.NotificationService;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
+import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.concurrent.ConcurrentHashMap;
 
-@Component
+@Service
 @RequiredArgsConstructor
-public class TCPServer {
+public class TCPServer implements Runnable {
 
-    private final RoomService roomService;
-    private final NotificationService notificationService;
-    private final RoomSessionManager sessionManager = new RoomSessionManager();
+    private static final int PORT = 12345;
+    private final ConcurrentHashMap<String, ClientHandler> onlineClients = new ConcurrentHashMap<>();
 
-    private final int PORT = 5000;
+    private final ClientHandlerFactory handlerFactory;
+    private volatile boolean running = true;
+    private Thread serverThread;
+    private ServerSocket serverSocket;
 
-    public void start() {
-        new Thread(() -> {
-            try (ServerSocket serverSocket = new ServerSocket(PORT)) {
-                System.out.println("TCP Server started on port " + PORT);
-                while (true) {
-                    Socket clientSocket = serverSocket.accept();
-                    new Thread(() -> handleClient(clientSocket)).start();
+    @PostConstruct
+    public void startServer() {
+        serverThread = new Thread(this, "TCP-Server-Thread");
+        serverThread.start();
+        System.out.println("[TCP] Server thread started.");
+    }
+
+    @Override
+    public void run() {
+        System.out.println("[TCP] Listening on port " + PORT + "...");
+        try (ServerSocket ss = new ServerSocket(PORT)) {
+            this.serverSocket = ss;
+            while (running) {
+                Socket clientSocket = ss.accept();
+                System.out.println("[TCP] New connection from " + clientSocket.getInetAddress());
+                try {
+                    ClientHandler handler = handlerFactory.create(clientSocket, onlineClients);
+                    handler.start();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    clientSocket.close();
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
             }
-        }).start();
-    }
-
-    private void handleClient(Socket clientSocket) {
-        try (BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()))) {
-            String line;
-            while ((line = in.readLine()) != null) {
-                TCPMessage message = JsonUtil.fromJson(line, TCPMessage.class);
-                handleMessage(clientSocket, message);
+        } catch (IOException e) {
+            if (running) {
+                System.err.println("[TCP] Server error: " + e.getMessage());
+            } else {
+                System.out.println("[TCP] Server stopped gracefully.");
             }
-        } catch (Exception e) {
-            e.printStackTrace();
         }
     }
 
-    private void handleMessage(Socket socket, TCPMessage message) {
+    @PreDestroy
+    public void stopServer() {
+        running = false;
         try {
-            switch (message.getType()) {
-                case "JOIN":
-                    sessionManager.addPlayerToRoom(message.getRoomId(), socket);
-                    sessionManager.sendToAll(message.getRoomId(), TCPMessage.builder()
-                            .type("UPDATE")
-                            .content("Player " + message.getPlayerId() + " joined")
-                            .build());
-                    break;
-
-                case "EXIT":
-                    sessionManager.removePlayerFromRoom(message.getRoomId(), socket);
-                    roomService.exitRoom(message.getRoomId(), message.getPlayerId());
-                    sessionManager.sendToAll(message.getRoomId(), TCPMessage.builder()
-                            .type("UPDATE")
-                            .content("Player " + message.getPlayerId() + " exited")
-                            .build());
-                    break;
+            if (serverSocket != null && !serverSocket.isClosed()) {
+                serverSocket.close();
             }
-        } catch (Exception e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
+        System.out.println("[TCP] Server stopped.");
     }
 }

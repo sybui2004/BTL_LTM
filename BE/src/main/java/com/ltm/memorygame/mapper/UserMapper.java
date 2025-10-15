@@ -48,6 +48,7 @@ public class UserMapper {
                 .email(user.getEmail())
                 .avatarUrl(user.getAvatarUrl())
                 .createdAt(user.getCreatedAt())
+                .status(user.getStatus())
                 .userSetting(toUserSettingDTO(user.getUserSetting()))
                 .build();
     }
