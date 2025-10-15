@@ -48,15 +48,12 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public UserResponseDTO getUser(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new NoSuchElementException("User not found: " + userId));
-        return userMapper.toUserResponseDTO(user);
+        return userMapper.toUserResponseDTO(getEntityById(userId));
     }
 
     @Transactional(readOnly = true)
     public UserProfileDTO getUserProfile(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new NoSuchElementException("User not found" + userId));
+        User user = getEntityById(userId);
 
         List<Match> matches = matchRepository.findTop20ByPlayer1OrPlayer2OrderByStartTimeDesc(user, user);
 

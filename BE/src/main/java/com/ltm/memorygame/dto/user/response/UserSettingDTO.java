@@ -1,6 +1,5 @@
 package com.ltm.memorygame.dto.user.response;
 
-import com.ltm.memorygame.model.enums.UserStatus;
 import lombok.*;
 
 @Getter

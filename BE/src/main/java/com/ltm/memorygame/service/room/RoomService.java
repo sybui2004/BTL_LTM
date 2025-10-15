@@ -3,7 +3,9 @@ package com.ltm.memorygame.service.room;
 import com.ltm.memorygame.dao.game.RoomRepository;
 import com.ltm.memorygame.dto.game.response.RoomResponseDTO;
 import com.ltm.memorygame.mapper.RoomMapper;
-import com.ltm.memorygame.service.user.UserService;
+import com.ltm.memorygame.dto.game.response.MatchResponseDTO;
+import com.ltm.memorygame.dto.game.request.CreateMatchRequest;
+import com.ltm.memorygame.dao.user.UserRepository;
 import com.ltm.memorygame.model.game.Room;
 import com.ltm.memorygame.model.enums.RoomStatus;
 import com.ltm.memorygame.model.user.User;
@@ -19,7 +21,7 @@ import java.util.NoSuchElementException;
 public class RoomService {
 
     private final RoomRepository roomRepository;
-    private final UserService userService;
+    private final UserRepository userRepository;
 
     /*
     Tạo phòng chờ mới.
@@ -28,8 +30,10 @@ public class RoomService {
     */
     @Transactional
     public RoomResponseDTO createRoom(Long hostId, Long guestId) {
-        User host = userService.getEntityById(hostId);
-        User guest = guestId != null ? userService.getEntityById(guestId) : null;
+        User host = userRepository.findById(hostId)
+                .orElseThrow(() -> new java.util.NoSuchElementException("User not found: " + hostId));
+        User guest = guestId != null ? userRepository.findById(guestId)
+                .orElseThrow(() -> new java.util.NoSuchElementException("User not found: " + guestId)) : null;
 
         boolean hostInRoom = roomRepository.existsByHostIdOrGuestIdAndStatusIn(
                 hostId, hostId, List.of(RoomStatus.WAITING, RoomStatus.PLAYING, RoomStatus.READY)
@@ -96,7 +100,8 @@ public class RoomService {
             throw new IllegalStateException("Player is already in another room!");
         }
 
-        User guest = userService.getEntityById(playerId);
+        User guest = userRepository.findById(playerId)
+                .orElseThrow(() -> new java.util.NoSuchElementException("User not found: " + playerId));
         room.setGuest(guest);
         room.setStatus(RoomStatus.READY);
         return RoomMapper.toDTO(roomRepository.save(room));
@@ -148,23 +153,16 @@ public class RoomService {
         return RoomMapper.toDTO(room);
     }
 
-    @Transactional
-    public RoomResponseDTO startMatch(Long roomId, Long playerId) {
-        Room room = roomRepository.findById(roomId)
+    @Transactional(readOnly = true)
+    public Room getEntityById(Long roomId) {
+        return roomRepository.findById(roomId)
                 .orElseThrow(() -> new NoSuchElementException("Room not found: " + roomId));
-
-        if (room.getStatus() != RoomStatus.READY)
-            throw new IllegalStateException("Room is not ready to start!");
-
-        if (!room.getHost().getId().equals(playerId))
-            throw new IllegalStateException("Only host can start the match!");
-
-        room.setStatus(RoomStatus.PLAYING);
-        roomRepository.save(room);
-
-        // TODO: Tạo Match entity sau (MatchService.createMatch(room))
-        // matchService.createMatch(room.getId(), room.getHost().getId(), room.getGuest().getId());
-
-        return RoomMapper.toDTO(room);
     }
+
+    @Transactional
+    public RoomResponseDTO updateAndMap(Room room) {
+        return RoomMapper.toDTO(roomRepository.save(room));
+    }
+
+    // startMatch moved to RoomFacadeService to avoid service-to-service calls
 }
