@@ -1,6 +1,7 @@
 package com.ltm.memorygame.service.game;
 
 import java.util.NoSuchElementException;
+import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +19,11 @@ public class ThemeService {
     @Transactional(readOnly = true)
     public Theme getEntityById(Long themeId) {
         return themeRepository.findById(themeId)
-                .orElseThrow(() -> new NoSuchElementException("theme not found: " + themeId));
+                .orElseThrow(() -> new NoSuchElementException("Theme not found: " + themeId));
     }
+
+        @Transactional(readOnly = true)
+        public List<Theme> getAll() {
+            return themeRepository.findAll();
+        }
 }

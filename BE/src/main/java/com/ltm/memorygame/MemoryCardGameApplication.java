@@ -9,3 +9,6 @@ public class MemoryCardGameApplication {
         SpringApplication.run(MemoryCardGameApplication.class, args);
     }
 }
+
+// netstat -ano | findstr :8080
+// taskkill /PID {id} /F
