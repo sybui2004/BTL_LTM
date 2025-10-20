@@ -5,12 +5,10 @@ import java.util.Date;
 
 import com.ltm.memorygame.model.enums.MatchStatus;
 
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-
 public class MatchResponseDTO {
     private Long id;
 

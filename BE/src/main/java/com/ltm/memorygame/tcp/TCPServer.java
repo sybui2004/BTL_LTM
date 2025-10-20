@@ -3,6 +3,9 @@ package com.ltm.memorygame.tcp;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -14,7 +17,11 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 public class TCPServer implements Runnable {
 
-    private static final int PORT = 12345;
+    private static final Logger log = LoggerFactory.getLogger(TCPServer.class);
+
+    @Value("${tcp.server.port:12345}")
+    private int port;
+
     private final ConcurrentHashMap<String, ClientHandler> onlineClients = new ConcurrentHashMap<>();
 
     private final ClientHandlerFactory handlerFactory;
@@ -26,30 +33,30 @@ public class TCPServer implements Runnable {
     public void startServer() {
         serverThread = new Thread(this, "TCP-Server-Thread");
         serverThread.start();
-        System.out.println("[TCP] Server thread started.");
+        log.info("[TCP] Server thread started.");
     }
 
     @Override
     public void run() {
-        System.out.println("[TCP] Listening on port " + PORT + "...");
-        try (ServerSocket ss = new ServerSocket(PORT)) {
+        log.info("[TCP] Listening on port {}...", port);
+        try (ServerSocket ss = new ServerSocket(port)) {
             this.serverSocket = ss;
             while (running) {
                 Socket clientSocket = ss.accept();
-                System.out.println("[TCP] New connection from " + clientSocket.getInetAddress());
+                log.info("[TCP] New connection from {}", clientSocket.getInetAddress());
                 try {
                     ClientHandler handler = handlerFactory.create(clientSocket, onlineClients);
                     handler.start();
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    log.error("[TCP] Failed to create handler: {}", e.getMessage());
                     clientSocket.close();
                 }
             }
         } catch (IOException e) {
             if (running) {
-                System.err.println("[TCP] Server error: " + e.getMessage());
+                log.error("[TCP] Server error: {}", e.getMessage());
             } else {
-                System.out.println("[TCP] Server stopped gracefully.");
+                log.info("[TCP] Server stopped gracefully.");
             }
         }
     }
@@ -62,8 +69,14 @@ public class TCPServer implements Runnable {
                 serverSocket.close();
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            log.warn("[TCP] Error during server socket close: {}", e.getMessage());
         }
-        System.out.println("[TCP] Server stopped.");
+        // attempt to shutdown active clients
+        try {
+            for (ClientHandler handler : onlineClients.values()) {
+                try { handler.shutdown(); } catch (Exception ignored) {}
+            }
+        } catch (Exception ignored) {}
+        log.info("[TCP] Server stopped.");
     }
 }

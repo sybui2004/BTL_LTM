@@ -8,6 +8,7 @@ import com.ltm.memorygame.service.room.RoomService;
 import com.ltm.memorygame.facade.RoomFacadeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,7 +24,7 @@ public class RoomController {
     private final RoomFacadeService roomFacadeService;
 
     @PostMapping
-    public ResponseEntity<RoomResponseDTO> createRoom(@RequestBody CreateRoomRequest request) {
+    public ResponseEntity<RoomResponseDTO> createRoom(@Valid @RequestBody CreateRoomRequest request) {
         return ResponseEntity.ok(roomService.createRoom(request.getHostId(), request.getGuestId()));
     }
 
@@ -33,12 +34,12 @@ public class RoomController {
     }
 
     @PostMapping("/join")
-    public ResponseEntity<RoomResponseDTO> joinRoom(@RequestBody RoomExitRequest request) {
+    public ResponseEntity<RoomResponseDTO> joinRoom(@Valid @RequestBody RoomExitRequest request) {
         return ResponseEntity.ok(roomService.joinRoom(request.getRoomId(), request.getPlayerId()));
     }
 
     @PostMapping("/exit")
-    public ResponseEntity<RoomResponseDTO> exitRoom(@RequestBody RoomExitRequest request) {
+    public ResponseEntity<RoomResponseDTO> exitRoom(@Valid @RequestBody RoomExitRequest request) {
         return ResponseEntity.ok(roomService.exitRoom(request.getRoomId(), request.getPlayerId()));
     }
 
@@ -48,7 +49,7 @@ public class RoomController {
     }
 
     @PostMapping("/start")
-    public ResponseEntity<MatchResponseDTO> startMatch(@RequestBody CreateMatchRequest request) {
+    public ResponseEntity<MatchResponseDTO> startMatch(@Valid @RequestBody CreateMatchRequest request) {
         return ResponseEntity.ok(roomFacadeService.startMatch(request));
     }
 }

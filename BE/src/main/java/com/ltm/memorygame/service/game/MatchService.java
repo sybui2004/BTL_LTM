@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,7 +37,7 @@ public class MatchService {
     @Transactional(readOnly = true)
     public List<MatchHistoryDTO> getMatchHistory(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new NoSuchElementException("User not found"));
 
         List<Match> matches = matchRepository.findTop20ByPlayer1OrPlayer2OrderByStartTimeDesc(user, user);
 
@@ -48,13 +49,13 @@ public class MatchService {
     @Transactional
     public MatchResponseDTO createMatch(CreateMatchRequest request){
         User player1 = userRepository.findById(request.getPlayer1Id())
-                .orElseThrow(() -> new RuntimeException("Player 1 not found"));
+                .orElseThrow(() -> new NoSuchElementException("Player 1 not found"));
         User player2 = userRepository.findById(request.getPlayer2Id())
-                .orElseThrow(() -> new RuntimeException("Player 2 not found"));
+                .orElseThrow(() -> new NoSuchElementException("Player 2 not found"));
         Room room = roomRepository.findById(request.getRoomId())
-                .orElseThrow(() -> new RuntimeException("Room not found"));
+                .orElseThrow(() -> new NoSuchElementException("Room not found"));
         Theme theme = themeRepository.findById(request.getThemeId())
-                .orElseThrow(() -> new RuntimeException("Theme not found"));
+                .orElseThrow(() -> new NoSuchElementException("Theme not found"));
 
         Match match = new Match();
         match.setBoardSize(request.getBoardSize());
@@ -97,6 +98,6 @@ public class MatchService {
     @Transactional(readOnly = true)
     public Match getEntityById(Long matchId) {
         return matchRepository.findById(matchId)
-                .orElseThrow(() -> new RuntimeException("Match not found"));
+                .orElseThrow(() -> new NoSuchElementException("Match not found"));
     }
 }

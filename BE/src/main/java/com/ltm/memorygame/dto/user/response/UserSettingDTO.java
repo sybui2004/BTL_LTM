@@ -2,8 +2,7 @@ package com.ltm.memorygame.dto.user.response;
 
 import lombok.*;
 
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

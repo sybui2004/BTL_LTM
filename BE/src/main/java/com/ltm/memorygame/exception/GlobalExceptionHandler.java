@@ -1,6 +1,7 @@
 package com.ltm.memorygame.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -36,6 +37,18 @@ public class GlobalExceptionHandler {
 		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
 	}
 
+	@ExceptionHandler(IllegalArgumentException.class)
+	public ResponseEntity<ApiError> handleIllegalArgument(IllegalArgumentException ex, HttpServletRequest request) {
+		ApiError body = new ApiError(
+			OffsetDateTime.now().toString(),
+			HttpStatus.BAD_REQUEST.value(),
+			HttpStatus.BAD_REQUEST.getReasonPhrase(),
+			ex.getMessage(),
+			request.getRequestURI()
+		);
+		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+	}
+
 	@ExceptionHandler(Exception.class)
 	public ResponseEntity<ApiError> handleInternal(Exception ex, HttpServletRequest request) {
 		ApiError body = new ApiError(
@@ -46,6 +59,22 @@ public class GlobalExceptionHandler {
 			request.getRequestURI()
 		);
 		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
+	}
+
+	@ExceptionHandler(MethodArgumentNotValidException.class)
+	public ResponseEntity<ApiError> handleValidation(MethodArgumentNotValidException ex, HttpServletRequest request) {
+		String msg = ex.getBindingResult().getFieldErrors().stream()
+				.map(e -> e.getField() + ": " + e.getDefaultMessage())
+				.findFirst()
+				.orElse("Validation failed");
+		ApiError body = new ApiError(
+			OffsetDateTime.now().toString(),
+			HttpStatus.BAD_REQUEST.value(),
+			HttpStatus.BAD_REQUEST.getReasonPhrase(),
+			msg,
+			request.getRequestURI()
+		);
+		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
 	}
 }
 

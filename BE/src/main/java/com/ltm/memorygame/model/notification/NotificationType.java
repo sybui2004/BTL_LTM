@@ -6,7 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
-@Table(name = "NotificationType")
+@Table(name = "notification_type")
 @Setter
 @Getter
 public class NotificationType {

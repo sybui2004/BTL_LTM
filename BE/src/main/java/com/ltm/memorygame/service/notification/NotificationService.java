@@ -4,6 +4,7 @@ import com.ltm.memorygame.model.notification.Notification;
 import com.ltm.memorygame.model.notification.NotificationType;
 import com.ltm.memorygame.dao.notification.NotificationRepository;
 import com.ltm.memorygame.dao.notification.NotificationTypeRepository;
+import com.ltm.memorygame.model.enums.NotificationTypeName;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -17,13 +18,13 @@ public class NotificationService {
     private final NotificationTypeRepository typeRepository;
 
     public void sendNotification(Long senderId, Long receiverId, String typeName, String content) {
-        NotificationType type = typeRepository.findAll().stream()
-                .filter(t -> t.getName().name().equals(typeName))
-                .findFirst().orElseThrow();
+        NotificationTypeName enumName = NotificationTypeName.valueOf(typeName);
+        NotificationType type = typeRepository.findByName(enumName)
+                .orElseThrow();
 
         Notification notification = new Notification();
-        notification.setSenderId(senderId.intValue());
-        notification.setReceiverId(receiverId.intValue());
+        notification.setSenderId(senderId);
+        notification.setReceiverId(receiverId);
         notification.setType(type);
         notification.setContent(content);
         notification.setCreatedAt(new Date());

@@ -55,11 +55,11 @@ public class InviteFacadeService {
 		invite.setStatus(InviteStatus.PENDING);
 		inviteService.save(invite);
 
-		try {
-			notificationService.sendNotification(senderId, receiverId,
-					NotificationTypeName.MATCH_INVITE_RECEIVED.name(),
-					"Bạn nhận được lời mời thách đấu từ " + sender.getUsername());
-		} catch (Exception ignored) {}
+        try {
+            notificationService.sendNotification(senderId, receiverId,
+                    NotificationTypeName.MATCH_INVITE_RECEIVED.name(),
+                    "You received a match invite from " + sender.getUsername());
+        } catch (Exception ignored) {}
 	}
 
 	@Transactional

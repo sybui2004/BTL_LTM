@@ -10,7 +10,7 @@ import lombok.Setter;
 import java.util.Date;
 
 @Entity
-@Table(name = "GameMatch")
+@Table(name = "game_match")
 @Getter
 @Setter
 public class Match {
