@@ -23,16 +23,16 @@ public class RoomFacadeService {
 	public MatchResponseDTO startMatch(CreateMatchRequest request) {
 		Room room = roomService.getEntityById(request.getRoomId());
 
-		if (room.getStatus() != RoomStatus.READY)
-			throw new IllegalStateException("Room is not ready to start!");
+        if (room.getStatus() != RoomStatus.READY)
+            throw new IllegalStateException("Room is not ready to start");
 
 		// Only host can start; host must be player1
-		if (!room.getHost().getId().equals(request.getPlayer1Id()))
-			throw new IllegalStateException("Only host can start the match!");
+        if (!room.getHost().getId().equals(request.getPlayer1Id()))
+            throw new IllegalStateException("Only the host can start the match");
 
 		// player2 must be the room's guest
-		if (room.getGuest() == null || !room.getGuest().getId().equals(request.getPlayer2Id()))
-			throw new IllegalStateException("Guest player does not match the room's guest!");
+        if (room.getGuest() == null || !room.getGuest().getId().equals(request.getPlayer2Id()))
+            throw new IllegalStateException("Guest player does not match the room's guest");
 
 		room.setStatus(RoomStatus.PLAYING);
 		roomService.updateAndMap(room);

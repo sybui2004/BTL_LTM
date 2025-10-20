@@ -2,10 +2,12 @@ package com.ltm.memorygame.mapper;
 
 import com.ltm.memorygame.dto.game.response.RoomInviteResponseDTO;
 import com.ltm.memorygame.model.game.RoomInvite;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Component
 public class RoomInviteMapper {
 
     public static RoomInviteResponseDTO toDTO(RoomInvite invite) {
@@ -15,9 +17,9 @@ public class RoomInviteMapper {
         dto.setId(invite.getId());
         dto.setRoomId(invite.getRoom() != null ? invite.getRoom().getId() : null);
         dto.setSenderId(invite.getSender() != null ? invite.getSender().getId() : null);
-        dto.setSenderName(invite.getSender() != null ? invite.getSender().getUsername() : null);
+        dto.setSenderName(invite.getSender() != null ? invite.getSender().getDisplayName() : null);
         dto.setReceiverId(invite.getReceiver() != null ? invite.getReceiver().getId() : null);
-        dto.setReceiverName(invite.getReceiver() != null ? invite.getReceiver().getUsername() : null);
+        dto.setReceiverName(invite.getReceiver() != null ? invite.getReceiver().getDisplayName() : null);
         dto.setStatus(invite.getStatus());
         dto.setCreatedAt(invite.getCreatedAt());
         return dto;

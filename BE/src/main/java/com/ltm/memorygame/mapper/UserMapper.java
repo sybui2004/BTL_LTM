@@ -1,5 +1,6 @@
 package com.ltm.memorygame.mapper;
 
+import com.ltm.memorygame.dto.friend.response.FriendDTO;
 import com.ltm.memorygame.dto.game.response.MatchHistoryDTO;
 import com.ltm.memorygame.dto.user.response.UserProfileDTO;
 import com.ltm.memorygame.dto.user.response.UserResponseDTO;
@@ -61,13 +62,22 @@ public class UserMapper {
 
         return UserProfileDTO.builder()
                 .id(user.getId())
-                .username(user.getUsername())
                 .displayName(user.getDisplayName())
-                .email(user.getEmail())
                 .avatarUrl(user.getAvatarUrl())
                 .createdAt(user.getCreatedAt())
-                .userSetting(toUserSettingDTO(user.getUserSetting()))
                 .matchHistory(matchHistoryDTO)
+                .build();
+    }
+
+    // Map User -> FriendDTO
+    public FriendDTO toFriendDTO(User user) {
+        if (user == null) return null;
+
+        return FriendDTO.builder()
+                .id(user.getId())
+                .displayName(user.getDisplayName())
+                .avatarUrl(user.getAvatarUrl())
+                .status(user.getStatus())
                 .build();
     }
 

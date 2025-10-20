@@ -3,12 +3,16 @@ package com.ltm.memorygame.tcp;
 import com.ltm.memorygame.service.user.UserService;
 import com.ltm.memorygame.service.room.RoomService;
 import com.ltm.memorygame.service.notification.NotificationService;
+import com.ltm.memorygame.security.JwtService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.net.Socket;
 import java.util.Map;
 
 public class ClientHandler extends Thread {
+    private static final Logger log = LoggerFactory.getLogger(ClientHandler.class);
     private final Socket socket;
     private final BufferedReader in;
     private final PrintWriter out;
@@ -17,6 +21,12 @@ public class ClientHandler extends Thread {
     private final UserService userService;
     private final RoomService roomService;
     private final NotificationService notificationService;
+    private final JwtService jwtService;
+    private final boolean requireJwt;
+    private final int maxPerSecond;
+
+    private long windowStartMs = System.currentTimeMillis();
+    private int messagesInWindow = 0;
 
     private String username;
 
@@ -24,12 +34,18 @@ public class ClientHandler extends Thread {
                          Map<String, ClientHandler> onlineClients,
                          UserService userService,
                          RoomService roomService,
-                         NotificationService notificationService) throws IOException {
+                         NotificationService notificationService,
+                         JwtService jwtService,
+                         boolean requireJwt,
+                         int maxPerSecond) throws IOException {
         this.socket = socket;
         this.onlineClients = onlineClients;
         this.userService = userService;
         this.roomService = roomService;
         this.notificationService = notificationService;
+        this.jwtService = jwtService;
+        this.requireJwt = requireJwt;
+        this.maxPerSecond = maxPerSecond;
         this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         this.out = new PrintWriter(socket.getOutputStream(), true);
     }
@@ -39,11 +55,15 @@ public class ClientHandler extends Thread {
         try {
             String raw;
             while ((raw = in.readLine()) != null) {
+                if (!allowMessage()) {
+                    sendMessage(new TCPMessage("ERROR", Map.of("reason", "Rate limit exceeded"), "server", username));
+                    continue;
+                }
                 TCPMessage msg = JsonUtil.fromJson(raw, TCPMessage.class);
                 handleMessage(msg);
             }
         } catch (IOException e) {
-            System.out.println("[WARN] Client disconnected: " + username);
+            log.warn("[TCP] Client disconnected: {}", username);
         } finally {
             if (username != null) {
                 onlineClients.remove(username);
@@ -61,12 +81,13 @@ public class ClientHandler extends Thread {
             case "WORLD_CHAT" -> handleWorldChat(message);
             case "PRIVATE_CHAT" -> handlePrivateChat(message);
             case "PING" -> sendMessage(new TCPMessage("PONG", null, "server", username));
-            default -> System.out.println("[WARN] Unknown type: " + message.getType());
+            default -> log.warn("[TCP] Unknown type: {}", message.getType());
         }
     }
 
     private void handleLogin(TCPMessage message) {
         Object nameObj = message.getData().get("username");
+        Object tokenObj = message.getData().get("token");
         if (nameObj == null) {
             sendMessage(new TCPMessage("LOGIN_FAILED",
                     Map.of("reason", "Missing username"), "server", null));
@@ -82,7 +103,30 @@ public class ClientHandler extends Thread {
             return;
         }
 
-        System.out.println("[INFO] User logged in: " + username);
+        if (requireJwt) {
+            if (tokenObj == null) {
+                sendMessage(new TCPMessage("LOGIN_FAILED",
+                        Map.of("reason", "Missing token"), "server", null));
+                onlineClients.remove(username);
+                return;
+            }
+            String token = tokenObj.toString();
+            if (!jwtService.validateToken(token)) {
+                sendMessage(new TCPMessage("LOGIN_FAILED",
+                        Map.of("reason", "Invalid token"), "server", null));
+                onlineClients.remove(username);
+                return;
+            }
+            String tokenUser = jwtService.extractUsername(token);
+            if (tokenUser == null || !tokenUser.equals(username)) {
+                sendMessage(new TCPMessage("LOGIN_FAILED",
+                        Map.of("reason", "Token/user mismatch"), "server", null));
+                onlineClients.remove(username);
+                return;
+            }
+        }
+
+        log.info("[TCP] User logged in: {}", username);
         sendMessage(new TCPMessage("LOGIN_SUCCESS", null, "server", username));
         broadcastUserStatus(username, true);
     }
@@ -123,5 +167,19 @@ public class ClientHandler extends Thread {
         synchronized (out) {
             out.println(JsonUtil.toJson(message));
         }
+    }
+
+    private boolean allowMessage() {
+        long now = System.currentTimeMillis();
+        if (now - windowStartMs >= 1000) {
+            windowStartMs = now;
+            messagesInWindow = 0;
+        }
+        messagesInWindow++;
+        return messagesInWindow <= maxPerSecond;
+    }
+
+    public void shutdown() {
+        try { socket.close(); } catch (IOException ignored) {}
     }
 }

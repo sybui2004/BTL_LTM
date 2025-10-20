@@ -1,13 +1,16 @@
 package com.ltm.memorygame.dto.game.request;
 
 import lombok.*;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class CreateRoomRequest {
+    @NotNull
+    @Positive
     private Long hostId;
+    @Positive
     private Long guestId;
 }

@@ -7,7 +7,7 @@ import lombok.Setter;
 import java.util.Date;
 
 @Entity
-@Table(name = "Theme")
+@Table(name = "theme")
 @Getter
 @Setter
 public class Theme {

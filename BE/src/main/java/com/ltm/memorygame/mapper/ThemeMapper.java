@@ -2,10 +2,12 @@ package com.ltm.memorygame.mapper;
 
 import com.ltm.memorygame.dto.game.response.ThemeResponseDTO;
 import com.ltm.memorygame.model.game.Theme;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Component
 public class ThemeMapper {
 
     public static ThemeResponseDTO toDTO(Theme theme) {
@@ -16,10 +18,6 @@ public class ThemeMapper {
                 .southPath(theme.getSouthPath())
                 .assetPath(theme.getAssetPath())
                 .build();
-    }
-
-    public static List<ThemeResponseDTO> toDTOList(List<Theme> themes) {
-        return themes.stream().map(ThemeMapper::toDTO).collect(Collectors.toList());
     }
 }
 

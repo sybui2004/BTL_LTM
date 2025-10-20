@@ -4,12 +4,10 @@ import com.ltm.memorygame.model.enums.UserStatus;
 import lombok.*;
 import java.util.Date;
 
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-
 public class UserResponseDTO {
 
     private Long id;

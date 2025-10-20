@@ -1,4 +1,4 @@
-module com.example.fe {
+module com.example.memorygame {
     requires javafx.controls;
     requires javafx.fxml;
     requires javafx.web;
@@ -10,7 +10,11 @@ module com.example.fe {
     requires org.kordamp.bootstrapfx.core;
     requires eu.hansolo.tilesfx;
     requires com.almasb.fxgl.all;
+    requires java.net.http;
+    requires com.fasterxml.jackson.databind;
 
-    opens com.example.fe to javafx.fxml;
-    exports com.example.fe;
+    opens com.example.memorygame to javafx.fxml;
+    opens com.example.memorygame.controller to javafx.fxml;
+    opens com.example.memorygame.model.user to com.fasterxml.jackson.databind;
+    exports com.example.memorygame;
 }

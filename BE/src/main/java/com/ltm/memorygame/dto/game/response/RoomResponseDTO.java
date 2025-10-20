@@ -3,8 +3,7 @@ package com.ltm.memorygame.dto.game.response;
 import com.ltm.memorygame.model.enums.RoomStatus;
 import lombok.*;
 
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

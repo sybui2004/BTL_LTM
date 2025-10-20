@@ -7,7 +7,7 @@ import lombok.Setter;
 import java.util.Date;
 
 @Entity
-@Table(name = "Notification")
+@Table(name = "notification")
 @Setter
 @Getter
 public class Notification {
@@ -17,10 +17,10 @@ public class Notification {
     private Long id;
 
     @Column(name = "sender_id", nullable = false)
-    private int senderId;
+    private Long senderId;
 
     @Column(name = "receiver_id", nullable = false)
-    private int receiverId;
+    private Long receiverId;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "type_id", nullable = false)

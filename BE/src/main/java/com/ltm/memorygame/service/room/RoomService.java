@@ -40,7 +40,7 @@ public class RoomService {
         );
 
         if (hostInRoom) {
-            throw new IllegalStateException("Host is already in a room!");
+            throw new IllegalStateException("Host is already in another room");
         }
 
         if (guest != null) {
@@ -48,7 +48,7 @@ public class RoomService {
                     guestId, guestId, List.of(RoomStatus.WAITING, RoomStatus.PLAYING, RoomStatus.READY)
             );
             if (guestInRoom) {
-                throw new IllegalStateException("Guest is already in a room!");
+                throw new IllegalStateException("Guest is already in another room");
             }
         }
 
@@ -81,15 +81,15 @@ public class RoomService {
         Room room = roomRepository.findById(roomId).orElseThrow(() -> new NoSuchElementException("Room not found: " + roomId));
         
         if (room.getStatus() != RoomStatus.WAITING) {
-            throw new IllegalStateException("Room is not available for joining!");
+            throw new IllegalStateException("Room is not available for joining");
         }
 
         if (room.getHost().getId().equals(playerId)) {
-            throw new IllegalStateException("Host cannot join their own room!");
+            throw new IllegalStateException("Host cannot join their own room");
         }
 
         if (room.getGuest() != null) {
-            throw new IllegalStateException("Room already has a guest!");
+            throw new IllegalStateException("Room already has a guest");
         }
 
         boolean playerInOtherRoom = roomRepository.existsByHostIdOrGuestIdAndStatusIn(
@@ -97,7 +97,7 @@ public class RoomService {
         );
 
         if (playerInOtherRoom) {
-            throw new IllegalStateException("Player is already in another room!");
+            throw new IllegalStateException("Player is already in another room");
         }
 
         User guest = userRepository.findById(playerId)
@@ -143,7 +143,7 @@ public class RoomService {
             return RoomMapper.toDTO(roomRepository.save(room));
         }
 
-        throw new IllegalStateException("Player not found in this room!");
+        throw new IllegalStateException("Player not found in this room");
     }
 
     @Transactional(readOnly = true)

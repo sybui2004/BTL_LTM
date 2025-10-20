@@ -1,15 +1,14 @@
 package com.ltm.memorygame.dto.game.request;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
+import jakarta.validation.constraints.Min;
 
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class FinishedMatchRequest {
+    @Min(0)
     private int player1Score;
+    @Min(0)
     private int player2Score;
 }

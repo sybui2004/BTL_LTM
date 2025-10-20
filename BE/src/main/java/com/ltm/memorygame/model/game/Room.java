@@ -9,7 +9,7 @@ import lombok.Setter;
 import java.util.Date;
 
 @Entity
-@Table(name = "Room")
+@Table(name = "room")
 @Getter
 @Setter
 public class Room {
