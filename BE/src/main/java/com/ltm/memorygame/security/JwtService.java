@@ -19,7 +19,7 @@ public class JwtService {
     private String secret;
 
     @Value("${app.jwt.expirationMs:86400000}")
-    private long expirationMs;
+    private long expirationMs; // 1 day
 
     private static final Gson gson = new Gson();
 

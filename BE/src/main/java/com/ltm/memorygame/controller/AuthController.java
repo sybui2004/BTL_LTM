@@ -2,6 +2,7 @@ package com.ltm.memorygame.controller;
 
 import com.ltm.memorygame.dto.auth.response.AuthResponse;
 import com.ltm.memorygame.dto.auth.request.AuthRequest;
+import com.ltm.memorygame.dto.auth.request.RegisterRequest;
 import com.ltm.memorygame.dto.user.response.UserResponseDTO;
 import com.ltm.memorygame.service.auth.AuthService;
 import com.ltm.memorygame.service.user.UserService;
@@ -10,7 +11,6 @@ import org.springframework.http.ResponseEntity;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
-import java.security.NoSuchAlgorithmException;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -21,7 +21,7 @@ public class AuthController {
     private final UserService userService;
 
     @PostMapping("/register")
-    public ResponseEntity<UserResponseDTO> register(@Valid @RequestBody AuthRequest body) {
+    public ResponseEntity<UserResponseDTO> register(@Valid @RequestBody RegisterRequest body) {
         return ResponseEntity.status(201).body(userService.createUser(body));
     }
 

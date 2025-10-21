@@ -8,12 +8,13 @@ import com.ltm.memorygame.service.room.RoomService;
 import com.ltm.memorygame.facade.RoomFacadeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
+import com.ltm.memorygame.security.AuthUtils;
 
 import java.util.List;
 import com.ltm.memorygame.dto.game.request.RoomExitRequest;
-import com.ltm.memorygame.dto.game.request.RoomActionRequest;
 
 @RestController
 @RequestMapping("/api/rooms")
@@ -25,6 +26,10 @@ public class RoomController {
 
     @PostMapping
     public ResponseEntity<RoomResponseDTO> createRoom(@Valid @RequestBody CreateRoomRequest request) {
+        Long authId = AuthUtils.getAuthenticatedUserId();
+        if (authId == null || !authId.equals(request.getHostId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         return ResponseEntity.ok(roomService.createRoom(request.getHostId(), request.getGuestId()));
     }
 
@@ -35,11 +40,19 @@ public class RoomController {
 
     @PostMapping("/join")
     public ResponseEntity<RoomResponseDTO> joinRoom(@Valid @RequestBody RoomExitRequest request) {
+        Long authId = AuthUtils.getAuthenticatedUserId();
+        if (authId == null || !authId.equals(request.getPlayerId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         return ResponseEntity.ok(roomService.joinRoom(request.getRoomId(), request.getPlayerId()));
     }
 
     @PostMapping("/exit")
     public ResponseEntity<RoomResponseDTO> exitRoom(@Valid @RequestBody RoomExitRequest request) {
+        Long authId = AuthUtils.getAuthenticatedUserId();
+        if (authId == null || !authId.equals(request.getPlayerId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         return ResponseEntity.ok(roomService.exitRoom(request.getRoomId(), request.getPlayerId()));
     }
 
@@ -50,6 +63,10 @@ public class RoomController {
 
     @PostMapping("/start")
     public ResponseEntity<MatchResponseDTO> startMatch(@Valid @RequestBody CreateMatchRequest request) {
+        Long authId = AuthUtils.getAuthenticatedUserId();
+        if (authId == null || !authId.equals(request.getPlayer1Id())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         return ResponseEntity.ok(roomFacadeService.startMatch(request));
     }
 }

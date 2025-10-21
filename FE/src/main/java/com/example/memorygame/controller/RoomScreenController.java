@@ -150,8 +150,7 @@ public class RoomScreenController {
         avatar.setFitWidth(36);
         avatar.setFitHeight(36);
         avatar.setPreserveRatio(true);
-        String url = user.avatarUrl != null && !user.avatarUrl.isBlank() ? user.avatarUrl : getClass().getResource("/com/example/memorygame/assets/images/name.png").toExternalForm();
-        avatar.setImage(new Image(url, true));
+        avatar.setImage(loadUserAvatarOrFallback(user.avatarUrl));
 
         VBox texts = new VBox(2);
         String display = (user.displayName != null && !user.displayName.isBlank()) ? user.displayName : (user.username != null ? user.username : "Player");
@@ -184,6 +183,27 @@ public class RoomScreenController {
         if (s.contains("busy")) return "busy";
         if (s.contains("online")) return "online";
         return "offline";
+    }
+
+    private Image loadUserAvatarOrFallback(String candidateUrl) {
+        // Fallback image packaged in resources
+        String fallbackResource = "/com/example/memorygame/assets/images/name.png";
+        try {
+            if (candidateUrl != null) {
+                String trimmed = candidateUrl.trim();
+                if (!trimmed.isEmpty()) {
+                    // Support absolute http(s) URLs only; other forms will fallback to resource
+                    String lower = trimmed.toLowerCase();
+                    if (lower.startsWith("http://") || lower.startsWith("https://")) {
+                        return new Image(trimmed, true);
+                    }
+                }
+            }
+        } catch (IllegalArgumentException ignored) {
+            // Will fallback below
+        }
+        var url = getClass().getResource(fallbackResource);
+        return new Image(url.toExternalForm(), true);
     }
 
     private String mapStatus(String backendStatus) {

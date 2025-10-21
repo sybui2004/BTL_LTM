@@ -29,6 +29,46 @@ public class ApiClient {
             throw new RuntimeException("GET request failed: " + path, e);
         }
     }
+
+    public static String getAuth(String path) {
+        try {
+            String token = TokenManager.getInstance().getToken();
+            if (token == null || token.isBlank()) {
+                throw new IllegalStateException("Missing auth token");
+            }
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(baseUrl + path))
+                    .header("Authorization", "Bearer " + token)
+                    .GET()
+                    .build();
+			HttpResponse<String> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+			int status = response.statusCode();
+			if (status >= 200 && status < 300) {
+				return response.body();
+			}
+			throw new RuntimeException("GET (auth) failed (" + status + ") for " + path + ": " + response.body());
+        } catch (Exception e) {
+            throw new RuntimeException("GET (auth) request failed: " + path, e);
+        }
+    }
+
+    public static String postJson(String path, String jsonBody) {
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(baseUrl + path))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
+                    .build();
+			HttpResponse<String> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+			int status = response.statusCode();
+			if (status >= 200 && status < 300) {
+				return response.body();
+			}
+			throw new RuntimeException("POST failed (" + status + ") for " + path + ": " + response.body());
+        } catch (Exception e) {
+            throw new RuntimeException("POST request failed: " + path, e);
+        }
+    }
 }
 
 

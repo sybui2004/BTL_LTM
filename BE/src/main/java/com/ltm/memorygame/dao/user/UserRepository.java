@@ -20,6 +20,16 @@ public interface UserRepository  extends JpaRepository<User, Long> {
     """)
     List<User> searchByPrefix(@org.springframework.data.repository.query.Param("prefix") String prefix);
 
+    @Query("""
+    SELECT u
+    FROM User u
+    WHERE (LOWER(u.displayName) LIKE LOWER(CONCAT(:prefix, '%'))
+        OR STR(u.id) LIKE CONCAT(:prefix, '%'))
+      AND u.id <> :excludeId
+    """)
+    List<User> searchByPrefixExcluding(@org.springframework.data.repository.query.Param("prefix") String prefix,
+                                       @org.springframework.data.repository.query.Param("excludeId") Long excludeId);
+
     List<User> findAllByStatus(UserStatus status);
     boolean existsByUsername(String username);
     boolean existsByEmail(String email);

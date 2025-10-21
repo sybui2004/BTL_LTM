@@ -1,8 +1,7 @@
 package com.example.memorygame;
 
-import com.example.memorygame.controller.RoomScreenController;
+import com.example.memorygame.controller.AuthScreenController;
 import javafx.application.Application;
-import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
@@ -11,8 +10,8 @@ import java.io.IOException;
 public class FXMain extends Application {
     @Override
     public void start(Stage stage) throws IOException {
-        RoomScreenController roomScreenController = new RoomScreenController();
-        Scene scene = new Scene(roomScreenController.getScreen().getRoot());
+        AuthScreenController authController = new AuthScreenController();
+        Scene scene = new Scene(authController.getScreen().getRoot());
         stage.setTitle("Memory Matching Game");
         stage.setResizable(false);
         stage.setScene(scene);
