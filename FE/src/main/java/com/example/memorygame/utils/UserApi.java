@@ -43,6 +43,29 @@ public class UserApi {
             return null;
         }
     }
+
+    /**
+     * Gets the current logged-in user's information by extracting their ID from the JWT token.
+     * @return UserSummary of current user or null if not logged in or error occurs
+     */
+    public static UserSummary getCurrentUser() {
+        try {
+            String token = TokenManager.getInstance().getToken();
+            if (token == null) {
+                return null;
+            }
+            
+            Long userId = JwtDecoder.extractUserId(token);
+            if (userId == null) {
+                return null;
+            }
+            
+            return getUserById(userId);
+        } catch (Exception e) {
+            System.err.println("Failed to get current user: " + e.getMessage());
+            return null;
+        }
+    }
 }
 
 

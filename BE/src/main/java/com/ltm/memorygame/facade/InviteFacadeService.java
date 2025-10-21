@@ -12,6 +12,7 @@ import com.ltm.memorygame.service.notification.NotificationService;
 import com.ltm.memorygame.service.room.InviteService;
 import com.ltm.memorygame.service.room.RoomService;
 import com.ltm.memorygame.service.user.UserService;
+import com.ltm.memorygame.tcp.TCPServer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +29,7 @@ public class InviteFacadeService {
 	private final RoomService roomService;
 	private final UserService userService;
 	private final NotificationService notificationService;
+	private final TCPServer tcpServer;
 
 	@Transactional
 	public void sendInvite(Long roomId, Long senderId, Long receiverId) {
@@ -43,6 +45,11 @@ public class InviteFacadeService {
 		Room room = roomService.getEntityById(roomId);
 		if (!Objects.equals(room.getHost().getId(), senderId)) {
 			throw new IllegalStateException("Only the host can send an invite!");
+		}
+		
+		// Check if receiver is already in the same room
+		if (room.getGuest() != null && Objects.equals(room.getGuest().getId(), receiverId)) {
+			throw new IllegalStateException("This player is already in your room!");
 		}
 
 		User sender = userService.getEntityById(senderId);
@@ -60,6 +67,13 @@ public class InviteFacadeService {
                     NotificationTypeName.MATCH_INVITE_RECEIVED.name(),
                     "You received a match invite from " + sender.getUsername());
         } catch (Exception ignored) {}
+        
+        // Send real-time TCP notification to receiver if online
+        try {
+            tcpServer.sendInviteNotification(receiver.getUsername(), roomId, sender.getUsername());
+        } catch (Exception e) {
+            // Ignore if TCP fails (user might be offline)
+        }
 	}
 
 	@Transactional
@@ -67,13 +81,57 @@ public class InviteFacadeService {
 		RoomInvite invite = inviteService.findPendingByRoomAndReceiver(roomId, receiverId)
 				.orElseThrow(() -> new NoSuchElementException("No pending invite found!"));
 
+		// Exit from current room if player is in another room
+		try {
+			java.util.List<Room> currentRooms = roomService.findRoomsByPlayer(receiverId);
+			for (Room currentRoom : currentRooms) {
+				if (!currentRoom.getId().equals(roomId)) {
+					roomService.exitRoom(currentRoom.getId(), receiverId);
+					System.out.println("[Invite] User " + receiverId + " exited room " + currentRoom.getId());
+				}
+			}
+		} catch (Exception e) {
+			System.err.println("[Invite] Error exiting previous room: " + e.getMessage());
+		}
+
 		invite.setStatus(InviteStatus.ACCEPTED);
 		inviteService.save(invite);
 
 		Room room = invite.getRoom();
 		room.setGuest(invite.getReceiver());
 		room.setStatus(RoomStatus.READY);
-		return roomService.updateAndMap(room);
+		RoomResponseDTO result = roomService.updateAndMap(room);
+		
+		User host = room.getHost();
+		User guest = room.getGuest();
+		
+		// Notify host via TCP that guest has joined
+		try {
+			tcpServer.sendRoomUpdateNotification(
+				host.getUsername(), 
+				roomId,
+				guest.getId(),
+				guest.getDisplayName(), 
+				guest.getAvatarUrl()
+			);
+		} catch (Exception e) {
+			System.err.println("[Invite] Error sending room update to host: " + e.getMessage());
+		}
+		
+		// Notify guest via TCP with full room info (so guest can update their own UI)
+		try {
+			tcpServer.sendRoomJoinedNotification(
+				guest.getUsername(), 
+				roomId,
+				host.getId(),
+				host.getDisplayName(), 
+				host.getAvatarUrl()
+			);
+		} catch (Exception e) {
+			System.err.println("[Invite] Error sending room joined to guest: " + e.getMessage());
+		}
+		
+		return result;
 	}
 
 	@Transactional

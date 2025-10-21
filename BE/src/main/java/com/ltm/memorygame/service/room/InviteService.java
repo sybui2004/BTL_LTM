@@ -38,4 +38,9 @@ public class InviteService {
         List<RoomInvite> invites = inviteRepository.findByReceiverIdAndStatus(receiverId, InviteStatus.PENDING);
         return RoomInviteMapper.toDTOList(invites);
     }
+    
+    @Transactional
+    public void deleteAllByRoomId(Long roomId) {
+        inviteRepository.deleteByRoomId(roomId);
+    }
 }

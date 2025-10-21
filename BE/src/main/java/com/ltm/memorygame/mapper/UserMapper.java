@@ -16,7 +16,6 @@ import java.util.stream.Collectors;
 @Component
 public class UserMapper {
 
-    // Map UserSetting -> UserSettingDTO
     public UserSettingDTO toUserSettingDTO(UserSetting setting) {
         if (setting == null) return null;
 
@@ -28,7 +27,6 @@ public class UserMapper {
                 .build();
     }
 
-    // Map Match -> MatchHistoryDTO
     public MatchHistoryDTO toMatchHistoryDTO(User user, Match match) {
         return MatchHistoryDTO.builder()
                 .matchId(match.getId())
@@ -40,7 +38,6 @@ public class UserMapper {
                 .build();
     }
 
-    // Map User -> UserResponseDTO
     public UserResponseDTO toUserResponseDTO(User user) {
         return UserResponseDTO.builder()
                 .id(user.getId())
@@ -54,7 +51,6 @@ public class UserMapper {
                 .build();
     }
 
-    // Map UserSetting -> UserProfileDTO
     public UserProfileDTO toUserProfileDTO(User user, List<Match> matches) {
         List<MatchHistoryDTO> matchHistoryDTO = matches.stream()
                 .map(match -> toMatchHistoryDTO(user, match))
@@ -69,7 +65,6 @@ public class UserMapper {
                 .build();
     }
 
-    // Map User -> FriendDTO
     public FriendDTO toFriendDTO(User user) {
         if (user == null) return null;
 

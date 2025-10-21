@@ -4,6 +4,7 @@ import com.ltm.memorygame.service.user.UserService;
 import com.ltm.memorygame.service.room.RoomService;
 import com.ltm.memorygame.service.notification.NotificationService;
 import com.ltm.memorygame.security.JwtService;
+import com.ltm.memorygame.model.enums.UserStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,7 +21,6 @@ public class ClientHandler extends Thread {
 
     private final UserService userService;
     private final RoomService roomService;
-    private final NotificationService notificationService;
     private final JwtService jwtService;
     private final boolean requireJwt;
     private final int maxPerSecond;
@@ -29,6 +29,7 @@ public class ClientHandler extends Thread {
     private int messagesInWindow = 0;
 
     private String username;
+    private Long userId;
 
     public ClientHandler(Socket socket,
                          Map<String, ClientHandler> onlineClients,
@@ -42,7 +43,6 @@ public class ClientHandler extends Thread {
         this.onlineClients = onlineClients;
         this.userService = userService;
         this.roomService = roomService;
-        this.notificationService = notificationService;
         this.jwtService = jwtService;
         this.requireJwt = requireJwt;
         this.maxPerSecond = maxPerSecond;
@@ -67,7 +67,36 @@ public class ClientHandler extends Thread {
         } finally {
             if (username != null) {
                 onlineClients.remove(username);
+                
+                // Update user status in database
+                if (userId != null) {
+                    try {
+                        userService.setStatus(userId, UserStatus.OFFLINE);
+                        log.info("[TCP] Set user {} status to OFFLINE", username);
+                    } catch (Exception e) {
+                        log.warn("[TCP] Failed to set status for user {}: {}", username, e.getMessage());
+                    }
+                }
+                
                 broadcastUserStatus(username, false);
+                
+                // Exit all rooms when disconnecting
+                if (userId != null) {
+                    try {
+                        var rooms = roomService.findRoomsByPlayer(userId);
+                        for (var room : rooms) {
+                            try {
+                                roomService.exitRoom(room.getId(), userId);
+                                log.info("[TCP] User {} exited room {} on disconnect", username, room.getId());
+                            } catch (Exception e) {
+                                log.warn("[TCP] Failed to exit room {} for user {}: {}", 
+                                    room.getId(), username, e.getMessage());
+                            }
+                        }
+                    } catch (Exception e) {
+                        log.warn("[TCP] Error during room cleanup for {}: {}", username, e.getMessage());
+                    }
+                }
             }
             try { socket.close(); } catch (IOException ignored) {}
         }
@@ -126,6 +155,23 @@ public class ClientHandler extends Thread {
             }
         }
 
+        // Store userId for cleanup on disconnect
+        try {
+            this.userId = userService.getUserByUsername(username).getId();
+        } catch (Exception e) {
+            log.warn("[TCP] Could not get userId for {}: {}", username, e.getMessage());
+        }
+        
+        // Set user status to ONLINE in database
+        if (userId != null) {
+            try {
+                userService.setStatus(userId, UserStatus.ONLINE);
+                log.info("[TCP] Set user {} status to ONLINE", username);
+            } catch (Exception e) {
+                log.warn("[TCP] Failed to set status for user {}: {}", username, e.getMessage());
+            }
+        }
+        
         log.info("[TCP] User logged in: {}", username);
         sendMessage(new TCPMessage("LOGIN_SUCCESS", null, "server", username));
         broadcastUserStatus(username, true);
@@ -134,6 +180,17 @@ public class ClientHandler extends Thread {
     private void handleLogout() {
         if (username == null) return;
         onlineClients.remove(username);
+        
+        // Set user status to OFFLINE in database
+        if (userId != null) {
+            try {
+                userService.setStatus(userId, UserStatus.OFFLINE);
+                log.info("[TCP] Set user {} status to OFFLINE (logout)", username);
+            } catch (Exception e) {
+                log.warn("[TCP] Failed to set status for user {}: {}", username, e.getMessage());
+            }
+        }
+        
         broadcastUserStatus(username, false);
         try { socket.close(); } catch (IOException ignored) {}
     }

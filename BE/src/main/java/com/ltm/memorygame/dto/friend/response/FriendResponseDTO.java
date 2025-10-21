@@ -9,8 +9,8 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class FriendResponseDTO {
-    private Long id;          // id của bản ghi Friend
+    private Long id;
     private Long senderId;
     private Long receiverId;
-    private FriendStatus status; // PENDING | ACCEPTED
+    private FriendStatus status;
 }

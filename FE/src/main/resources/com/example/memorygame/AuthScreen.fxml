@@ -17,134 +17,120 @@
 <?import javafx.scene.text.Font?>
 <?import javafx.scene.text.Text?>
 
-<AnchorPane xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" prefWidth="1024.0" prefHeight="720.0" stylesheets="@AuthScreenStyle.css">
+<AnchorPane xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" prefWidth="1024.0"
+            prefHeight="720.0" stylesheets="@AuthScreenStyle.css">
     <cursor>
-        <Cursor fx:constant="OPEN_HAND" />
+        <Cursor fx:constant="OPEN_HAND"/>
     </cursor>
-    <children>
-        <HBox alignment="CENTER" prefHeight="100.0" prefWidth="200.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
-            <children>
-                <VBox prefHeight="720.0" prefWidth="512.0" styleClass="root-control" HBox.hgrow="ALWAYS" maxWidth="Infinity">
-                    <children>
-                        <VBox fx:id="loginForm" spacing="18.0" styleClass="form-padding">
-                            <children>
-                                <Label styleClass="login-title" text="Sign In " />
-                                <TextField id="input_text" fx:id="usernameField" promptText="Username" styleClass="text-field" />
-                                <PasswordField id="input_text" fx:id="passwordField" promptText="Password" styleClass="text-field" />
-                                <BorderPane styleClass="bottom-bar">
-                                    <left>
-                                        <Button id="forgetpassword_button" fx:id="forgetPasswordButton" mnemonicParsing="false" styleClass="forgetpassword-button" text="Forgot password">
-                                            <cursor>
-                                                <Cursor fx:constant="HAND" />
-                                            </cursor>
-                                        </Button>
-                                    </left>
-                                    <right>
-                                        <HBox alignment="CENTER_RIGHT" spacing="8">
-                                            <children>
-                                                <Button id="login_button" fx:id="signUpButton" mnemonicParsing="false" styleClass="signup-button" text="New user? Create account">
-                                                    <cursor>
-                                                        <Cursor fx:constant="HAND" />
-                                                    </cursor>
-                                                </Button>
-                                            </children>
-                                        </HBox>
-                                    </right>
-                                </BorderPane>
-                                <HBox alignment="CENTER">
-                                    <children>
-                                        <Button id=".button_login" fx:id="loginButton" alignment="CENTER" mnemonicParsing="false" prefHeight="56.0" prefWidth="54.0" text="→" textFill="WHITE">
-                                            <font>
-                                                <Font name="Calibri" size="22.0" />
-                                            </font>
-                                            <cursor>
-                                                <Cursor fx:constant="HAND" />
-                                            </cursor>
-                                            <styleClass>
-                                                <String fx:value="button_signup" />
-                                                <String fx:value="login-button" />
-                                            </styleClass>
-                                        </Button>
-                                    </children>
-                                </HBox>
-                                <HBox prefHeight="51.0" prefWidth="386.0" styleClass="google-login-bar">
-                                    <children>
-                                        <Label prefHeight="22.0" prefWidth="95.0" text="Or login with " />
-                                        <Button fx:id="googleLoginButton" mnemonicParsing="false" prefHeight="46.0" prefWidth="0.0" text="Button">
-                                            <graphic>
-                                                <ImageView fitHeight="28.0" fitWidth="44.0" pickOnBounds="true" preserveRatio="true">
-                                                    <image>
-                                                        <Image url="@assets/images/google.png" />
-                                                    </image></ImageView>
-                                            </graphic>
-                                        </Button>
-                                    </children>
-                                </HBox>
-                            </children>
-                        </VBox>
-                        <Pane fx:id="leftBanner" visible="false" managed="false" prefHeight="720.0" prefWidth="512.0">
-                            <children>
-                                <ImageView fitHeight="720.0" fitWidth="512.0" layoutX="0.0" layoutY="0.0" pickOnBounds="true" preserveRatio="false">
-                                    <image>
-                                        <Image url="@assets/images/signup-side.png" />
-                                    </image>
-                                </ImageView>
-                                
-                            </children>
-                        </Pane>
-                    </children>
-                </VBox>
-                <Pane id=".side_login" prefHeight="720.0" prefWidth="512.0" styleClass="side_signup" stylesheets="@MainScreenStyle.css" HBox.hgrow="ALWAYS" maxWidth="Infinity">
-                    <children>
-                        <Pane fx:id="rightBanner">
-                            <children>
-                                <ImageView fitHeight="720.0" fitWidth="512.0" layoutX="0.0" layoutY="0.0" pickOnBounds="true" preserveRatio="false">
-                                    <image>
-                                        <Image url="@assets/images/login-side.png" />
-                                    </image>
-                                </ImageView>
-                               
-                            </children>
-                        </Pane>
-                        <HBox layoutX="0.0" layoutY="120.0" alignment="CENTER">
-                            <children>
-                                <VBox fx:id="signupForm" visible="false" managed="false" spacing="18.0" styleClass="signup-form">
-                                    <children>
-                                        <Label textFill="WHITE" text="Create account" styleClass="signup-title" />
-                                        <TextField fx:id="signupUsernameField" promptText="Username" styleClass="text-field" />
-                                        <PasswordField fx:id="signupPasswordField" promptText="Password" styleClass="text-field" />
-                                        <TextField fx:id="signupEmailField" promptText="Email" styleClass="text-field" />
-                                        <HBox alignment="CENTER" styleClass="bottom-bar">
-                                            <children>
-                                                <Label styleClass="new-user-label" text="Have account?" />
-                                                <Region prefWidth="8.0" />
-                                                <Button fx:id="loginLinkButton" mnemonicParsing="false" styleClass="signup-button" text="Log in" />
-                                            </children>
-                                        </HBox>
-                                        <HBox alignment="CENTER">
-                                            <children>
-                                                <Button id=".button_login" fx:id="submitSignUpButton" alignment="CENTER" mnemonicParsing="false" prefHeight="56.0" prefWidth="54.0" text="→" textFill="WHITE">
-                                                    <font>
-                                                        <Font name="Calibri" size="22.0" />
-                                                    </font>
-                                                    <cursor>
-                                                        <Cursor fx:constant="HAND" />
-                                                    </cursor>
-                                                    <styleClass>
-                                                        <String fx:value="button_signup" />
-                                                        <String fx:value="login-button" />
-                                                    </styleClass>
-                                                </Button>
-                                            </children>
-                                        </HBox>
-                                    </children>
-                                </VBox>
-                            </children>
+    <HBox alignment="CENTER" prefHeight="100.0" prefWidth="200.0" AnchorPane.bottomAnchor="0.0"
+          AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+        <VBox prefHeight="720.0" prefWidth="512.0" styleClass="root-control" HBox.hgrow="ALWAYS"
+              maxWidth="Infinity">
+            <VBox fx:id="loginForm" spacing="18.0" styleClass="form-padding">
+                <Label styleClass="login-title" text="Sign In "/>
+                <TextField id="input_text" fx:id="usernameField" promptText="Username"
+                           styleClass="text-field"/>
+                <PasswordField id="input_text" fx:id="passwordField" promptText="Password"
+                               styleClass="text-field"/>
+                <BorderPane styleClass="bottom-bar">
+                    <left>
+                        <Button id="forgetpassword_button" fx:id="forgetPasswordButton"
+                                mnemonicParsing="false" styleClass="forgetpassword-button"
+                                text="Forgot password">
+                            <cursor>
+                                <Cursor fx:constant="HAND"/>
+                            </cursor>
+                        </Button>
+                    </left>
+                    <right>
+                        <HBox alignment="CENTER_RIGHT" spacing="8">
+                            <Button id="login_button" fx:id="signUpButton" mnemonicParsing="false"
+                                    styleClass="signup-button" text="New user? Create account">
+                                <cursor>
+                                    <Cursor fx:constant="HAND"/>
+                                </cursor>
+                            </Button>
                         </HBox>
-                    </children>
-                </Pane>
-            </children>
-        </HBox>
-    </children>
+                    </right>
+                </BorderPane>
+                <HBox alignment="CENTER">
+                    <Button id=".button_login" fx:id="loginButton" alignment="CENTER"
+                            mnemonicParsing="false" prefHeight="56.0" prefWidth="54.0" text="→"
+                            textFill="WHITE">
+                        <font>
+                            <Font name="Calibri" size="22.0"/>
+                        </font>
+                        <cursor>
+                            <Cursor fx:constant="HAND"/>
+                        </cursor>
+                        <styleClass>
+                            <String fx:value="button_signup"/>
+                            <String fx:value="login-button"/>
+                        </styleClass>
+                    </Button>
+                </HBox>
+                <HBox prefHeight="51.0" prefWidth="386.0" styleClass="google-login-bar">
+                    <Label prefHeight="22.0" prefWidth="95.0" text="Or login with "/>
+                    <Button fx:id="googleLoginButton" mnemonicParsing="false" prefHeight="46.0"
+                            prefWidth="0.0" text="Button">
+                        <graphic>
+                            <ImageView fitHeight="28.0" fitWidth="44.0" pickOnBounds="true"
+                                       preserveRatio="true">
+                                <Image url="@assets/images/google.png"/>
+                            </ImageView>
+                        </graphic>
+                    </Button>
+                </HBox>
+            </VBox>
+            <Pane fx:id="leftBanner" visible="false" managed="false" prefHeight="720.0" prefWidth="512.0">
+                <ImageView fitHeight="720.0" fitWidth="512.0" pickOnBounds="true">
+                    <Image url="@assets/images/signup-side.png"/>
+                </ImageView>
+
+            </Pane>
+        </VBox>
+        <Pane id=".side_login" prefHeight="720.0" prefWidth="512.0" styleClass="side_signup"
+              stylesheets="@MainScreenStyle.css" HBox.hgrow="ALWAYS" maxWidth="Infinity">
+            <Pane fx:id="rightBanner">
+                <ImageView fitHeight="720.0" fitWidth="512.0" pickOnBounds="true">
+                    <Image url="@assets/images/login-side.png"/>
+                </ImageView>
+
+            </Pane>
+            <HBox layoutY="120.0" alignment="CENTER">
+                <VBox fx:id="signupForm" visible="false" managed="false" spacing="18.0"
+                      styleClass="signup-form">
+                    <Label textFill="WHITE" text="Create account" styleClass="signup-title"/>
+                    <TextField fx:id="signupUsernameField" promptText="Username"
+                               styleClass="text-field"/>
+                    <PasswordField fx:id="signupPasswordField" promptText="Password"
+                                   styleClass="text-field"/>
+                    <TextField fx:id="signupEmailField" promptText="Email" styleClass="text-field"/>
+                    <HBox alignment="CENTER" styleClass="bottom-bar">
+                        <Label styleClass="new-user-label" text="Have account?"/>
+                        <Region prefWidth="8.0"/>
+                        <Button fx:id="loginLinkButton" mnemonicParsing="false"
+                                styleClass="signup-button" text="Log in"/>
+                    </HBox>
+                    <HBox alignment="CENTER">
+                        <Button id=".button_login" fx:id="submitSignUpButton" alignment="CENTER"
+                                mnemonicParsing="false" prefHeight="56.0" prefWidth="54.0" text="→"
+                                textFill="WHITE">
+                            <font>
+                                <Font name="Calibri" size="22.0"/>
+                            </font>
+                            <cursor>
+                                <Cursor fx:constant="HAND"/>
+                            </cursor>
+                            <styleClass>
+                                <String fx:value="button_signup"/>
+                                <String fx:value="login-button"/>
+                            </styleClass>
+                        </Button>
+                    </HBox>
+                </VBox>
+            </HBox>
+        </Pane>
+    </HBox>
 </AnchorPane>
 
