@@ -21,7 +21,6 @@ public class PrivateMessageResponse {
     private Long toUserId;
     private Long matchId;
     private String content;
-    private String avatarUrl;
     private MessageType messageType;
     private StickerResponse sticker;
     private Instant createdAt;

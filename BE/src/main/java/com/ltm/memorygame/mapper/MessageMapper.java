@@ -51,7 +51,6 @@ public class MessageMapper {
                 .toUserId(entity.getReceiver() != null ? entity.getReceiver().getId() : null)
                 .matchId(entity.getMatch() != null ? entity.getMatch().getId() : null)
                 .content(entity.getContent())
-                .avatarUrl(entity.getSender().getAvatarUrl())
                 .messageType(entity.getMessageType())
                 .sticker(sticker != null ? StickerMapper.toResponse(sticker) : null)
                 .createdAt(entity.getCreatedAt() != null ? entity.getCreatedAt().toInstant() : null)

@@ -24,14 +24,18 @@ public class PresenceService {
     // Set status cho user (ONLINE | BUSY | OFFLINE)
     
     @Transactional
-    public UserPresenceDTO setStatus(Long userId, UserStatus status) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new NoSuchElementException("User not found: " + userId));
-        user.setStatus(status);
-        user.setUpdatedAt(new Date());
-        User saved = userRepository.save(user);
-        return PresenceMapper.toDTO(saved);
-    }
+public UserPresenceDTO setStatus(Long userId, UserStatus status) {
+    User user = userRepository.findById(userId)
+            .orElseThrow(() -> new NoSuchElementException("User not found: " + userId));
+
+    user.setStatus(status);
+    user.setUpdatedAt(new Date());
+    User saved = userRepository.save(user);
+
+    UserPresenceDTO dto = PresenceMapper.toDTO(saved);
+    
+    return dto; // Trả về DTO hoàn chỉnh
+}
 
 
 }

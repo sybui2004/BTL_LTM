@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ltm.memorygame.dto.chat.response.ConversationPreviewDTO;
@@ -23,18 +24,14 @@ public class PrivateMessageController {
 
     private final PrivateMessageService privateMessageService;
     
-    // lấy tất cả message của 1 đoạn chat
-    @GetMapping("/{otherUserId}")  
-    public Page<PrivateMessageResponse> getPrivateMessageHistory(
-            @RequestHeader("userId") Long userId,
-            @PathVariable("otherUserId") Long otherUserId,
-            @RequestHeader(name = "page", required = false) Integer page,
-            @RequestHeader(name = "size", required = false) Integer size) {
-
-        int p = (page == null || page < 0) ? 0 : page;
-        int s = (size == null || size <= 0 || size > 100) ? 20 : size;
-        return privateMessageService.getPrivateMessageHistory(userId, otherUserId, p, s);
-    }
+@GetMapping("/{otherUserId}")
+public Page<PrivateMessageResponse> getPrivateMessageHistory(
+        @RequestHeader("userId") Long userId,
+        @PathVariable Long otherUserId,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "20") int size) {
+    return privateMessageService.getPrivateMessageHistory(userId, otherUserId, page, size);
+}
     
     // lấy danh sách người nhắn tin
     @GetMapping("/conversations/{userId}")

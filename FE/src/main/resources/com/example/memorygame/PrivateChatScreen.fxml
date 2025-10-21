@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<!-- Container gốc, liên kết với file CSS -->
+<BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" 
+            prefWidth="1024.0" prefHeight="720.0" 
+            stylesheets="@MainScreenStyle.css" styleClass="root-chat-container">
+
+    <!-- TOP: Tiêu đề màn hình -->
+    <top>
+        <Label text="FRIEND CHAT" styleClass="chat-title" BorderPane.alignment="CENTER"/>
+    </top>
+
+    <!-- CENTER: Khu vực Trò chuyện Chính (Bên trái) -->
+    <center>
+        <BorderPane styleClass="main-chat-panel">
+            
+            <!-- Trung tâm: Danh sách tin nhắn (Dùng ScrollPane để cuộn) -->
+            <center>
+                <ScrollPane fitToWidth="true" hbarPolicy="NEVER" styleClass="message-scroll-pane">
+                    <content>
+                        <!-- VBox này sẽ được dùng để chèn các tin nhắn động từ Controller -->
+                        <VBox fx:id="messageContainer" spacing="16" styleClass="message-list-vbox">
+                            <padding>
+                                <Insets top="20" right="20" bottom="20" left="20"/>
+                            </padding>
+                            
+                            <!-- BỐ CỤC MẪU CHO TIN NHẮN ĐÃ GỬI (Căn phải) -->
+                            <HBox alignment="CENTER_RIGHT">
+                                <children>
+                                    <VBox styleClass="message-bubble sent-message">
+                                        <Label text="Oke tối vào" styleClass="message-text"/>
+                                    </VBox>
+                                </children>
+                            </HBox>
+                            
+                            <!-- BỐ CỤC MẪU CHO TIN NHẮN NHẬN ĐƯỢC (Căn trái) -->
+                            <HBox alignment="CENTER_LEFT" spacing="10">
+                                <children>
+                                    <!-- Avatar của người gửi -->
+                                    <ImageView fitWidth="50" fitHeight="50" styleClass="avatar">
+                                        <image><Image url="@assets/images/laptrinhmang.png"/></image>
+                                    </ImageView>
+                                    <VBox>
+                                        <Label text="LAP TRINH MANG" styleClass="username-label"/>
+                                        <VBox styleClass="message-bubble received-message">
+                                            <Label text="Bạn chơi hay lắm" styleClass="message-text"/>
+                                        </VBox>
+                                    </VBox>
+                                </children>
+                            </HBox>
+                            
+                            <!-- BỐ CỤC MẪU CHO STICKER ĐÃ GỬI (Căn phải) -->
+                             <HBox alignment="CENTER_RIGHT">
+                                <children>
+                                    <ImageView fitWidth="50" fitHeight="50">
+                                        <image><Image url="@assets/sticker/thumbsup.png"/></image>
+                                    </ImageView>
+                                </children>
+                            </HBox>
+
+                        </VBox>
+                    </content>
+                </ScrollPane>
+            </center>
+            
+            <!-- BOTTOM: Khu vực nhập liệu -->
+            <bottom>
+                <HBox spacing="8" alignment="CENTER_LEFT" styleClass="input-area">
+                    <padding>
+                        <Insets top="10" right="20" bottom="10" left="20"/>
+                    </padding>
+                    <children>
+                        <!-- Trường nhập liệu (chiếm phần lớn không gian) -->
+                        <TextField fx:id="txtInput" promptText="Nhập tin nhắn..." styleClass="chat-input-field" HBox.hgrow="ALWAYS"/>
+                        
+                        <!-- Nút Gửi tin nhắn -->
+                        <Button fx:id="btnSend" styleClass="icon-button send-button">
+                             <graphic>
+                                <ImageView fitWidth="24" fitHeight="24">
+                                     <!-- Thay thế bằng icon mũi tên gửi -->
+                                    <image><Image url="@assets/images/icon/send.png"/></image>
+                                </ImageView>
+                             </graphic>
+                        </Button>
+                        
+                        <!-- Nút Sticker/Emoji -->
+                        <Button fx:id="btnSticker" styleClass="icon-button sticker-button">
+                             <graphic>
+                                <ImageView fitWidth="28" fitHeight="28">
+                                     <!-- Thay thế bằng icon mặt cười -->
+                                    <image><Image url="@assets/images/icon/emoji.png"/></image>
+                                </ImageView>
+                             </graphic>
+                        </Button>
+                    </children>
+                </HBox>
+            </bottom>
+            
+        </BorderPane>
+    </center>
+
+    <!-- RIGHT: Panel Danh sách Bạn bè -->
+    <right>
+        <VBox styleClass="friend-list-panel">
+            <!-- Mục Bạn bè 1: Active Chat (LAP TRINH MANG) -->
+            <VBox styleClass="friend-item active-chat-item">
+                <padding><Insets top="10" right="10" bottom="10" left="10"/></padding>
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <ImageView fitWidth="40" fitHeight="40" styleClass="avatar-small">
+                        <image><Image url="@assets/images/laptrinhmang_small.png"/></image>
+                    </ImageView>
+                    <VBox>
+                        <Label text="LAP TRINH MANG" styleClass="friend-name-label"/>
+                        <Label text="Busy" styleClass="status-busy-label"/>
+                    </VBox>
+                </HBox>
+                <Label text="Bạn: Oke tối vào - 16m" styleClass="last-message-preview"/>
+            </VBox>
+            
+            <!-- Mục Bạn bè 2: Online (IoT) -->
+            <VBox styleClass="friend-item online-item">
+                <padding><Insets top="10" right="10" bottom="10" left="10"/></padding>
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <ImageView fitWidth="40" fitHeight="40" styleClass="avatar-small">
+                        <image><Image url="@assets/images/iot_small.png"/></image>
+                    </ImageView>
+                    <VBox>
+                        <Label text="IoT" styleClass="friend-name-label"/>
+                        <Label text="Online" styleClass="status-online-label"/>
+                    </VBox>
+                </HBox>
+                <Label text="Bạn: Thôi nhé tối bận r - 15m" styleClass="last-message-preview"/>
+            </VBox>
+            
+            <!-- Các mục bạn bè khác có thể được thêm vào đây -->
+            
+        </VBox>
+    </right>
+    
+</BorderPane>
