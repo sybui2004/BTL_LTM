@@ -36,7 +36,6 @@ public class PasswordHasher {
             byte[] actual = pbkdf2(rawPassword.toCharArray(), salt, iterations, expectedHash.length);
             return MessageDigest.isEqual(expectedHash, actual);
         }
-        // Backward-compatibility: if stored is plaintext, fall back to direct compare
         return rawPassword.equals(stored);
     }
 

@@ -134,6 +134,11 @@
     -fx-cursor: hand;
 }
 .cta-btn:hover { -fx-background-color: linear-gradient(#fff08f, #ffdb5f); }
+.cta-btn-disabled {
+    -fx-background-color: linear-gradient(#b0b0b0, #909090);
+    -fx-cursor: default;
+}
+.cta-btn-disabled:hover { -fx-background-color: linear-gradient(#b0b0b0, #909090); }
 .cta-label { -fx-text-fill: #2d2d2d; -fx-font-size: 16px; -fx-font-weight: bold; }
 
 /* ComboBox styling */
@@ -440,4 +445,100 @@
 
 .popup-close-btn:pressed {
     -fx-background-color: #255d82;
+}
+
+/* Invite list styles */
+.invite-scroll {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.invite-scroll .viewport {
+    -fx-background-color: transparent;
+}
+
+.invite-scroll .scroll-bar:vertical {
+    -fx-background-color: transparent;
+    -fx-pref-width: 6;
+}
+
+.invite-scroll .scroll-bar:vertical .track {
+    -fx-background-color: rgba(255,255,255,0.3);
+    -fx-background-radius: 3;
+}
+
+.invite-scroll .scroll-bar:vertical .thumb {
+    -fx-background-color: rgba(255,255,255,0.6);
+    -fx-background-radius: 3;
+}
+
+.invite-item {
+    -fx-background-color: linear-gradient(to bottom, #ffffff, #f8fbfd);
+    -fx-background-radius: 12;
+    -fx-padding: 0;
+    -fx-spacing: 12;
+    -fx-effect: dropshadow(gaussian, rgba(45, 95, 126, 0.12), 8, 0.2, 0, 2);
+    -fx-border-color: rgba(95, 167, 200, 0.15);
+    -fx-border-width: 1;
+    -fx-border-radius: 12;
+}
+
+.invite-item:hover {
+    -fx-background-color: linear-gradient(to bottom, #ffffff, #f0f7fc);
+    -fx-effect: dropshadow(gaussian, rgba(45, 95, 126, 0.2), 10, 0.3, 0, 3);
+    -fx-border-color: rgba(95, 167, 200, 0.25);
+    -fx-scale-x: 1.01;
+    -fx-scale-y: 1.01;
+}
+
+.invite-sender {
+    -fx-text-fill: #1a4d6f;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+}
+
+.invite-text {
+    -fx-font-size: 12px;
+    -fx-text-fill: #5a89a8;
+    -fx-font-style: italic;
+}
+
+.invite-btn {
+    -fx-background-radius: 20;
+    -fx-padding: 0;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 4, 0.3, 0, 2);
+    -fx-min-width: 40;
+    -fx-pref-width: 40;
+    -fx-max-width: 40;
+    -fx-min-height: 40;
+    -fx-pref-height: 40;
+    -fx-max-height: 40;
+}
+
+.invite-btn:hover {
+    -fx-scale-x: 1.05;
+    -fx-scale-y: 1.05;
+}
+
+.invite-accept-btn {
+    -fx-background-color: linear-gradient(to bottom, #4caf50, #45a049);
+    -fx-text-fill: white;
+}
+
+.invite-accept-btn:hover {
+    -fx-background-color: linear-gradient(to bottom, #5bc85f, #4caf50);
+    -fx-effect: dropshadow(gaussian, rgba(76, 175, 80, 0.5), 8, 0.4, 0, 3);
+}
+
+.invite-reject-btn {
+    -fx-background-color: linear-gradient(to bottom, #f44336, #e53935);
+    -fx-text-fill: white;
+}
+
+.invite-reject-btn:hover {
+    -fx-background-color: linear-gradient(to bottom, #ff5449, #f44336);
+    -fx-effect: dropshadow(gaussian, rgba(244, 67, 54, 0.5), 8, 0.4, 0, 3);
 }

@@ -26,12 +26,11 @@ public class TCPServer implements Runnable {
 
     private final ClientHandlerFactory handlerFactory;
     private volatile boolean running = true;
-    private Thread serverThread;
     private ServerSocket serverSocket;
 
     @PostConstruct
     public void startServer() {
-        serverThread = new Thread(this, "TCP-Server-Thread");
+        Thread serverThread = new Thread(this, "TCP-Server-Thread");
         serverThread.start();
         log.info("[TCP] Server thread started.");
     }
@@ -78,5 +77,131 @@ public class TCPServer implements Runnable {
             }
         } catch (Exception ignored) {}
         log.info("[TCP] Server stopped.");
+    }
+
+    /**
+     * Broadcast user status change to all connected clients
+     */
+    public void broadcastUserStatus(String username, boolean online) {
+        TCPMessage msg = new TCPMessage("USER_STATUS",
+                java.util.Map.of("user", username, "online", online), "server", null);
+        for (ClientHandler handler : onlineClients.values()) {
+            try {
+                handler.sendMessage(msg);
+            } catch (Exception e) {
+                log.warn("[TCP] Failed to broadcast to client: {}", e.getMessage());
+            }
+        }
+        log.info("[TCP] Broadcasted status: {} -> {}", username, online ? "ONLINE" : "OFFLINE");
+    }
+
+    /**
+     * Send invite notification to a specific user
+     */
+    public void sendInviteNotification(String receiverUsername, Long roomId, String senderName) {
+        ClientHandler handler = onlineClients.get(receiverUsername);
+        if (handler != null) {
+            TCPMessage msg = new TCPMessage("INVITE_RECEIVED",
+                    java.util.Map.of("roomId", roomId, "senderName", senderName), 
+                    "server", receiverUsername);
+            try {
+                handler.sendMessage(msg);
+                log.info("[TCP] Sent invite notification to {}: room {} from {}", receiverUsername, roomId, senderName);
+            } catch (Exception e) {
+                log.warn("[TCP] Failed to send invite to {}: {}", receiverUsername, e.getMessage());
+            }
+        } else {
+            log.debug("[TCP] User {} not online, skipping invite notification", receiverUsername);
+        }
+    }
+    
+    /**
+     * Send room update notification when guest joins (to host)
+     */
+    public void sendRoomUpdateNotification(String hostUsername, Long roomId, Long guestId, String guestDisplayName, String guestAvatarUrl) {
+        ClientHandler handler = onlineClients.get(hostUsername);
+        if (handler != null) {
+            TCPMessage msg = new TCPMessage("ROOM_UPDATED",
+                    java.util.Map.of(
+                        "roomId", roomId,
+                        "guestId", guestId,
+                        "guestDisplayName", guestDisplayName,
+                        "guestAvatarUrl", guestAvatarUrl != null ? guestAvatarUrl : ""
+                    ), 
+                    "server", hostUsername);
+            try {
+                handler.sendMessage(msg);
+                log.info("[TCP] Sent room update to {}: guest {} joined room {}", hostUsername, guestDisplayName, roomId);
+            } catch (Exception e) {
+                log.warn("[TCP] Failed to send room update to {}: {}", hostUsername, e.getMessage());
+            }
+        } else {
+            log.debug("[TCP] Host {} not online, skipping room update notification", hostUsername);
+        }
+    }
+    
+    /**
+     * Send room joined notification (to guest who just accepted invite)
+     */
+    public void sendRoomJoinedNotification(String guestUsername, Long roomId, Long hostId, String hostDisplayName, String hostAvatarUrl) {
+        ClientHandler handler = onlineClients.get(guestUsername);
+        if (handler != null) {
+            TCPMessage msg = new TCPMessage("ROOM_JOINED",
+                    java.util.Map.of(
+                        "roomId", roomId,
+                        "hostId", hostId,
+                        "hostDisplayName", hostDisplayName,
+                        "hostAvatarUrl", hostAvatarUrl != null ? hostAvatarUrl : ""
+                    ),
+                    "server", guestUsername);
+            try {
+                handler.sendMessage(msg);
+                log.info("[TCP] Sent room joined to {}: joined room {} with host {}", guestUsername, roomId, hostDisplayName);
+            } catch (Exception e) {
+                log.warn("[TCP] Failed to send room joined to {}: {}", guestUsername, e.getMessage());
+            }
+        } else {
+            log.debug("[TCP] Guest {} not online, skipping room joined notification", guestUsername);
+        }
+    }
+    
+    /**
+     * Send guest left notification (to host when guest disconnects)
+     */
+    public void sendGuestLeftNotification(String hostUsername, Long roomId) {
+        ClientHandler handler = onlineClients.get(hostUsername);
+        if (handler != null) {
+            TCPMessage msg = new TCPMessage("GUEST_LEFT",
+                    java.util.Map.of("roomId", roomId),
+                    "server", hostUsername);
+            try {
+                handler.sendMessage(msg);
+                log.info("[TCP] Sent guest left notification to {} for room {}", hostUsername, roomId);
+            } catch (Exception e) {
+                log.warn("[TCP] Failed to send guest left to {}: {}", hostUsername, e.getMessage());
+            }
+        } else {
+            log.debug("[TCP] Host {} not online, skipping guest left notification", hostUsername);
+        }
+    }
+    
+    /**
+     * Send host promoted notification (to new host when old host disconnects)
+     */
+    public void sendHostPromotedNotification(String newHostUsername, Long roomId) {
+        ClientHandler handler = onlineClients.get(newHostUsername);
+        if (handler != null) {
+            TCPMessage msg = new TCPMessage("HOST_PROMOTED",
+                    java.util.Map.of("roomId", roomId),
+                    "server", newHostUsername);
+            try {
+                handler.sendMessage(msg);
+                log.info("[TCP] Sent host promoted notification to {} for room {}", newHostUsername, roomId);
+            } catch (Exception e) {
+                log.warn("[TCP] Failed to send host promoted to {}: {}", newHostUsername, e.getMessage());
+            }
+        } else {
+            log.debug("[TCP] New host {} not online, skipping host promoted notification", newHostUsername);
+        }
     }
 }

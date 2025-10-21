@@ -2,7 +2,6 @@ package com.ltm.memorygame.service.user;
 
 import com.ltm.memorygame.dao.game.MatchRepository;
 import com.ltm.memorygame.dao.user.UserRankingProjection;
-// import com.ltm.memorygame.dto.auth.request.AuthRequest; // no longer used for createUser
 import com.ltm.memorygame.dto.auth.request.RegisterRequest;
 import com.ltm.memorygame.dto.friend.response.FriendDTO;
 import com.ltm.memorygame.dto.user.response.UserProfileDTO;
@@ -13,8 +12,10 @@ import com.ltm.memorygame.model.game.Match;
 import com.ltm.memorygame.model.user.User;
 import com.ltm.memorygame.model.user.UserSetting;
 import com.ltm.memorygame.dao.user.UserRepository;
+import com.ltm.memorygame.event.UserStatusChangedEvent;
 import com.ltm.memorygame.security.PasswordHasher;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +32,7 @@ public class UserService {
     private final MatchRepository matchRepository;
     private final UserMapper userMapper;
     private final PasswordHasher passwordHasher;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public UserResponseDTO createUser(RegisterRequest request) {
@@ -92,6 +94,12 @@ public class UserService {
     public boolean existsByUsername(String username) {
         return userRepository.existsByUsername(username);
     }
+    
+    @Transactional(readOnly = true)
+    public User getUserByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new NoSuchElementException("User not found: " + username));
+    }
 
     @Transactional(readOnly = true)
     public List<UserRankingProjection> getRanking() {
@@ -103,6 +111,9 @@ public class UserService {
         User user = getEntityById(userId);
         user.setStatus(status);
         userRepository.save(user);
+        
+        boolean online = (status == UserStatus.ONLINE || status == UserStatus.BUSY);
+        eventPublisher.publishEvent(new UserStatusChangedEvent(this, user.getUsername(), online));
     }
 
     @Transactional(readOnly = true)

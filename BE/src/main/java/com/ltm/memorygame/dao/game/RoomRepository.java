@@ -8,5 +8,6 @@ import java.util.List;
 
 public interface RoomRepository extends JpaRepository<Room, Long> {
     boolean existsByHostIdOrGuestIdAndStatusIn(Long hostId, Long guestId, List<RoomStatus> statuses);
+    List<Room> findByHostIdOrGuestIdAndStatusIn(Long hostId, Long guestId, List<RoomStatus> statuses);
     List<Room> findByStatusOrderByCreatedAtDesc(RoomStatus status);
 }

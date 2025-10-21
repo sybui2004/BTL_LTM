@@ -45,7 +45,6 @@ public class AuthService {
         return new AuthResponse(token, dto);
     }
 
-    /** DEV logout: set OFFLINE theo userId */
     @Transactional
     public void logout(Long userId) {
         User user = userRepository.findById(userId)

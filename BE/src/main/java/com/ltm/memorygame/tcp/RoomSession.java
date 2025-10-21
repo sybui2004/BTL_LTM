@@ -1,6 +1,7 @@
 package com.ltm.memorygame.tcp;
 
 import lombok.Getter;
+import lombok.Setter;
 
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -10,6 +11,7 @@ public class RoomSession {
     private final String roomId;
     private final String owner;
     private final Set<String> members = ConcurrentHashMap.newKeySet();
+    @Setter
     private volatile boolean active = false;
 
     public RoomSession(String roomId, String owner) {
@@ -26,5 +28,4 @@ public class RoomSession {
         members.remove(username);
     }
 
-    public void setActive(boolean active) { this.active = active; }
 }
