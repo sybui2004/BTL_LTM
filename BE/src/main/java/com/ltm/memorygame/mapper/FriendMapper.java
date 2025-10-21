@@ -52,10 +52,18 @@ public class FriendMapper {
             if (fr.getStatus() == FriendStatus.ACCEPTED) {
                 friends.add(userMapper.toFriendDTO(other));
             } else if (fr.getStatus() == FriendStatus.PENDING) {
+                // Include the Friend record id so clients can accept/reject with the correct id
+                com.ltm.memorygame.dto.friend.response.FriendDTO dto = com.ltm.memorygame.dto.friend.response.FriendDTO.builder()
+                        .friendRecordId(fr.getId())
+                        .id(other.getId())
+                        .displayName(other.getDisplayName())
+                        .avatarUrl(other.getAvatarUrl())
+                        .status(other.getStatus())
+                        .build();
                 if (Objects.equals(fr.getReceiver().getId(), me.getId())) {
-                    incoming.add(userMapper.toFriendDTO(other));
+                    incoming.add(dto);
                 } else {
-                    outgoing.add(userMapper.toFriendDTO(other));
+                    outgoing.add(dto);
                 }
             }
         }

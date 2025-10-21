@@ -8,6 +8,7 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class FriendDTO {
+    private Long friendRecordId; // id of Friend record (only for pending requests)
     private Long id;
     private String displayName;
     private String avatarUrl;

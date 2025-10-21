@@ -52,11 +52,31 @@ public class FriendService {
             throw new IllegalStateException("You are not the recipient of this request");
         }
         if (fr.isDeleted()) {
-            throw new IllegalStateException("The request has been cancelled");
+            // The provided record was cancelled. Try to locate the active pending request
+            // between the same two users where current user is the receiver.
+            List<Friend> betweenActive = friendRepository.findAllBetweenUsersActive(fr.getSender(), fr.getReceiver());
+            Optional<Friend> replacement = betweenActive.stream()
+                    .filter(f -> f.getStatus() == FriendStatus.PENDING
+                            && Objects.equals(f.getReceiver().getId(), currentUserId))
+                    .findFirst();
+            if (replacement.isPresent()) {
+                fr = replacement.get();
+            } else {
+                throw new IllegalStateException("The request has been cancelled");
+            }
         }
         fr.setStatus(FriendStatus.ACCEPTED);
         fr.setAcceptedAt(new Date());
         friendRepository.save(fr);
+
+        // Clean up any other active requests between the same two users
+        List<Friend> duplicates = friendRepository.findAllBetweenUsersActive(fr.getSender(), fr.getReceiver());
+        for (Friend dup : duplicates) {
+            if (!Objects.equals(dup.getId(), fr.getId())) {
+                dup.setDeleted(true);
+                friendRepository.save(dup);
+            }
+        }
 
         return friendMapper.toFriendResponseDTO(fr);
     }
@@ -70,8 +90,19 @@ public class FriendService {
                 || Objects.equals(fr.getReceiver().getId(), currentUserId);
         if (!isOwner) throw new IllegalStateException("You are not allowed to modify this request");
 
-        fr.setDeleted(true);
-        friendRepository.save(fr);
+        // Soft delete this request and any other active requests between the same two users
+        List<Friend> between = friendRepository.findAllBetweenUsersActive(fr.getSender(), fr.getReceiver());
+        boolean any = false;
+        for (Friend f : between) {
+            f.setDeleted(true);
+            friendRepository.save(f);
+            any = true;
+        }
+        if (!any) {
+            // Fallback to delete the current one if query failed to find it
+            fr.setDeleted(true);
+            friendRepository.save(fr);
+        }
     }
 
     @Transactional
@@ -81,17 +112,20 @@ public class FriendService {
         User other = userRepository.findById(friendUserId)
                 .orElseThrow(() -> new NoSuchElementException("User not found"));
 
-        List<Friend> relations = friendRepository.findBySenderOrReceiverAndIsDeletedFalse(me, me);
+        List<Friend> relations = friendRepository.findActiveByUser(me);
+        boolean removedAny = false;
         for (Friend fr : relations) {
             boolean match = (Objects.equals(fr.getSender().getId(), me.getId()) && Objects.equals(fr.getReceiver().getId(), other.getId()))
                     || (Objects.equals(fr.getReceiver().getId(), me.getId()) && Objects.equals(fr.getSender().getId(), other.getId()));
-            if (match && fr.getStatus() == FriendStatus.ACCEPTED) {
+            if (match) {
                 fr.setDeleted(true);
                 friendRepository.save(fr);
-                return;
+                removedAny = true;
             }
         }
-        throw new IllegalStateException("No accepted friendship found to remove");
+        if (!removedAny) {
+            throw new IllegalStateException("No relationship found to remove");
+        }
     }
 
     @Transactional(readOnly = true)
@@ -99,7 +133,8 @@ public class FriendService {
         User me = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new NoSuchElementException("User not found"));
 
-        List<Friend> all = friendRepository.findBySenderOrReceiverAndIsDeletedFalse(me, me);
+        List<Friend> all = friendRepository.findActiveByUser(me);
         return friendMapper.toFriendListDTO(me, all);
     }
 }
+

@@ -10,6 +10,8 @@ import com.ltm.memorygame.service.user.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.ltm.memorygame.security.AuthUtils;
+import org.springframework.http.HttpStatus;
 
 import java.util.List;
 
@@ -42,13 +44,17 @@ public class UserController {
     @PatchMapping("/{id}/status")
     public ResponseEntity<Void> setStatus(@PathVariable Long id,
                                           @Valid @RequestBody SetStatusRequest body) {
+        Long authId = AuthUtils.getAuthenticatedUserId();
+        if (authId == null || !authId.equals(id)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         userService.setStatus(id, body.getStatus());
         return ResponseEntity.ok().build();
     }
 
     @GetMapping("/search")
     public ResponseEntity<List<FriendDTO>> search(@RequestParam String q) {
-        return ResponseEntity.ok(userService.searchUsers(q));
+        Long excludeId = AuthUtils.getAuthenticatedUserId();
+        return ResponseEntity.ok(userService.searchUsersExcluding(q, excludeId));
     }
-
 }

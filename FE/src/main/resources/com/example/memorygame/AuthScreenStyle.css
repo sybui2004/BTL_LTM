@@ -1,0 +1,112 @@
+.root-control{
+    -fx-alignment: center;
+    -fx-spacing: 0px;
+    -fx-background-color: linear-gradient(to bottom, #d9f3ff, #a1ddf6);
+}
+.form-padding{
+    -fx-padding: 100 80 100 80;
+}
+.login-title{
+    -fx-text-alignment: center;
+    -fx-font-size: 42px;
+    -fx-font-weight: bold;
+    -fx-padding: 20 0 20 0;
+}
+.text-field{
+    -fx-pref-height: 50px;
+    -fx-font-size: 15;
+    -fx-background-radius: 30px;
+    -fx-border-radius: 30px;
+    -fx-border-color: #5fa7c8;
+    -fx-border-width: 2px;
+    -fx-padding: 0 10 0 10;
+    -fx-pref-width: 360px;
+}
+.bottom-bar{
+    -fx-alignment: center;
+    -fx-spacing: 1px;
+    -fx-padding: 0 5 0 5;
+}
+.signup-button{
+    -fx-background-color: transparent;
+    -fx-font-weight: bold;
+    -fx-font-style: italic;
+    -fx-font-size: 15px;
+
+}
+.forgetpassword-button{
+    -fx-background-color: transparent;
+    -fx-font-weight: bold;
+    /*-fx-padding: 1 5 1 5;*/
+    -fx-font-size: 15px;
+}
+.new-user-label{
+    -fx-font-size: 15px;
+}
+.login-button{
+    -fx-background-radius: 30px;
+    -fx-background-color: #2d6f99;
+    -fx-text-fill: #F5EBFF;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.35), 8, 0, 2, 3);
+}
+.login-button:hover{
+    -fx-background-radius: 30px;
+    -fx-background-color: #347da9;
+    -fx-text-fill: #F5EBFF;
+}
+.login-button:pressed{
+    -fx-background-color: #255d82;
+    -fx-text-fill: #F5EBFF;
+}
+.signup-form{
+    -fx-padding: 40 60 40 60;
+    -fx-spacing: 12px;
+}
+.signup-title{
+    -fx-text-fill: #F5EBFF;
+    -fx-font-size: 42px;
+    -fx-font-weight: bold;
+    -fx-padding: 0 0 10 0;
+}
+.ghost-button{
+    -fx-background-color: transparent;
+    -fx-text-fill: #F5EBFF;
+    -fx-font-weight: bold;
+}
+.primary-button{
+    -fx-background-radius: 30px;
+    -fx-background-color: #2d6f99;
+    -fx-text-fill: #F5EBFF;
+    -fx-font-weight: bold;
+    -fx-padding: 10 18 10 18;
+}
+.primary-button:hover{
+    -fx-background-color: #347da9;
+}
+.primary-button:pressed{
+    -fx-background-color: #255d82;
+}
+/* keep same sizing as login for uniformity */
+
+.side_signup{
+    -fx-background-color: linear-gradient(to bottom, #9ed0f0, #5fa7c8);
+}
+.google-login-bar{
+    -fx-alignment: center;
+
+}
+.google-login-bar .label{
+    -fx-font-size: 15px;
+    -fx-alignment: center;
+}
+.google-login-bar .button{
+    -fx-background-color: transparent;
+    -fx-text-fill: transparent;
+    -fx-padding: 0px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.5), 10, 0, 2, 3);
+
+}
+.google-login-bar .button:hover .graphic{
+    -fx-opacity: 0.85;
+}
+

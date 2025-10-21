@@ -2,7 +2,8 @@ package com.ltm.memorygame.service.user;
 
 import com.ltm.memorygame.dao.game.MatchRepository;
 import com.ltm.memorygame.dao.user.UserRankingProjection;
-import com.ltm.memorygame.dto.auth.request.AuthRequest;
+// import com.ltm.memorygame.dto.auth.request.AuthRequest; // no longer used for createUser
+import com.ltm.memorygame.dto.auth.request.RegisterRequest;
 import com.ltm.memorygame.dto.friend.response.FriendDTO;
 import com.ltm.memorygame.dto.user.response.UserProfileDTO;
 import com.ltm.memorygame.dto.user.response.UserResponseDTO;
@@ -32,13 +33,14 @@ public class UserService {
     private final PasswordHasher passwordHasher;
 
     @Transactional
-    public UserResponseDTO createUser(AuthRequest request) {
+    public UserResponseDTO createUser(RegisterRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new IllegalStateException("Username already exists");
         }
         User user = new User();
         user.setUsername(request.getUsername());
         user.setPassword(passwordHasher.hashPassword(request.getPassword()));
+        user.setEmail(request.getEmail());
 
         user.setCreatedAt(new Date());
         user.setStatus(UserStatus.OFFLINE);
@@ -51,7 +53,6 @@ public class UserService {
 
         String hashedId = String.format("%08d", Math.abs(saved.getId().hashCode()) % 100_000_000);
         saved.setDisplayName("user" + hashedId);
-        saved.setEmail(saved.getDisplayName() + "@memorygame.local");
         saved.setAvatarUrl("/images/default-avatar.png");
 
         User updated = userRepository.save(saved);
@@ -109,5 +110,13 @@ public class UserService {
         return userRepository.searchByPrefix(q).stream()
                 .map(userMapper::toFriendDTO)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<FriendDTO> searchUsersExcluding(String q, Long excludeUserId) {
+        List<User> users = excludeUserId == null
+                ? userRepository.searchByPrefix(q)
+                : userRepository.searchByPrefixExcluding(q, excludeUserId);
+        return users.stream().map(userMapper::toFriendDTO).toList();
     }
 }

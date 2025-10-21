@@ -7,7 +7,7 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.*?>
 
-<StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" prefWidth="1024.0" prefHeight="720.0" stylesheets="@MainScreenStyle.css" id="root">
+<StackPane xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" prefWidth="1024.0" prefHeight="720.0" stylesheets="@RoomScreenStyle.css" id="root">
     <children>
         <BorderPane>
             <!-- Top bar with back, title, and actions -->
