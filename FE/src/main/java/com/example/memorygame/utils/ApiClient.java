@@ -13,6 +13,10 @@ public class ApiClient {
         baseUrl = url;
     }
 
+    public static String getBaseUrl() {
+        return baseUrl;
+    }
+
     public static String get(String path) {
         try {
             HttpRequest request = HttpRequest.newBuilder()

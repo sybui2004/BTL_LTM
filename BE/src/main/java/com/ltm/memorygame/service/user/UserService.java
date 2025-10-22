@@ -55,7 +55,7 @@ public class UserService {
 
         String hashedId = String.format("%08d", Math.abs(saved.getId().hashCode()) % 100_000_000);
         saved.setDisplayName("user" + hashedId);
-        saved.setAvatarUrl("/images/default-avatar.png");
+        saved.setAvatarUrl("/static/avatars/default_avatar.png");
 
         User updated = userRepository.save(saved);
 

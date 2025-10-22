@@ -9,6 +9,7 @@ import com.example.memorygame.controller.room.RoomUIUpdater;
 import com.example.memorygame.controller.room.TCPMessageHandler;
 import com.example.memorygame.model.game.InviteDTO;
 import com.example.memorygame.model.user.UserSummary;
+import com.example.memorygame.utils.ApiClient;
 import com.example.memorygame.utils.UserApi;
 import com.example.memorygame.view.RoomScreen;
 import javafx.application.Platform;
@@ -26,8 +27,6 @@ import javafx.scene.layout.VBox;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
-
-import java.util.Objects;
 
 /**
  * Main controller for RoomScreen - delegates to helper classes
@@ -258,21 +257,37 @@ public class RoomScreenController {
     }
     
     private Image loadUserAvatarOrFallback(String candidateUrl) {
-        String fallbackResource = "/com/example/memorygame/assets/images/name.png";
+        // Default avatar URL from server using ApiClient base URL
+        String serverDefaultAvatarUrl = ApiClient.getBaseUrl() + "/static/avatars/default_avatar.png";
+        
         try {
             if (candidateUrl != null) {
                 String trimmed = candidateUrl.trim();
                 if (!trimmed.isEmpty()) {
                     String lower = trimmed.toLowerCase();
+                    
+                    // Check if it's already a full URL
                     if (lower.startsWith("http://") || lower.startsWith("https://")) {
                         return new Image(trimmed, true);
                     }
+                    
+                    // If it's a relative path, prepend base URL
+                    if (trimmed.startsWith("/")) {
+                        String fullUrl = ApiClient.getBaseUrl() + trimmed;
+                        return new Image(fullUrl, true);
+                    }
+                    
+                    // If it doesn't start with /, assume it's a path under /static/
+                    String fullUrl = ApiClient.getBaseUrl() + "/static/" + trimmed;
+                    return new Image(fullUrl, true);
                 }
             }
-        } catch (IllegalArgumentException ignored) { }
+        } catch (IllegalArgumentException e) {
+            System.err.println("[ERROR] Failed to load avatar: " + e.getMessage());
+        }
         
-        var url = getClass().getResource(fallbackResource);
-        return new Image(Objects.requireNonNull(url).toExternalForm(), true);
+        // Fallback to server default avatar
+        return new Image(serverDefaultAvatarUrl, true);
     }
 }
 

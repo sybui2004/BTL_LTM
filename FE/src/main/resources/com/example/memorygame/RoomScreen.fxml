@@ -63,7 +63,6 @@
                                     <StackPane prefWidth="96" prefHeight="96" maxWidth="96" maxHeight="96">
                                         <ImageView fx:id="hostAvatar" fitWidth="96"
                                                    fitHeight="96">
-                                            <Image url="@assets/images/name.png"/>
                                         </ImageView>
                                         <StackPane alignment="TOP_LEFT">
                                             <StackPane.margin>
@@ -95,7 +94,6 @@
                                         <ImageView fx:id="guestAvatar" fitWidth="96"
                                                    fitHeight="96"
                                                    visible="false">
-                                            <Image url="@assets/images/name.png"/>
                                         </ImageView>
                                         <Label fx:id="guestPlaceholder" text="?"
                                                styleClass="empty-slot"/>
