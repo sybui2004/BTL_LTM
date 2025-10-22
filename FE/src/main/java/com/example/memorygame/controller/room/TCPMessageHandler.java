@@ -16,15 +16,29 @@ public class TCPMessageHandler {
     private final Runnable onRefreshTab;
     private final Runnable onLoadInvites;
     private final RoomStateManager stateManager;
+    private final Runnable onComboBoxStateUpdate;
+    private final SettingsUpdateCallback onSettingsUpdate;
+    private final Runnable onSendCurrentSettings;
+    
+    @FunctionalInterface
+    public interface SettingsUpdateCallback {
+        void accept(String theme, String size, String time);
+    }
     
     public TCPMessageHandler(RoomUIUpdater uiUpdater, 
                             Runnable onRefreshTab,
                             Runnable onLoadInvites,
-                            RoomStateManager stateManager) {
+                            RoomStateManager stateManager,
+                            Runnable onComboBoxStateUpdate,
+                            SettingsUpdateCallback onSettingsUpdate,
+                            Runnable onSendCurrentSettings) {
         this.uiUpdater = uiUpdater;
         this.onRefreshTab = onRefreshTab;
         this.onLoadInvites = onLoadInvites;
         this.stateManager = stateManager;
+        this.onComboBoxStateUpdate = onComboBoxStateUpdate;
+        this.onSettingsUpdate = onSettingsUpdate;
+        this.onSendCurrentSettings = onSendCurrentSettings;
     }
     
     public void setupListeners() {
@@ -99,6 +113,22 @@ public class TCPMessageHandler {
                     
                     Platform.runLater(() -> {
                         uiUpdater.updateGuestInfo(guestDisplayName, guestAvatarUrl);
+                        
+                        // Enable play button for host when guest joins
+                        boolean canStart = stateManager.isHost() && stateManager.canStartGame();
+                        System.out.println("[DEBUG] Guest joined - isHost: " + stateManager.isHost() + ", canStartGame: " + stateManager.canStartGame() + ", enabling play button: " + canStart);
+                        uiUpdater.setPlayButtonEnabled(canStart);
+                        
+                        // Update ComboBox states
+                        if (onComboBoxStateUpdate != null) {
+                            onComboBoxStateUpdate.run();
+                        }
+                        
+                        // Send current settings to the newly joined guest
+                        if (onSendCurrentSettings != null) {
+                            onSendCurrentSettings.run();
+                        }
+                        
                         onRefreshTab.run();
                         showAlert(guestDisplayName + " joined the room!");
                     });
@@ -157,6 +187,11 @@ public class TCPMessageHandler {
                         stateManager.setHost(false);
                         uiUpdater.setPlayButtonEnabled(false);
                         
+                        // Update ComboBox states
+                        if (onComboBoxStateUpdate != null) {
+                            onComboBoxStateUpdate.run();
+                        }
+                        
                         onRefreshTab.run();
                     });
                 }
@@ -174,6 +209,10 @@ public class TCPMessageHandler {
                     uiUpdater.clearGuestInfo();
                     stateManager.setCurrentGuestId(null);
                     stateManager.setCurrentHostId(null);
+                    
+                    // Update play button state - enable if host, disable if guest
+                    uiUpdater.setPlayButtonEnabled(stateManager.isHost() && stateManager.canStartGame());
+                    
                     onRefreshTab.run();
                 });
             }
@@ -199,9 +238,39 @@ public class TCPMessageHandler {
                     stateManager.setCurrentGuestId(null);
                     stateManager.setCurrentHostId(null);
                     
+                    // Update ComboBox states
+                    if (onComboBoxStateUpdate != null) {
+                        onComboBoxStateUpdate.run();
+                    }
+                    
                     onRefreshTab.run();
                     showAlert("You have been promoted to host of the room!");
                 });
+            }
+        });
+        
+        // Handle room settings changes from host
+        client.onMessage("ROOM_SETTINGS_CHANGED", message -> {
+            System.out.println("[TCP][RoomScreen] Received ROOM_SETTINGS_CHANGED message");
+            Map<String, Object> data = message.getData();
+            if (data != null) {
+                String theme = (String) data.get("theme");
+                String size = (String) data.get("size");
+                String time = (String) data.get("time");
+                
+                System.out.println("[TCP][RoomScreen] Received settings from host - Theme: " + theme + ", Size: " + size + ", Time: " + time);
+                
+                Platform.runLater(() -> {
+                    // Update labels for guest
+                    if (onSettingsUpdate != null) {
+                        System.out.println("[TCP][RoomScreen] Calling onSettingsUpdate callback");
+                        onSettingsUpdate.accept(theme, size, time);
+                    } else {
+                        System.out.println("[TCP][RoomScreen] onSettingsUpdate callback is null!");
+                    }
+                });
+            } else {
+                System.out.println("[TCP][RoomScreen] ROOM_SETTINGS_CHANGED message has no data!");
             }
         });
     }

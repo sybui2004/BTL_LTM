@@ -109,6 +109,7 @@ public class ClientHandler extends Thread {
             case "LOGOUT_REQUEST" -> handleLogout();
             case "WORLD_CHAT" -> handleWorldChat(message);
             case "PRIVATE_CHAT" -> handlePrivateChat(message);
+            case "ROOM_SETTINGS_CHANGED" -> handleRoomSettingsChanged(message);
             case "PING" -> sendMessage(new TCPMessage("PONG", null, "server", username));
             default -> log.warn("[TCP] Unknown type: {}", message.getType());
         }
@@ -209,6 +210,18 @@ public class ClientHandler extends Thread {
         } else {
             sendMessage(new TCPMessage("ERROR",
                     Map.of("reason", "User offline"), "server", username));
+        }
+    }
+
+    private void handleRoomSettingsChanged(TCPMessage message) {
+        log.info("[TCP] Room settings changed by {}: {}", username, message.getData());
+        
+        // Forward the message to all other clients in the same room
+        // For now, we'll broadcast to all clients (can be optimized later)
+        for (ClientHandler client : onlineClients.values()) {
+            if (!client.username.equals(username)) { // Don't send back to sender
+                client.sendMessage(message);
+            }
         }
     }
 
