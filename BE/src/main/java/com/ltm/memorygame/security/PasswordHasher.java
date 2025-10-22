@@ -1,12 +1,13 @@
 package com.ltm.memorygame.security;
 
-import org.springframework.stereotype.Component;
-
-import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.PBEKeySpec;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Base64;
+
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.PBEKeySpec;
+
+import org.springframework.stereotype.Component;
 
 @Component
 public class PasswordHasher {
@@ -36,7 +37,6 @@ public class PasswordHasher {
             byte[] actual = pbkdf2(rawPassword.toCharArray(), salt, iterations, expectedHash.length);
             return MessageDigest.isEqual(expectedHash, actual);
         }
-        // Backward-compatibility: if stored is plaintext, fall back to direct compare
         return rawPassword.equals(stored);
     }
 
@@ -50,4 +50,5 @@ public class PasswordHasher {
         }
     }
 }
+
 

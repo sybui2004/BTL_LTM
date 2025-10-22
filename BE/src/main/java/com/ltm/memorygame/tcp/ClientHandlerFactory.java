@@ -42,5 +42,6 @@ public class ClientHandlerFactory {
         return new ClientHandler(socket, onlineClients,
                 userService, roomService, notificationService, jwtService, requireJwt, maxPerSecond,
                 matchMessageService, privateMessageService, worldMessageService, presenceService);
+                
     }
 }

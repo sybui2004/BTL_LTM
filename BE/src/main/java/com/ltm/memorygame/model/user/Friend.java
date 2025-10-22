@@ -8,7 +8,7 @@ import lombok.Setter;
 import java.util.Date;
 
 @Entity
-@Table(name = "Friend")
+@Table(name = "friend")
 @Getter
 @Setter
 public class Friend {

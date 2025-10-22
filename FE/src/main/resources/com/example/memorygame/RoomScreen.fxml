@@ -5,399 +5,338 @@
 <?import javafx.scene.shape.*?>
 <?import javafx.scene.Group?>
 <?import javafx.scene.layout.*?>
-<?import javafx.scene.text.*?>
 
-<StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" prefWidth="1024.0" prefHeight="720.0" stylesheets="@MainScreenStyle.css" id="root">
-    <children>
-        <BorderPane>
-            <!-- Top bar with back, title, and actions -->
-            <top>
-                <BorderPane BorderPane.alignment="CENTER">
-                    <left>
-                        <HBox spacing="12" alignment="CENTER_LEFT">
-                            <children>
-                                <StackPane styleClass="icon-hover">
-                                    <children>
-                                        <ImageView fitWidth="28" fitHeight="28" preserveRatio="true">
-                                            <image>
-                                                <Image url="@assets/images/icon/back.png"/>
-                                            </image>
+<StackPane xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" prefWidth="1024.0"
+           prefHeight="720.0" stylesheets="@RoomScreenStyle.css" id="root">
+    <BorderPane>
+        <!-- Top bar with back, title, and actions -->
+        <top>
+            <BorderPane BorderPane.alignment="CENTER">
+                <left>
+                    <HBox spacing="12" alignment="CENTER_LEFT">
+                        <StackPane styleClass="icon-hover">
+                            <ImageView fitWidth="28" fitHeight="28" preserveRatio="true">
+                                <Image url="@assets/images/icon/back.png"/>
+                            </ImageView>
+                        </StackPane>
+                    </HBox>
+                </left>
+                <center>
+                    <Label fx:id="titleLabel" text="MEMORY MATCHING GAME" styleClass="app-title"/>
+                </center>
+                <right>
+                    <HBox spacing="12" alignment="CENTER_RIGHT">
+                        <StackPane styleClass="icon-hover" fx:id="questionButton">
+                            <ImageView fitWidth="28" fitHeight="28" preserveRatio="true">
+                                <Image url="@assets/images/icon/question.png"/>
+                            </ImageView>
+                        </StackPane>
+                        <StackPane styleClass="icon-hover">
+                            <ImageView fitWidth="28" fitHeight="28" preserveRatio="true">
+                                <Image url="@assets/images/icon/setting.png"/>
+                            </ImageView>
+                        </StackPane>
+                    </HBox>
+                </right>
+                <padding>
+                    <Insets top="12" right="16" bottom="20" left="16"/>
+                </padding>
+            </BorderPane>
+        </top>
+
+        <!-- Left: Waiting room card -->
+        <center>
+            <StackPane BorderPane.alignment="CENTER">
+                <padding>
+                    <Insets top="24" right="56" bottom="40" left="56"/>
+                </padding>
+                <HBox spacing="32">
+                    <StackPane styleClass="room-card" prefWidth="640" prefHeight="460">
+                        <VBox spacing="16" alignment="TOP_CENTER" maxWidth="Infinity">
+                            <padding>
+                                <Insets top="26" right="32" bottom="26" left="32"/>
+                            </padding>
+                            <Label text="WAITING ROOM" styleClass="panel-title"/>
+                            <Pane prefHeight="8"/>
+                            <HBox alignment="CENTER" spacing="40"><!-- Host -->
+                                <VBox alignment="CENTER" spacing="8">
+                                    <StackPane prefWidth="96" prefHeight="96" maxWidth="96" maxHeight="96">
+                                        <ImageView fx:id="hostAvatar" fitWidth="96"
+                                                   fitHeight="96">
+                                            <Image url="@assets/images/name.png"/>
                                         </ImageView>
-                                    </children>
-                                </StackPane>
-                            </children>
-                        </HBox>
-                    </left>
-                    <center>
-                        <Label fx:id="titleLabel" text="MEMORY MATCHING GAME" styleClass="app-title"/>
-                    </center>
-                    <right>
-                        <HBox spacing="12" alignment="CENTER_RIGHT">
-                            <children>
-                                <StackPane styleClass="icon-hover" fx:id="questionButton">
-                                    <children>
-                                        <ImageView fitWidth="28" fitHeight="28" preserveRatio="true">
-                                            <image>
-                                                <Image url="@assets/images/icon/question.png"/>
-                                            </image>
+                                        <StackPane alignment="TOP_LEFT">
+                                            <StackPane.margin>
+                                                <Insets top="-14" left="-14"/>
+                                            </StackPane.margin>
+                                            <!-- crown icon, slightly larger and offset, do not cover border -->
+                                            <Rectangle width="20" height="20"
+                                                       fill="transparent" arcWidth="12"
+                                                       arcHeight="12"/>
+                                            <ImageView fitWidth="44" fitHeight="44"
+                                                       preserveRatio="true">
+                                                <Image url="@assets/images/icon/host.png"/>
+                                            </ImageView>
+                                        </StackPane>
+                                    </StackPane>
+                                    <Label fx:id="hostStatus" text="John Doe"
+                                           styleClass="small-muted"/>
+                                </VBox>
+
+                                <!-- Sword -->
+                                <ImageView fitWidth="48" fitHeight="48" preserveRatio="true">
+                                    <Image url="@assets/images/icon/sword.png"/>
+                                </ImageView>
+
+                                <!-- Guest -->
+                                <VBox alignment="CENTER" spacing="8">
+                                    <StackPane styleClass="avatar-frame" prefWidth="96"
+                                               prefHeight="96" maxWidth="96" maxHeight="96">
+                                        <ImageView fx:id="guestAvatar" fitWidth="96"
+                                                   fitHeight="96"
+                                                   visible="false">
+                                            <Image url="@assets/images/name.png"/>
                                         </ImageView>
-                                    </children>
-                                </StackPane>
-                                <StackPane styleClass="icon-hover">
-                                    <children>
-                                        <ImageView fitWidth="28" fitHeight="28" preserveRatio="true">
-                                            <image>
-                                                <Image url="@assets/images/icon/setting.png"/>
-                                            </image>
-                                        </ImageView>
-                                    </children>
-                                </StackPane>
-                            </children>
-                        </HBox>
-                    </right>
-                    <padding>
-                        <Insets top="12" right="16" bottom="20" left="16"/>
-                    </padding>
-                </BorderPane>
-            </top>
+                                        <Label fx:id="guestPlaceholder" text="?"
+                                               styleClass="empty-slot"/>
+                                    </StackPane>
+                                    <Label fx:id="guestStatus" text="Waiting for player..."
+                                           styleClass="small-muted"/>
+                                </VBox>
 
-            <!-- Left: Waiting room card -->
-            <center>
-                <StackPane BorderPane.alignment="CENTER">
-                    <children>
-                        <HBox spacing="32">
-                            <children>
-                                <StackPane styleClass="room-card" prefWidth="640" prefHeight="460">
-                                    <children>
-                                        <VBox spacing="16" alignment="TOP_CENTER" maxWidth="Infinity">
-                                            <children>
-                                                <Label text="WAITING ROOM" styleClass="panel-title"/>
-                                                <Pane prefHeight="8"/>
-                                                <HBox alignment="CENTER" spacing="40">
-    <children>
+                            </HBox>
 
-        <!-- Host -->
-        <VBox alignment="CENTER" spacing="8">
-            <children>
-            <StackPane styleClass="avatar-frame host-avatar-frame" prefWidth="96" prefHeight="96" maxWidth="96" maxHeight="96">
-                <children>
-                    <ImageView fx:id="hostAvatar" fitWidth="96" fitHeight="96" preserveRatio="false">
-                        <image>
-                            <Image url="@assets/images/name.png"/>
-                        </image>
-                    </ImageView>
-                         <StackPane alignment="TOP_LEFT">
-                             <children>
-                                 <!-- crown icon, slightly larger and offset, do not cover border -->
-                                 <Rectangle width="20" height="20" fill="transparent" arcWidth="12" arcHeight="12"/>
-                                 <ImageView fitWidth="44" fitHeight="44" preserveRatio="true">
-                                     <image>
-                                         <Image url="@assets/images/icon/host.png"/>
-                                     </image>
-                                 </ImageView>
-                             </children>
-                             <StackPane.margin>
-                                 <Insets top="-14" left="-14"/>
-                             </StackPane.margin>
-                         </StackPane>
-                     </children>
-                 </StackPane>
-                <Label fx:id="hostStatus" text="John Doe" styleClass="small-muted"/>
-            </children>
-        </VBox>
+                            <!-- Invite list -->
+                            <VBox fx:id="inviteListContainer" spacing="8" maxHeight="140"
+                                  visible="false" managed="false">
+                                <padding>
+                                    <Insets top="8" bottom="8"/>
+                                </padding>
+                                <Label text="Invites" styleClass="small-muted" alignment="CENTER"/>
+                                <ScrollPane styleClass="invite-scroll" fitToWidth="true"
+                                            hbarPolicy="NEVER"
+                                            maxHeight="160">
+                                    <VBox fx:id="inviteList" spacing="8">
+                                        <padding>
+                                            <Insets top="8" right="8" bottom="8" left="8"/>
+                                        </padding>
+                                    </VBox>
+                                </ScrollPane>
+                            </VBox>
 
-        <!-- Sword -->
-        <ImageView fitWidth="48" fitHeight="48" preserveRatio="true">
-            <image>
-                <Image url="@assets/images/icon/sword.png"/>
-            </image>
-        </ImageView>
-
-        <!-- Guest -->
-        <VBox alignment="CENTER" spacing="8">
-            <children>
-                 <StackPane styleClass="avatar-frame" prefWidth="96" prefHeight="96" maxWidth="96" maxHeight="96">
-                     <children>
-                         <ImageView fx:id="guestAvatar" fitWidth="96" fitHeight="96" preserveRatio="false" visible="false">
-                             <image>
-                                 <Image url="@assets/images/name.png"/>
-                             </image>
-                         </ImageView>
-                         <Label text="?" styleClass="empty-slot"/>
-                     </children>
-                 </StackPane>
-                <Label fx:id="guestStatus" text="Waiting for player..." styleClass="small-muted"/>
-            </children>
-        </VBox>
-
-    </children>
-</HBox>
-
-                                                <Pane VBox.vgrow="ALWAYS"/>
-                                                <HBox spacing="36" alignment="CENTER">
-                                                    <children>
-                                                        <VBox spacing="6" alignment="CENTER">
-                                                            <children>
-                                                                <Label text="Theme" styleClass="field-label" prefWidth="180" alignment="CENTER"/>
-                                                                <ComboBox promptText="Default" prefWidth="180" minWidth="180" maxWidth="180" styleClass="select"/>
-                                                            </children>
-                                                        </VBox>
-                                                        <VBox spacing="6" alignment="CENTER">
-                                                            <children>
-                                                                <Label text="Size" styleClass="field-label" prefWidth="180" alignment="CENTER"/>
-                                                                <ComboBox promptText="4x4" prefWidth="180" minWidth="180" maxWidth="180" styleClass="select"/>
-                                                            </children>
-                                                        </VBox>
-                                                        <VBox spacing="6" alignment="CENTER">
-                                                            <children>
-                                                                <Label text="Time" styleClass="field-label" prefWidth="180" alignment="CENTER"/>
-                                                                <ComboBox promptText="60s" prefWidth="180" minWidth="180" maxWidth="180" styleClass="select"/>
-                                                            </children>
-                                                        </VBox>
-                                                    </children>
-                                                </HBox>
-                                                <Pane prefHeight="12"/>
-                                                <HBox spacing="12" alignment="CENTER">
-                                                    <children>
-                                                        <HBox spacing="8" alignment="CENTER_LEFT" styleClass="chat-box" prefWidth="420" prefHeight="40">
-                                                            <children>
-                                                                <ImageView fitWidth="22" fitHeight="22" preserveRatio="true">
-                                                                    <image>
-                                                                        <Image url="@assets/images/icon/chat.png"/>
-                                                                    </image>
-                                                                </ImageView>
-                                                                <Label text="Chat" styleClass="chat-placeholder"/>
-                                                            </children>
-                                                        </HBox>
-                                                    </children>
-                                                </HBox>
-                                            </children>
-                                    <padding>
-                                        <Insets top="26" right="32" bottom="26" left="32"/>
-                                    </padding>
-                                        </VBox>
-                                    </children>
-                                </StackPane>
-
-                                <!-- Right: Friend list panel -->
-                                <BorderPane styleClass="side-panel" prefWidth="280" prefHeight="460">
-                                    <top>
-                                        <VBox spacing="10">
-                                            <children>
-                                                <GridPane hgap="4" vgap="0">
-                                                    <columnConstraints>
-                                                        <ColumnConstraints percentWidth="33.33" halignment="CENTER"/>
-                                                        <ColumnConstraints percentWidth="33.33" halignment="CENTER"/>
-                                                        <ColumnConstraints percentWidth="33.34" halignment="CENTER"/>
-                                                    </columnConstraints>
-                                                    <children>
-                                                        <ToggleButton fx:id="tabFriends" styleClass="toggle-tab" selected="true" GridPane.columnIndex="0">
-                                                            <graphic>
-                                                                <ImageView fitWidth="24" fitHeight="24" preserveRatio="true">
-                                                                    <image>
-                                                                        <Image url="@assets/images/icon/friend.png"/>
-                                                                    </image>
-                                                                </ImageView>
-                                                            </graphic>
-                                                            <GridPane.margin>
-                                                                <Insets left="6" right="6"/>
-                                                            </GridPane.margin>
-                                                        </ToggleButton>
-                                                        <ToggleButton fx:id="tabStrangers" styleClass="toggle-tab" GridPane.columnIndex="1">
-                                                            <graphic>
-                                                                <ImageView fitWidth="24" fitHeight="24" preserveRatio="true">
-                                                                    <image>
-                                                                        <Image url="@assets/images/icon/comunity.png"/>
-                                                                    </image>
-                                                                </ImageView>
-                                                            </graphic>
-                                                            <GridPane.margin>
-                                                                <Insets left="6" right="6"/>
-                                                            </GridPane.margin>
-                                                        </ToggleButton>
-                                                        <ToggleButton fx:id="tabRecent" styleClass="toggle-tab" GridPane.columnIndex="2">
-                                                            <graphic>
-                                                                <ImageView fitWidth="24" fitHeight="24" preserveRatio="true">
-                                                                    <image>
-                                                                        <Image url="@assets/images/icon/recent.png"/>
-                                                                    </image>
-                                                                </ImageView>
-                                                            </graphic>
-                                                            <GridPane.margin>
-                                                                <Insets left="6" right="6"/>
-                                                            </GridPane.margin>
-                                                        </ToggleButton>
-                                                    </children>
-                                                </GridPane>
-
-                                                <!-- Search box for Strangers tab only -->
-                                                <HBox fx:id="searchContainer" spacing="10" alignment="CENTER_LEFT" visible="false" managed="false">
-                                                    <children>
-                                                        <TextField fx:id="txtSearch" promptText="Search by id..." styleClass="search-field" prefWidth="240"/>
-                                                        <Button fx:id="btnSearch" styleClass="icon-button">
-                                                            <graphic>
-                                                                <Group>
-                                                                    <Circle centerX="12" centerY="12" radius="8" stroke="#5fa7c8" strokeWidth="2" fill="transparent"/>
-                                                                    <Line startX="17.2" startY="17.2" endX="22.5" endY="22.5" stroke="#5fa7c8" strokeWidth="2" strokeLineCap="ROUND"/>
-                                                                </Group>
-                                                            </graphic>
-                                                        </Button>
-                                                    </children>
-                                                </HBox>
-                                            </children>
-                                            <padding>
-                                                <Insets top="14" right="14" bottom="8" left="14"/>
-                                            </padding>
-                                        </VBox>
-                                    </top>
-
-                                    <center>
-                                        <ScrollPane styleClass="list-scroll" fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED">
-                                            <content>
-                                                <VBox fx:id="listContainer" spacing="8">
-                                                    <padding>
-                                                        <Insets top="4" right="14" bottom="8" left="14"/>
-                                                    </padding>
-                                                </VBox>
-                                            </content>
-                                        </ScrollPane>
-                                    </center>
-
-                                    <bottom>
-                                        <HBox alignment="CENTER">
-                                            <children>
-                                                <StackPane styleClass="cta-btn" prefWidth="140" prefHeight="44" alignment="CENTER">
-                                                    <children>
-                                                        <Label text="Play" styleClass="cta-label"/>
-                                                    </children>
-                                                </StackPane>
-                                            </children>
-                                            <padding>
-                                                <Insets top="8" right="14" bottom="14" left="14"/>
-                                            </padding>
-                                        </HBox>
-                                    </bottom>
-                                </BorderPane>
-                            </children>
-                        </HBox>
-                    </children>
-                    <padding>
-                        <Insets top="24" right="56" bottom="40" left="56"/>
-                    </padding>
-                </StackPane>
-            </center>
-        </BorderPane>
-
-        <!-- Game Rules Popup Overlay (covers entire scene) -->
-        <StackPane fx:id="popupOverlay" visible="false" managed="false" styleClass="popup-overlay" alignment="CENTER" pickOnBounds="true">
-            <children>
-                <!-- Popup content -->
-                <VBox styleClass="popup-content" alignment="CENTER" spacing="20">
-                    <children>
-                        <!-- Title -->
-                        <Label text="GAME RULES" styleClass="popup-title"/>
-
-                        <!-- Rules list -->
-                        <VBox styleClass="rules-list" spacing="12" alignment="CENTER_LEFT">
-                            <children>
-                                <!-- Rule 1 -->
-                                <HBox spacing="8" alignment="CENTER_LEFT">
-                                    <children>
-                                        <ImageView fitWidth="48" fitHeight="48" preserveRatio="true">
-                                            <image>
-                                                <Image url="@assets/images/icon/foot.png"/>
-                                            </image>
-                                        </ImageView>
-                                        <Label text="Each game has 2 players on the same board." styleClass="rule-text"/>
-                                    </children>
+                            <Pane VBox.vgrow="ALWAYS"/>
+                            <HBox spacing="36" alignment="CENTER">
+                                <VBox spacing="6" alignment="CENTER">
+                                    <Label text="Theme" styleClass="field-label" prefWidth="180"
+                                           alignment="CENTER"/>
+                                    <ComboBox promptText="Default" prefWidth="180"
+                                              minWidth="180" maxWidth="180"
+                                              styleClass="select"/>
+                                </VBox>
+                                <VBox spacing="6" alignment="CENTER">
+                                    <Label text="Size" styleClass="field-label" prefWidth="180"
+                                           alignment="CENTER"/>
+                                    <ComboBox promptText="4x4" prefWidth="180" minWidth="180"
+                                              maxWidth="180" styleClass="select"/>
+                                </VBox>
+                                <VBox spacing="6" alignment="CENTER">
+                                    <Label text="Time" styleClass="field-label" prefWidth="180"
+                                           alignment="CENTER"/>
+                                    <ComboBox promptText="60s" prefWidth="180" minWidth="180"
+                                              maxWidth="180" styleClass="select"/>
+                                </VBox>
+                            </HBox>
+                            <Pane prefHeight="12"/>
+                            <HBox spacing="12" alignment="CENTER">
+                                <HBox spacing="8" alignment="CENTER_LEFT" styleClass="chat-box"
+                                      prefWidth="420" prefHeight="40">
+                                    <ImageView fitWidth="22" fitHeight="22"
+                                               preserveRatio="true">
+                                        <Image url="@assets/images/icon/chat.png"/>
+                                    </ImageView>
+                                    <Label text="Chat" styleClass="chat-placeholder"/>
                                 </HBox>
-
-                                <!-- Rule 2 -->
-                                <HBox spacing="8" alignment="CENTER_LEFT">
-                                    <children>
-                                        <ImageView fitWidth="48" fitHeight="48" preserveRatio="true">
-                                            <image>
-                                                <Image url="@assets/images/icon/foot.png"/>
-                                            </image>
-                                        </ImageView>
-                                        <Label text="Players take turns flipping 2 cards; if they match, 1 point is awarded and the player continues; if they don't match, it's the opponent's turn." styleClass="rule-text"/>
-                                    </children>
-                                </HBox>
-
-                                <!-- Case examples for Rule 2 -->
-                                <HBox spacing="64" alignment="CENTER" styleClass="case-examples" prefWidth="Infinity" maxWidth="Infinity">
-                                    <children>
-                                        <!-- True case -->
-                                        <VBox alignment="CENTER" spacing="6">
-                                            <children>
-                                                <ImageView fitWidth="256" fitHeight="82" preserveRatio="true">
-                                                    <image>
-                                                        <Image url="@assets/images/true.png"/>
-                                                    </image>
-                                                </ImageView>
-                                                <Label text="Match" styleClass="case-label"/>
-                                            </children>
-                                        </VBox>
-
-                                        <!-- False case -->
-                                        <VBox alignment="CENTER" spacing="6">
-                                            <children>
-                                                <ImageView fitWidth="256" fitHeight="82" preserveRatio="true">
-                                                    <image>
-                                                        <Image url="@assets/images/false.png"/>
-                                                    </image>
-                                                </ImageView>
-                                                <Label text="No Match" styleClass="case-label"/>
-                                            </children>
-                                        </VBox>
-                                    </children>
-                                </HBox>
-
-                                <!-- Rule 3 -->
-                                <HBox spacing="8" alignment="CENTER_LEFT">
-                                    <children>
-                                        <ImageView fitWidth="48" fitHeight="48" preserveRatio="true">
-                                            <image>
-                                                <Image url="@assets/images/icon/foot.png"/>
-                                            </image>
-                                        </ImageView>
-                                        <Label text="The game ends when all card pairs are flipped; whoever has more points wins." styleClass="rule-text"/>
-                                    </children>
-                                </HBox>
-
-                                <!-- Rule 4 -->
-                                <HBox spacing="8" alignment="CENTER_LEFT">
-                                    <children>
-                                        <ImageView fitWidth="48" fitHeight="48" preserveRatio="true">
-                                            <image>
-                                                <Image url="@assets/images/icon/foot.png"/>
-                                            </image>
-                                        </ImageView>
-                                        <Label text="The winner gains rank points, the loser loses them." styleClass="rule-text"/>
-                                    </children>
-                                </HBox>
-
-                                <!-- Rule 5 -->
-                                <HBox spacing="8" alignment="CENTER_LEFT">
-                                    <children>
-                                        <ImageView fitWidth="48" fitHeight="48" preserveRatio="true">
-                                            <image>
-                                                <Image url="@assets/images/icon/foot.png"/>
-                                            </image>
-                                        </ImageView>
-                                        <Label text="Quitting midway or taking too long to make a move will result in a loss." styleClass="rule-text"/>
-                                    </children>
-                                </HBox>
-                            </children>
+                            </HBox>
                         </VBox>
+                    </StackPane>
 
-                        <!-- Close button -->
-                        <Button text="Got it" styleClass="popup-close-btn" fx:id="closePopupButton"/>
-                    </children>
-                </VBox>
-            </children>
-        </StackPane>
-    </children>
+                    <!-- Right: Friend list panel -->
+                    <BorderPane styleClass="side-panel" prefWidth="280" prefHeight="460">
+                        <top>
+                            <VBox spacing="10">
+                                <padding>
+                                    <Insets top="14" right="14" bottom="8" left="14"/>
+                                </padding>
+                                <GridPane hgap="4">
+                                    <columnConstraints>
+                                        <ColumnConstraints percentWidth="33.33" halignment="CENTER"/>
+                                        <ColumnConstraints percentWidth="33.33" halignment="CENTER"/>
+                                        <ColumnConstraints percentWidth="33.34" halignment="CENTER"/>
+                                    </columnConstraints>
+                                    <ToggleButton fx:id="tabFriends" styleClass="toggle-tab"
+                                                  selected="true" GridPane.columnIndex="0">
+                                        <graphic>
+                                            <ImageView fitWidth="24" fitHeight="24"
+                                                       preserveRatio="true">
+                                                <Image url="@assets/images/icon/friend.png"/>
+                                            </ImageView>
+                                        </graphic>
+                                        <GridPane.margin>
+                                            <Insets left="6" right="6"/>
+                                        </GridPane.margin>
+                                    </ToggleButton>
+                                    <ToggleButton fx:id="tabStrangers" styleClass="toggle-tab"
+                                                  GridPane.columnIndex="1">
+                                        <graphic>
+                                            <ImageView fitWidth="24" fitHeight="24"
+                                                       preserveRatio="true">
+                                                <Image url="@assets/images/icon/comunity.png"/>
+                                            </ImageView>
+                                        </graphic>
+                                        <GridPane.margin>
+                                            <Insets left="6" right="6"/>
+                                        </GridPane.margin>
+                                    </ToggleButton>
+                                    <ToggleButton fx:id="tabRecent" styleClass="toggle-tab"
+                                                  GridPane.columnIndex="2">
+                                        <graphic>
+                                            <ImageView fitWidth="24" fitHeight="24"
+                                                       preserveRatio="true">
+                                                <Image url="@assets/images/icon/recent.png"/>
+                                            </ImageView>
+                                        </graphic>
+                                        <GridPane.margin>
+                                            <Insets left="6" right="6"/>
+                                        </GridPane.margin>
+                                    </ToggleButton>
+                                </GridPane>
+
+                                <!-- Search box for Strangers tab only -->
+                                <HBox fx:id="searchContainer" spacing="10" alignment="CENTER_LEFT"
+                                      visible="false" managed="false">
+                                    <TextField fx:id="txtSearch" promptText="Search by id..."
+                                               styleClass="search-field" prefWidth="240"/>
+                                    <Button fx:id="btnSearch" styleClass="icon-button">
+                                        <graphic>
+                                            <Group>
+                                                <Circle centerX="12" centerY="12" radius="8"
+                                                        stroke="#5fa7c8" strokeWidth="2"
+                                                        fill="transparent"/>
+                                                <Line startX="17.2" startY="17.2" endX="22.5"
+                                                      endY="22.5" stroke="#5fa7c8" strokeWidth="2"
+                                                      strokeLineCap="ROUND"/>
+                                            </Group>
+                                        </graphic>
+                                    </Button>
+                                </HBox>
+                            </VBox>
+                        </top>
+
+                        <center>
+                            <ScrollPane styleClass="list-scroll" fitToWidth="true" hbarPolicy="NEVER">
+                                <VBox fx:id="listContainer" spacing="8">
+                                    <padding>
+                                        <Insets top="4" right="14" bottom="8" left="14"/>
+                                    </padding>
+                                </VBox>
+                            </ScrollPane>
+                        </center>
+
+                        <bottom>
+                            <HBox alignment="CENTER">
+                                <padding>
+                                    <Insets top="8" right="14" bottom="14" left="14"/>
+                                </padding>
+                                <StackPane fx:id="playButton" styleClass="cta-btn" prefWidth="140"
+                                           prefHeight="44">
+                                    <Label text="Play" styleClass="cta-label"/>
+                                </StackPane>
+                            </HBox>
+                        </bottom>
+                    </BorderPane>
+                </HBox>
+            </StackPane>
+        </center>
+    </BorderPane>
+
+    <!-- Game Rules Popup Overlay -->
+    <StackPane fx:id="popupOverlay" visible="false" managed="false" styleClass="popup-overlay">
+        <!-- Popup content -->
+        <VBox styleClass="popup-content" alignment="CENTER" spacing="20">
+            <!-- Title -->
+            <Label text="GAME RULES" styleClass="popup-title"/>
+
+            <!-- Rules list -->
+            <VBox styleClass="rules-list" spacing="12" alignment="CENTER_LEFT">
+                <!-- Rule 1 -->
+                <HBox spacing="8" alignment="CENTER_LEFT">
+                    <ImageView fitWidth="48" fitHeight="48" preserveRatio="true">
+                        <Image url="@assets/images/icon/foot.png"/>
+                    </ImageView>
+                    <Label text="Each game has 2 players on the same board." styleClass="rule-text"/>
+                </HBox>
+
+                <!-- Rule 2 -->
+                <HBox spacing="8" alignment="CENTER_LEFT">
+                    <ImageView fitWidth="48" fitHeight="48" preserveRatio="true">
+                        <Image url="@assets/images/icon/foot.png"/>
+                    </ImageView>
+                    <Label text="Players take turns flipping 2 cards; if they match, 1 point is awarded and the player continues; if they don't match, it's the opponent's turn."
+                           styleClass="rule-text"/>
+                </HBox>
+
+                <!-- Case examples for Rule 2 -->
+                <HBox spacing="64" alignment="CENTER" styleClass="case-examples" prefWidth="Infinity"
+                      maxWidth="Infinity">
+                    <!-- True case -->
+                    <VBox alignment="CENTER" spacing="6">
+                        <ImageView fitWidth="256" fitHeight="82" preserveRatio="true">
+                            <Image url="@assets/images/true.png"/>
+                        </ImageView>
+                        <Label text="Match" styleClass="case-label"/>
+                    </VBox>
+
+                    <!-- False case -->
+                    <VBox alignment="CENTER" spacing="6">
+                        <ImageView fitWidth="256" fitHeight="82" preserveRatio="true">
+                            <Image url="@assets/images/false.png"/>
+                        </ImageView>
+                        <Label text="No Match" styleClass="case-label"/>
+                    </VBox>
+                </HBox>
+
+                <!-- Rule 3 -->
+                <HBox spacing="8" alignment="CENTER_LEFT">
+                    <ImageView fitWidth="48" fitHeight="48" preserveRatio="true">
+                        <Image url="@assets/images/icon/foot.png"/>
+                    </ImageView>
+                    <Label text="The game ends when all card pairs are flipped; whoever has more points wins."
+                           styleClass="rule-text"/>
+                </HBox>
+
+                <!-- Rule 4 -->
+                <HBox spacing="8" alignment="CENTER_LEFT">
+                    <ImageView fitWidth="48" fitHeight="48" preserveRatio="true">
+                        <Image url="@assets/images/icon/foot.png"/>
+                    </ImageView>
+                    <Label text="The winner gains rank points, the loser loses them."
+                           styleClass="rule-text"/>
+                </HBox>
+
+                <!-- Rule 5 -->
+                <HBox spacing="8" alignment="CENTER_LEFT">
+                    <ImageView fitWidth="48" fitHeight="48" preserveRatio="true">
+                        <Image url="@assets/images/icon/foot.png"/>
+                    </ImageView>
+                    <Label text="Quitting midway or taking too long to make a move will result in a loss."
+                           styleClass="rule-text"/>
+                </HBox>
+            </VBox>
+
+            <!-- Close button -->
+            <Button text="Got it" styleClass="popup-close-btn" fx:id="closePopupButton"/>
+        </VBox>
+    </StackPane>
 </StackPane>
 
 

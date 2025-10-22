@@ -12,7 +12,24 @@ import java.util.Optional;
 @Repository
 public interface UserRepository  extends JpaRepository<User, Long> {
     Optional<User> findByUsername(String username);
-    List<User> findAllByUsernameStartsWith(String prefix);
+    @Query("""
+    SELECT u
+    FROM User u
+    WHERE LOWER(u.displayName) LIKE LOWER(CONCAT(:prefix, '%'))
+       OR STR(u.id) LIKE CONCAT(:prefix, '%')
+    """)
+    List<User> searchByPrefix(@org.springframework.data.repository.query.Param("prefix") String prefix);
+
+    @Query("""
+    SELECT u
+    FROM User u
+    WHERE (LOWER(u.displayName) LIKE LOWER(CONCAT(:prefix, '%'))
+        OR STR(u.id) LIKE CONCAT(:prefix, '%'))
+      AND u.id <> :excludeId
+    """)
+    List<User> searchByPrefixExcluding(@org.springframework.data.repository.query.Param("prefix") String prefix,
+                                       @org.springframework.data.repository.query.Param("excludeId") Long excludeId);
+
     List<User> findAllByStatus(UserStatus status);
     boolean existsByUsername(String username);
     boolean existsByEmail(String email);
@@ -20,7 +37,7 @@ public interface UserRepository  extends JpaRepository<User, Long> {
     @Query(value = """
         SELECT 
             u.id AS id,
-            u.username AS username,
+            u.display_name AS displayName,
             u.avatar_url AS avatarUrl,
             COALESCE(SUM(
                 CASE 
@@ -39,7 +56,7 @@ public interface UserRepository  extends JpaRepository<User, Long> {
         FROM users u
         LEFT JOIN game_match m 
                ON m.player1_id = u.id OR m.player2_id = u.id
-        GROUP BY u.id, u.username, u.avatar_url
+        GROUP BY u.id, u.display_name, u.avatar_url
         ORDER BY totalScore DESC, winCount DESC
         """, nativeQuery = true)
     List<UserRankingProjection> getUserRankingNative();

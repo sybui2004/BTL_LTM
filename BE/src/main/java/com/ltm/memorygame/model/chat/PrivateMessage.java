@@ -23,7 +23,7 @@ import lombok.Setter;
 
 
 @Entity
-@Table(name = "PrivateMessage")
+@Table(name = "private_message")
 @Getter
 @Setter
 public class PrivateMessage {

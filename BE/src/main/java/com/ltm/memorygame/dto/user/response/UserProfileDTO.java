@@ -6,18 +6,14 @@ import lombok.*;
 import java.util.Date;
 import java.util.List;
 
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class UserProfileDTO {
     private Long id;
-    private String username;
     private String displayName;
-    private String email;
     private String avatarUrl;
     private Date createdAt;
-    private UserSettingDTO userSetting;
     private List<MatchHistoryDTO> matchHistory;
 }

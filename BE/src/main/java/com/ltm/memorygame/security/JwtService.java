@@ -1,16 +1,18 @@
 package com.ltm.memorygame.security;
 
-import com.google.gson.Gson;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import com.google.gson.Gson;
 
 @Component
 public class JwtService {
@@ -19,7 +21,7 @@ public class JwtService {
     private String secret;
 
     @Value("${app.jwt.expirationMs:86400000}")
-    private long expirationMs;
+    private long expirationMs; // 1 day
 
     private static final Gson gson = new Gson();
 
@@ -130,4 +132,5 @@ public class JwtService {
         return s.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 }
+
 

@@ -14,7 +14,7 @@ public class UserApi {
 
     public static List<UserSummary> getRankingUsers() {
         try {
-            String json = ApiClient.get("/api/users/ranking");
+            String json = ApiClient.getAuth("/api/users/ranking");
             return MAPPER.readValue(json, new TypeReference<List<UserSummary>>(){});
         } catch (Exception e) {
             return Collections.emptyList();
@@ -23,7 +23,7 @@ public class UserApi {
 
     public static List<UserSummary> getAllUsers() {
         try {
-            String json = ApiClient.get("/api/users");
+            String json = ApiClient.getAuth("/api/users");
             return MAPPER.readValue(json, new TypeReference<List<UserSummary>>(){});
         } catch (Exception e) {
             return Collections.emptyList();
@@ -32,7 +32,7 @@ public class UserApi {
 
     public static UserSummary getUserById(long id) {
         try {
-            String json = ApiClient.get("/api/users/" + id);
+            String json = ApiClient.getAuth("/api/users/" + id);
 			UserSummary user = MAPPER.readValue(json, UserSummary.class);
 			// Guard against parsing error-body into an empty UserSummary
 			if ((user.username == null && user.displayName == null) && user.id == 0) {
@@ -40,6 +40,29 @@ public class UserApi {
 			}
 			return user;
         } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Gets the current logged-in user's information by extracting their ID from the JWT token.
+     * @return UserSummary of current user or null if not logged in or error occurs
+     */
+    public static UserSummary getCurrentUser() {
+        try {
+            String token = TokenManager.getInstance().getToken();
+            if (token == null) {
+                return null;
+            }
+            
+            Long userId = JwtDecoder.extractUserId(token);
+            if (userId == null) {
+                return null;
+            }
+            
+            return getUserById(userId);
+        } catch (Exception e) {
+            System.err.println("Failed to get current user: " + e.getMessage());
             return null;
         }
     }
