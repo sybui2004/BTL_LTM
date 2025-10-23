@@ -94,6 +94,22 @@ public class TCPServer implements Runnable {
         }
         log.info("[TCP] Broadcasted status: {} -> {}", username, online ? "ONLINE" : "OFFLINE");
     }
+    
+    /**
+     * Broadcast message to all clients in a specific room
+     */
+    public void broadcastToRoom(Long roomId, TCPMessage message) {
+        log.info("[TCP] Broadcasting to room {}: {}", roomId, message.getType());
+        for (ClientHandler handler : onlineClients.values()) {
+            try {
+                // For now, send to all clients - in a real implementation,
+                // you would filter by room membership
+                handler.sendMessage(message);
+            } catch (Exception e) {
+                log.warn("[TCP] Failed to broadcast to client in room {}: {}", roomId, e.getMessage());
+            }
+        }
+    }
 
     /**
      * Send invite notification to a specific user

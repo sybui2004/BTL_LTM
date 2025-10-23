@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 import java.util.stream.Collectors;
 
 @Service
@@ -20,7 +21,7 @@ public class CardService {
     private final CardRepository cardRepository;
     
     @Transactional(readOnly = true)
-    public List<CardResponseDTO> getCardsForGame(String themeName, String size) {
+    public List<CardResponseDTO> getCardsForGame(String themeName, String size, Long roomId) {
         // Get all cards for theme
         List<Card> allCards = cardRepository.findByThemeName(themeName);
         
@@ -41,13 +42,21 @@ public class CardService {
             gameCards.add(card); // Second copy (duplicate)
         }
         
-        // Shuffle the cards
-        Collections.shuffle(gameCards);
+        // Shuffle the cards with roomId as seed to ensure consistency
+        Collections.shuffle(gameCards, new Random(roomId));
+        
+        System.out.println("[CardService] Generated cards for room " + roomId + " with seed " + roomId);
         
         // Convert to DTOs
         return gameCards.stream()
                 .map(CardMapper::toDTO)
                 .collect(Collectors.toList());
+    }
+    
+    @Transactional(readOnly = true)
+    public List<CardResponseDTO> getCardsForGame(String themeName, String size) {
+        // Fallback method for backward compatibility
+        return getCardsForGame(themeName, size, 1L);
     }
     
     private int getTotalCards(String size) {
