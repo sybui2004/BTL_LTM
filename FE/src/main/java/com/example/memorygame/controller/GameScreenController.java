@@ -11,19 +11,20 @@ import javafx.fxml.FXML;
 import javafx.application.Platform;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.image.ImageView;
 import javafx.scene.image.Image;
-import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Button;
 import javafx.animation.Timeline;
 import javafx.animation.KeyFrame;
 import javafx.util.Duration;
-import javafx.stage.Stage;
 import javafx.scene.Scene;
+import javafx.stage.Stage;
 import java.util.List;
-import java.util.Collections;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -50,11 +51,20 @@ public class GameScreenController {
     private int flippedCardsCount = 0;
     private boolean isResolving = false; // Block input while waiting for result/animations
     
+    // Timer
+    private Timeline turnTimer;
+    private int currentTurnTime;
+    private int initialTurnTime; // From game settings
+    
     // UI Components
     @FXML private StackPane gameContainer;
     @FXML private GridPane cardGrid;
     @FXML private ImageView backgroundImage;
-    @FXML private Button backButton;
+    @FXML private StackPane backButton;
+    @FXML private HBox myPanel;
+    @FXML private HBox opponentPanel;
+    @FXML private Label myNameLabel;
+    @FXML private Label opponentNameLabel;
     @FXML private ImageView myAvatar;
     @FXML private ImageView opponentAvatar;
     @FXML private Label myScoreLabel;
@@ -66,21 +76,17 @@ public class GameScreenController {
     private GameScreen screen;
     
     public GameScreenController() {
-        // Constructor without parameters - controller will be injected by FXML
-        // Get settings from static variable
         this.gameSettings = staticGameSettings;
         
-        // Initialize turn based on host/guest status
         if (gameSettings != null) {
-            isMyTurn = gameSettings.isHost(); // Host starts first
+            isMyTurn = gameSettings.isHost();
+            initialTurnTime = parseTimeSetting(gameSettings.getTime());
+        } else {
+            initialTurnTime = 30; // Default if no settings
         }
+        currentTurnTime = initialTurnTime;
         
         setupTCPHandlers();
-    }
-    
-    public GameScreenController(GameSettings settings) {
-        this.gameSettings = settings;
-        // Constructor with settings - for programmatic creation
     }
     
     public static void setGameSettings(GameSettings settings) {
@@ -100,28 +106,55 @@ public class GameScreenController {
         setupGame();
         setupResizeListener();
         setupOverlayUI();
-        restartTurnTimer();
+        startTurnTimer();
     }
     
     private void setupGame() {
         if (gameSettings == null) {
-            System.err.println("[GameScreen] No game settings provided!");
+            System.err.println("[GameScreen] ERROR: Game settings are null!");
             return;
         }
         
-        // Setup theme background
         setupThemeBackground();
-        
-        // Setup card grid
         setupCardGrid();
         
         System.out.println("[GameScreen] Game setup completed");
     }
-
+    
     private void setupOverlayUI() {
         if (backButton != null) {
-            backButton.setOnAction(e -> handleBack());
+            backButton.setOnMouseClicked(e -> handleBack());
         }
+        
+        // Load user names based on host/guest role
+        if (gameSettings != null) {
+            if (gameSettings.isHost()) {
+                // Host: myName = player1Name, opponentName = player2Name
+                if (myNameLabel != null) {
+                    myNameLabel.setText(gameSettings.getPlayer1Name());
+                }
+                if (opponentNameLabel != null) {
+                    opponentNameLabel.setText(gameSettings.getPlayer2Name());
+                }
+            } else {
+                // Guest: myName = player2Name, opponentName = player1Name
+                if (myNameLabel != null) {
+                    myNameLabel.setText(gameSettings.getPlayer2Name());
+                }
+                if (opponentNameLabel != null) {
+                    opponentNameLabel.setText(gameSettings.getPlayer1Name());
+                }
+            }
+        } else {
+            // Fallback
+            if (myNameLabel != null) {
+                myNameLabel.setText("Me");
+            }
+            if (opponentNameLabel != null) {
+                opponentNameLabel.setText("Opponent");
+            }
+        }
+        
         // Load default avatars (can be replaced with real URLs later)
         String defaultAvatar = "http://localhost:8080/static/avatars/default_avatar.png";
         try {
@@ -131,250 +164,160 @@ public class GameScreenController {
             if (opponentAvatar != null) {
                 opponentAvatar.setImage(new Image(defaultAvatar));
             }
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            System.err.println("[GameScreen] Failed to load avatars: " + e.getMessage());
+        }
         
-        updateScoreLabels();
-        updateTimerLabel();
+        // Set initial scores based on host/guest role
+        if (gameSettings != null) {
+            if (gameSettings.isHost()) {
+                // Host: myScore = player1Score, opponentScore = player2Score
+                if (myScoreLabel != null) {
+                    myScoreLabel.setText(String.valueOf(player1Score));
+                }
+                if (opponentScoreLabel != null) {
+                    opponentScoreLabel.setText(String.valueOf(player2Score));
+                }
+            } else {
+                // Guest: myScore = player2Score, opponentScore = player1Score
+                if (myScoreLabel != null) {
+                    myScoreLabel.setText(String.valueOf(player2Score));
+                }
+                if (opponentScoreLabel != null) {
+                    opponentScoreLabel.setText(String.valueOf(player1Score));
+                }
+            }
+        } else {
+            // Fallback
+            if (myScoreLabel != null) {
+                myScoreLabel.setText("0");
+            }
+            if (opponentScoreLabel != null) {
+                opponentScoreLabel.setText("0");
+            }
+        }
     }
-
+    
     private void handleBack() {
         try {
-            stopTurnTimer();
-            Stage stage = (Stage) gameContainer.getScene().getWindow();
-            // Use controller-driven loader so RoomScreen initializes helpers/APIs correctly
-            RoomScreenController controller = new RoomScreenController();
-            Scene scene = new Scene(controller.getScreen().getRoot());
-            stage.setScene(scene);
+            Stage stage = (Stage) backButton.getScene().getWindow();
+            
+            // Navigate back to RoomScreen
+            RoomScreenController roomController = new RoomScreenController();
+            Scene roomScene = new Scene(roomController.getScreen().getRoot());
+            roomScene.getStylesheets().add(getClass().getResource("/com/example/memorygame/RoomScreenStyle.css").toExternalForm());
+            
+            stage.setScene(roomScene);
+            stage.setTitle("Memory Game - Room");
+            stage.show();
+            
+            System.out.println("[GameScreen] Navigated back to room screen");
+            
         } catch (Exception e) {
-            System.err.println("[GameScreen] Failed to go back: " + e.getMessage());
+            System.err.println("[GameScreen] Failed to navigate back: " + e.getMessage());
             e.printStackTrace();
-        }
-    }
-
-    private int parseTurnSeconds() {
-        if (gameSettings == null || gameSettings.getTime() == null) return 10; // default
-        String t = gameSettings.getTime().trim().toLowerCase();
-        try {
-            if (t.endsWith("s")) t = t.substring(0, t.length()-1);
-            return Integer.parseInt(t);
-        } catch (NumberFormatException e) {
-            return 10;
-        }
-    }
-
-    private Timeline turnTimer;
-    private int turnDurationSeconds;
-    private int turnSecondsRemaining;
-
-    private void restartTurnTimer() {
-        stopTurnTimer();
-        turnDurationSeconds = parseTurnSeconds();
-        turnSecondsRemaining = turnDurationSeconds;
-        updateTimerLabel();
-        startTurnTimer();
-    }
-
-    private void startTurnTimer() {
-        turnTimer = new Timeline(new KeyFrame(Duration.seconds(1), ev -> {
-            turnSecondsRemaining = Math.max(0, turnSecondsRemaining - 1);
-            updateTimerLabel();
-            if (turnSecondsRemaining <= 0) {
-                stopTurnTimer();
-                onTurnTimeout();
-            }
-        }));
-        turnTimer.setCycleCount(Timeline.INDEFINITE);
-        turnTimer.play();
-    }
-
-    private void stopTurnTimer() {
-        if (turnTimer != null) {
-            turnTimer.stop();
-            turnTimer = null;
-        }
-    }
-
-    private void updateTimerLabel() {
-        if (timerLabel != null) {
-            Platform.runLater(() -> timerLabel.setText(turnSecondsRemaining + "s"));
-        }
-    }
-
-    private void onTurnTimeout() {
-        System.out.println("[GameScreen] Turn timeout. Current isMyTurn=" + isMyTurn);
-        if (isMyTurn) {
-            // Flip back any currently flipped, then switch turn
-            Platform.runLater(() -> {
-                if (secondFlippedCard != null) {
-                    secondFlippedCard.flipToBack();
-                }
-                if (firstFlippedCard != null) {
-                    firstFlippedCard.flipToBack();
-                }
-                resetFlippedCards();
-                isResolving = false;
-                // Notify other player and switch locally
-                sendTurnSwitchMessage();
-                isMyTurn = false;
-                restartTurnTimer();
-            });
-        } else {
-            // Not my turn: do nothing on local timeout; timer will be restarted when TURN_SWITCH arrives
-        }
-    }
-
-    private void sendTurnSwitchMessage() {
-        try {
-            TCPClient client = TCPClient.getInstance();
-            Map<String, Object> data = new HashMap<>();
-            data.put("isHost", gameSettings.isHost());
-            TCPClient.TCPMessage msg = new TCPClient.TCPMessage("TURN_SWITCH", data, null, null);
-            client.sendMessage(msg);
-            System.out.println("[GameScreen] Sent TURN_SWITCH due to timeout");
-        } catch (Exception e) {
-            System.err.println("[GameScreen] Failed to send TURN_SWITCH: " + e.getMessage());
-        }
-    }
-
-    private void updateScoreLabels() {
-        if (myScoreLabel == null || opponentScoreLabel == null) return;
-        if (gameSettings != null && gameSettings.isHost()) {
-            myScoreLabel.setText(String.valueOf(player1Score));
-            opponentScoreLabel.setText(String.valueOf(player2Score));
-        } else {
-            myScoreLabel.setText(String.valueOf(player2Score));
-            opponentScoreLabel.setText(String.valueOf(player1Score));
         }
     }
     
     private void setupThemeBackground() {
-        if (gameSettings.getTheme() == null) {
-            System.err.println("[GameScreen] No theme provided!");
+        ThemeDTO theme = gameSettings.getTheme();
+        if (theme == null || theme.assetPath == null) {
+            System.err.println("[GameScreen] No theme or asset path found");
+            loadFallbackBackground();
             return;
         }
         
-        ThemeDTO theme = gameSettings.getTheme();
-        System.out.println("[GameScreen] Setting up theme: " + theme.name);
-        
-        // Load background image
-        loadBackgroundImage(theme);
+        loadBackgroundImage(theme.assetPath);
     }
     
-    private void loadBackgroundImage(ThemeDTO theme) {
-        String imagePath = theme.assetPath + "/background.jpg";
+    private void loadBackgroundImage(String assetPath) {
+        String backgroundUrl = "http://localhost:8080" + assetPath + "/background.jpg";
+        System.out.println("[GameScreen] Loading background from: " + backgroundUrl);
         
         try {
-            // Load image from server URL
-            String serverUrl = "http://localhost:8080" + imagePath;
-            javafx.scene.image.Image image = new javafx.scene.image.Image(serverUrl);
-            backgroundImage.setImage(image);
-            backgroundImage.setPreserveRatio(false); // Disable ratio preservation
-            backgroundImage.setVisible(true);
-            System.out.println("[GameScreen] Background image loaded: " + serverUrl);
+            Image bgImage = new Image(backgroundUrl);
+            if (bgImage.isError()) {
+                System.err.println("[GameScreen] Background image failed to load");
+                loadFallbackBackground();
+            } else {
+                backgroundImage.setImage(bgImage);
+                backgroundImage.setPreserveRatio(false);
+                System.out.println("[GameScreen] Background loaded successfully");
+            }
         } catch (Exception e) {
-            System.err.println("[GameScreen] Failed to load image: " + e.getMessage());
-            // Try fallback to local resource
+            System.err.println("[GameScreen] Error loading background: " + e.getMessage());
             loadFallbackBackground();
         }
     }
     
     private void loadFallbackBackground() {
         try {
-            // Load default background from local resources
-            javafx.scene.image.Image image = new javafx.scene.image.Image(
-                getClass().getResourceAsStream("/com/example/memorygame/assets/images/default_bg.jpg")
-            );
-            backgroundImage.setImage(image);
-            backgroundImage.setPreserveRatio(false); // Disable ratio preservation
-            backgroundImage.setVisible(true);
+            String fallbackUrl = getClass().getResource("/com/example/memorygame/assets/images/default_background.png").toExternalForm();
+            Image fallbackImage = new Image(fallbackUrl);
+            backgroundImage.setImage(fallbackImage);
+            backgroundImage.setPreserveRatio(false);
             System.out.println("[GameScreen] Fallback background loaded");
         } catch (Exception e) {
             System.err.println("[GameScreen] Failed to load fallback background: " + e.getMessage());
         }
     }
     
-    private void setupCardGrid() {
-        if (gameSettings.getSize() == null) {
-            System.err.println("[GameScreen] No size provided!");
-            return;
-        }
-        
-        String size = gameSettings.getSize();
-        System.out.println("[GameScreen] Setting up card grid with size: " + size);
-        
-        // Parse size (e.g., "5x6" -> rows=5, cols=6)
-        String[] dimensions = size.split("x");
-        if (dimensions.length != 2) {
-            System.err.println("[GameScreen] Invalid size format: " + size);
-            return;
-        }
-        
-        try {
-            int rows = Integer.parseInt(dimensions[0]);
-            int cols = Integer.parseInt(dimensions[1]);
-            
-            // Setup grid dimensions
-            cardGrid.getRowConstraints().clear();
-            cardGrid.getColumnConstraints().clear();
-            
-            for (int i = 0; i < rows; i++) {
-                javafx.scene.layout.RowConstraints row = new javafx.scene.layout.RowConstraints();
-                row.setPercentHeight(100.0 / rows);
-                cardGrid.getRowConstraints().add(row);
-            }
-            
-            for (int i = 0; i < cols; i++) {
-                javafx.scene.layout.ColumnConstraints col = new javafx.scene.layout.ColumnConstraints();
-                col.setPercentWidth(100.0 / cols);
-                cardGrid.getColumnConstraints().add(col);
-            }
-            
-            // Create cards
-            createCards(rows, cols);
-            
-            System.out.println("[GameScreen] Card grid setup: " + rows + "x" + cols);
-            
-        } catch (NumberFormatException e) {
-            System.err.println("[GameScreen] Invalid size numbers: " + size);
+    private void setupResizeListener() {
+        if (backgroundImage != null && gameContainer != null) {
+            gameContainer.widthProperty().addListener((obs, oldVal, newVal) -> {
+                updateBackgroundSize();
+            });
+            gameContainer.heightProperty().addListener((obs, oldVal, newVal) -> {
+                updateBackgroundSize();
+            });
+            updateBackgroundSize();
         }
     }
     
-    private void createCards(int rows, int cols) {
-        System.out.println("[GameScreen] Creating " + (rows * cols) + " cards");
+    private void updateBackgroundSize() {
+        if (backgroundImage != null && gameContainer != null) {
+            backgroundImage.setFitWidth(gameContainer.getWidth());
+            backgroundImage.setFitHeight(gameContainer.getHeight());
+        }
+    }
+    
+    private void setupCardGrid() {
+        String[] sizeParts = gameSettings.getSize().split("x");
+        int rows = Integer.parseInt(sizeParts[0]);
+        int cols = Integer.parseInt(sizeParts[1]);
         
-        // Load cards from server
+        cardGrid.getChildren().clear();
+        
+        createCards(rows, cols);
+        
+        System.out.println("[GameScreen] Card grid setup completed - " + rows + "x" + cols);
+    }
+    
+    private void createCards(int rows, int cols) {
+        System.out.println("[GameScreen] Creating cards for grid: " + rows + "x" + cols);
+        
         loadCardsFromServer(rows, cols);
     }
     
     private void loadCardsFromServer(int rows, int cols) {
         try {
-            String themeName = gameSettings.getTheme().name;
-            String size = gameSettings.getSize();
+            System.out.println("[GameScreen] Loading cards from server - Theme: " + gameSettings.getTheme().name + 
+                             ", Size: " + gameSettings.getSize() + ", RoomId: " + gameSettings.getRoomId());
             
-            System.out.println("[GameScreen] Loading cards for theme: " + themeName + ", size: " + size);
+            List<CardDTO> fetchedCards = CardApi.getCardsForGame(
+                gameSettings.getTheme().name, 
+                gameSettings.getSize(),
+                gameSettings.getRoomId()
+            );
             
-            // Get cards from server
-            List<CardDTO> serverCards = CardApi.getCardsForGame(themeName, size, gameSettings.getRoomId());
-            
-            if (serverCards.isEmpty()) {
-                System.err.println("[GameScreen] No cards received from server, creating mock cards");
+            if (fetchedCards != null && !fetchedCards.isEmpty()) {
+                System.out.println("[GameScreen] Successfully loaded " + fetchedCards.size() + " cards from server");
+                cardData = fetchedCards;
+                createMemoryCards(rows, cols);
+            } else {
+                System.err.println("[GameScreen] No cards returned from server, using mock cards");
                 createMockCards(rows, cols);
-                return;
             }
-            
-            System.out.println("[GameScreen] Received " + serverCards.size() + " cards from server");
-            
-            // Store card data
-            this.cardData = new ArrayList<>(serverCards);
-            
-            // Log first few cards for debugging
-            for (int i = 0; i < Math.min(5, serverCards.size()); i++) {
-                System.out.println("[GameScreen] Received Card " + i + ": " + serverCards.get(i).getImagePath());
-            }
-            
-            // Create memory cards
-            createMemoryCards(rows, cols);
-            
         } catch (Exception e) {
             System.err.println("[GameScreen] Failed to load cards from server: " + e.getMessage());
             e.printStackTrace();
@@ -383,19 +326,14 @@ public class GameScreenController {
     }
     
     private void createMemoryCards(int rows, int cols) {
-        // Clear existing cards
         cardGrid.getChildren().clear();
         cards.clear();
-        
-        // Get card back path
         String cardBackPath = "http://localhost:8080" + gameSettings.getTheme().assetPath + "/card_back.png";
         
-        // Create memory cards
         for (int i = 0; i < cardData.size(); i++) {
             CardDTO cardDTO = cardData.get(i);
             MemoryCard memoryCard = new MemoryCard(cardDTO, cardBackPath);
             
-            // Add TCP synchronization
             final int cardIndex = i;
             final int finalRow = i / cols;
             final int finalCol = i % cols;
@@ -403,194 +341,85 @@ public class GameScreenController {
             memoryCard.setOnAction(e -> {
                 System.out.println("[GameScreen] Card clicked at position: " + finalRow + "," + finalCol);
                 
-                // Check if it's my turn
-                if (!isMyTurn) {
-                    System.out.println("[GameScreen] Not my turn, ignoring click");
-                    return;
-                }
-                // Prevent interaction while resolving previous turn
-                if (isResolving) {
-                    System.out.println("[GameScreen] Resolving previous result, ignoring click");
+                if (isResolving || !isMyTurn) { // Block input if resolving or not my turn
+                    System.out.println("[GameScreen] Ignoring click - isResolving: " + isResolving + ", isMyTurn: " + isMyTurn);
                     return;
                 }
                 
-                // Check if card can be flipped
                 if (memoryCard.isFlipped() || memoryCard.isMatched()) {
                     System.out.println("[GameScreen] Card already flipped or matched, ignoring click");
                     return;
                 }
                 
-                // Check if we already have 2 cards flipped
                 if (flippedCardsCount >= 2) {
                     System.out.println("[GameScreen] Already have 2 cards flipped, ignoring click");
                     return;
                 }
                 
-                // Flip the card locally first
                 memoryCard.flipToFront();
                 flippedCardsCount++;
                 System.out.println("[GameScreen] Flipped card locally at position: " + finalRow + "," + finalCol + " (flipped: " + flippedCardsCount + ")");
                 
-                // Store flipped card
                 if (firstFlippedCard == null) {
                     firstFlippedCard = memoryCard;
                     System.out.println("[GameScreen] Set firstFlippedCard at position: " + finalRow + "," + finalCol);
                 } else {
                     secondFlippedCard = memoryCard;
                     System.out.println("[GameScreen] Set secondFlippedCard at position: " + finalRow + "," + finalCol + " - sending to server for match check");
-                    isResolving = true; // lock input until result handled
-                    // Send cards to server for match check after 2 cards are flipped
+                    isResolving = true; // Lock input while waiting for server result
                     sendCardsForMatchCheck();
                 }
                 
-                // Send TCP message to synchronize with other player
                 sendCardFlippedMessage(cardIndex, finalRow, finalCol);
             });
             
             cards.add(memoryCard);
-            
-            // Add to grid
             cardGrid.add(memoryCard, finalCol, finalRow);
         }
-        
         System.out.println("[GameScreen] Created " + cards.size() + " memory cards");
     }
     
     private void createMockCards(int rows, int cols) {
-        // Clear existing cards
         cardGrid.getChildren().clear();
         cards.clear();
+        cardData.clear();
         
         int totalCards = rows * cols;
-        int pairs = totalCards / 2;
+        String assetPath = gameSettings.getTheme().assetPath;
+        String cardBackPath = "http://localhost:8080" + assetPath + "/card_back.png";
         
-        System.out.println("[GameScreen] Creating " + totalCards + " mock cards (" + pairs + " pairs)");
-        
-        // Create mock card data
-        this.cardData = new ArrayList<>();
-        for (int i = 0; i < pairs; i++) {
-            // Create pair of cards
-            CardDTO card1 = new CardDTO((long) (i * 2), "/static/themes/Chirstmas/card_" + String.format("%02d", i + 1) + ".png");
-            CardDTO card2 = new CardDTO((long) (i * 2 + 1), "/static/themes/Chirstmas/card_" + String.format("%02d", i + 1) + ".png");
+        for (int i = 0; i < totalCards; i++) {
+            int cardNumber = (i % (totalCards / 2)) + 1;
+            String imagePath = "http://localhost:8080" + assetPath + "/card_" + String.format("%02d", cardNumber) + ".png";
             
-            cardData.add(card1);
-            cardData.add(card2);
-        }
-        
-        // Shuffle cards
-        Collections.shuffle(cardData);
-        
-        // Create memory cards
-        createMemoryCards(rows, cols);
-    }
-    
-    /**
-     * Setup resize listener to make background responsive to window size changes
-     */
-    private void setupResizeListener() {
-        if (gameContainer != null) {
-            gameContainer.widthProperty().addListener((obs, oldVal, newVal) -> {
-                updateBackgroundSize();
+            CardDTO mockCard = new CardDTO();
+            mockCard.setId((long) i);
+            mockCard.setImagePath(imagePath);
+            
+            cardData.add(mockCard);
+            
+            MemoryCard memoryCard = new MemoryCard(mockCard, cardBackPath);
+            
+            final int finalRow = i / cols;
+            final int finalCol = i % cols;
+            
+            memoryCard.setOnAction(e -> {
+                if (!memoryCard.isFlipped() && !memoryCard.isMatched()) {
+                    memoryCard.flipCard();
+                }
             });
             
-            gameContainer.heightProperty().addListener((obs, oldVal, newVal) -> {
-                updateBackgroundSize();
-            });
-        }
-    }
-    
-    /**
-     * Update background image size to fit the container
-     */
-    private void updateBackgroundSize() {
-        if (backgroundImage != null && gameContainer != null) {
-            double containerWidth = gameContainer.getWidth();
-            double containerHeight = gameContainer.getHeight();
-            
-            if (containerWidth > 0 && containerHeight > 0) {
-                backgroundImage.setFitWidth(containerWidth);
-                backgroundImage.setFitHeight(containerHeight);
-                backgroundImage.setPreserveRatio(false); // Disable ratio preservation to fill entire container
-                System.out.println("[GameScreen] Background resized to: " + containerWidth + "x" + containerHeight);
-            }
-        }
-    }
-    
-    
-    /**
-     * Reset flipped cards state
-     */
-    private void resetFlippedCards() {
-        firstFlippedCard = null;
-        secondFlippedCard = null;
-        flippedCardsCount = 0;
-    }
-    
-    
-    /**
-     * Send cards for match check to server
-     */
-    private void sendCardsForMatchCheck() {
-        System.out.println("[GameScreen] sendCardsForMatchCheck() called");
-        
-        if (firstFlippedCard == null || secondFlippedCard == null) {
-            System.err.println("[GameScreen] ERROR: Cannot send match check - firstFlippedCard: " + firstFlippedCard + ", secondFlippedCard: " + secondFlippedCard);
-            return;
+            cards.add(memoryCard);
+            cardGrid.add(memoryCard, finalCol, finalRow);
         }
         
-        try {
-            TCPClient client = TCPClient.getInstance();
-            Map<String, Object> data = new HashMap<>();
-            
-            // Find card indices
-            int cardIndex1 = firstFlippedCard != null ? cards.indexOf(firstFlippedCard) : -1;
-            int cardIndex2 = secondFlippedCard != null ? cards.indexOf(secondFlippedCard) : -1;
-            
-            System.out.println("[GameScreen] Card indices - cardIndex1: " + cardIndex1 + ", cardIndex2: " + cardIndex2);
-            
-            data.put("cardIndex1", cardIndex1);
-            data.put("cardIndex2", cardIndex2);
-            data.put("roomId", gameSettings.getRoomId());
-            data.put("isHost", gameSettings.isHost());
-            
-            TCPClient.TCPMessage message = new TCPClient.TCPMessage("CARDS_FOR_MATCH_CHECK", data, null, null);
-            client.sendMessage(message);
-            System.out.println("[GameScreen] Sent CARDS_FOR_MATCH_CHECK message: " + data);
-        } catch (Exception e) {
-            System.err.println("[GameScreen] Failed to send cards for match check: " + e.getMessage());
-            e.printStackTrace();
-        }
+        System.out.println("[GameScreen] Created " + totalCards + " mock cards");
     }
     
-    
-    
-    /**
-     * Convert Object to Integer, handling both Integer and Double types
-     */
-    private Integer convertToInteger(Object value) {
-        if (value == null) {
-            return null;
-        }
-        if (value instanceof Integer) {
-            return (Integer) value;
-        }
-        if (value instanceof Double) {
-            return ((Double) value).intValue();
-        }
-        if (value instanceof Number) {
-            return ((Number) value).intValue();
-        }
-        return null;
-    }
-    
-    /**
-     * Setup TCP message handlers for game synchronization
-     */
     private void setupTCPHandlers() {
         try {
             TCPClient client = TCPClient.getInstance();
             
-            // Handle card flipped messages from other players
             client.onMessage("CARD_FLIPPED", message -> {
                 System.out.println("[GameScreen] Received CARD_FLIPPED message: " + message.getData());
                 Map<String, Object> data = message.getData();
@@ -600,182 +429,153 @@ public class GameScreenController {
                     Integer col = convertToInteger(data.get("col"));
                     
                     if (cardIndex != null && row != null && col != null) {
-                        javafx.application.Platform.runLater(() -> {
+                        Platform.runLater(() -> {
                             flipCardAtPosition(cardIndex, row, col);
                         });
                     }
                 }
             });
             
-                // Handle card matched messages from other players
-                client.onMessage("CARD_MATCHED", message -> {
-                    System.out.println("[GameScreen] Received CARD_MATCHED message: " + message.getData());
-                    Map<String, Object> data = message.getData();
-                    if (data != null) {
-                        Integer cardIndex1 = convertToInteger(data.get("cardIndex1"));
-                        Integer cardIndex2 = convertToInteger(data.get("cardIndex2"));
-                        Boolean isHost = (Boolean) data.get("isHost");
-                        Integer score = convertToInteger(data.get("score"));
-                        
-                        if (cardIndex1 != null && cardIndex2 != null) {
-                            javafx.application.Platform.runLater(() -> {
-                                markCardsAsMatched(cardIndex1, cardIndex2);
-                                
-                                // Update score
-                                if (isHost != null && score != null) {
-                                    if (isHost) {
-                                        player1Score = score;
-                                    } else {
-                                        player2Score = score;
-                                    }
-                                    System.out.println("[GameScreen] Updated scores - Player1: " + player1Score + ", Player2: " + player2Score);
-                                }
-                            });
-                        }
-                    }
-                });
-                
-                // Handle turn switch messages from other players
-                client.onMessage("TURN_SWITCH", message -> {
-                    System.out.println("[GameScreen] Received TURN_SWITCH message: " + message.getData());
-                    Map<String, Object> data = message.getData();
-                    if (data != null) {
-                        javafx.application.Platform.runLater(() -> {
-                            // Switch turn
-                            isMyTurn = !isMyTurn;
-                            System.out.println("[GameScreen] Turn switched via TCP. Is my turn: " + isMyTurn);
-                            
-                            // Don't reset flipped cards here - wait for CARDS_FLIP_BACK message
-                            restartTurnTimer();
+            client.onMessage("CARD_MATCHED", message -> {
+                System.out.println("[GameScreen] Received CARD_MATCHED message: " + message.getData());
+                Map<String, Object> data = message.getData();
+                if (data != null) {
+                    Integer cardIndex1 = convertToInteger(data.get("cardIndex1"));
+                    Integer cardIndex2 = convertToInteger(data.get("cardIndex2"));
+                    
+                    if (cardIndex1 != null && cardIndex2 != null) {
+                        Platform.runLater(() -> {
+                            // This handler is now mostly for score/state sync, actual disappearance is via MATCH_RESULT
+                            // markCardsAsMatched(cardIndex1, cardIndex2); // No longer needed here
                         });
                     }
-                });
-                
-                // Handle cards flip back messages from other players
-                client.onMessage("CARDS_FLIP_BACK", message -> {
-                    System.out.println("[GameScreen] Received CARDS_FLIP_BACK message: " + message.getData());
-                    Map<String, Object> data = message.getData();
-                    if (data != null) {
-                        Integer cardIndex1 = convertToInteger(data.get("cardIndex1"));
-                        Integer cardIndex2 = convertToInteger(data.get("cardIndex2"));
-                        
-                        javafx.application.Platform.runLater(() -> {
-                            // Flip back the cards after a delay (to match the sender's timing)
+                }
+            });
+            
+            client.onMessage("TURN_SWITCH", message -> {
+                System.out.println("[GameScreen] Received TURN_SWITCH message: " + message.getData());
+                Map<String, Object> data = message.getData();
+                if (data != null) {
+                    Platform.runLater(() -> {
+                        isMyTurn = !isMyTurn;
+                        System.out.println("[GameScreen] Turn switched via TCP. Is my turn: " + isMyTurn);
+                        resetTurnTimer(); // Reset timer for the new turn
+                    });
+                }
+            });
+            
+            client.onMessage("CARDS_FLIP_BACK", message -> {
+                System.out.println("[GameScreen] Received CARDS_FLIP_BACK message: " + message.getData());
+                Map<String, Object> data = message.getData();
+                if (data != null) {
+                    Integer cardIndex1 = convertToInteger(data.get("cardIndex1"));
+                    Integer cardIndex2 = convertToInteger(data.get("cardIndex2"));
+                    
+                    Platform.runLater(() -> {
+                        new Thread(() -> {
+                            try {
+                                Thread.sleep(1000); // Same delay as sender for flip back
+                                Platform.runLater(() -> {
+                                    if (cardIndex1 != null && cardIndex1 >= 0 && cardIndex1 < cards.size()) {
+                                        cards.get(cardIndex1).flipToBack();
+                                    }
+                                    if (cardIndex2 != null && cardIndex2 >= 0 && cardIndex2 < cards.size()) {
+                                        cards.get(cardIndex2).flipToBack();
+                                    }
+                                    System.out.println("[GameScreen] Cards flipped back via TCP");
+                                });
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();
+                            }
+                        }).start();
+                    });
+                }
+            });
+            
+            client.onMessage("MATCH_RESULT", message -> {
+                System.out.println("[GameScreen] Received MATCH_RESULT message: " + message.getData());
+                Map<String, Object> data = message.getData();
+                if (data != null) {
+                    Boolean isMatch = (Boolean) data.get("isMatch");
+                    Integer cardIndex1 = convertToInteger(data.get("cardIndex1"));
+                    Integer cardIndex2 = convertToInteger(data.get("cardIndex2"));
+                    Boolean shouldSwitchTurn = (Boolean) data.get("shouldSwitchTurn");
+                    Integer player1Score = convertToInteger(data.get("player1Score"));
+                    Integer player2Score = convertToInteger(data.get("player2Score"));
+                    
+                    System.out.println("[GameScreen] Processing MATCH_RESULT - isMatch: " + isMatch +
+                                      ", cardIndex1: " + cardIndex1 + ", cardIndex2: " + cardIndex2 +
+                                      ", shouldSwitchTurn: " + shouldSwitchTurn);
+                    
+                    Platform.runLater(() -> {
+                        if (isMatch != null && isMatch) {
+                            // Cards match - make them disappear after 1s delay
                             new Thread(() -> {
                                 try {
-                                    Thread.sleep(1000); // Same delay as sender
-                                    
-                                    javafx.application.Platform.runLater(() -> {
+                                    Thread.sleep(1000); // wait 1s to let second card finish flip and be visible
+                                    Platform.runLater(() -> {
                                         if (cardIndex1 != null && cardIndex1 >= 0 && cardIndex1 < cards.size()) {
-                                            cards.get(cardIndex1).flipToBack();
+                                            cards.get(cardIndex1).setVisible(false);
                                         }
                                         if (cardIndex2 != null && cardIndex2 >= 0 && cardIndex2 < cards.size()) {
-                                            cards.get(cardIndex2).flipToBack();
+                                            cards.get(cardIndex2).setVisible(false);
                                         }
-                                        
-                                        // Reset flipped cards
+                                        // Update scores
+                                        if (player1Score != null) this.player1Score = player1Score;
+                                        if (player2Score != null) this.player2Score = player2Score;
+                                        System.out.println("[GameScreen] Cards matched! Disappeared after delay. Scores - P1: " + this.player1Score + ", P2: " + this.player2Score);
+                                        updateScoreLabels();
                                         resetFlippedCards();
-                                        
-                                        System.out.println("[GameScreen] Cards flipped back via TCP");
+                                        isResolving = false; // Unlock input
+                                        resetTurnTimer(); // Reset timer for current player's next turn
                                     });
                                 } catch (InterruptedException e) {
                                     Thread.currentThread().interrupt();
                                 }
                             }).start();
-                        });
-                    }
-                });
-                
-                // Handle match result from server
-                client.onMessage("MATCH_RESULT", message -> {
-                    System.out.println("[GameScreen] Received MATCH_RESULT message: " + message.getData());
-                    Map<String, Object> data = message.getData();
-                    if (data != null) {
-                        Boolean isMatch = (Boolean) data.get("isMatch");
-                        Integer cardIndex1 = convertToInteger(data.get("cardIndex1"));
-                        Integer cardIndex2 = convertToInteger(data.get("cardIndex2"));
-                        Boolean shouldSwitchTurn = (Boolean) data.get("shouldSwitchTurn");
-                        Integer player1Score = convertToInteger(data.get("player1Score"));
-                        Integer player2Score = convertToInteger(data.get("player2Score"));
-                        
-                        System.out.println("[GameScreen] Processing MATCH_RESULT - isMatch: " + isMatch + 
-                                          ", cardIndex1: " + cardIndex1 + ", cardIndex2: " + cardIndex2 + 
-                                          ", shouldSwitchTurn: " + shouldSwitchTurn);
-                        
-                        javafx.application.Platform.runLater(() -> {
-                            if (isMatch != null && isMatch) {
-                                // Cards match - show both for 1s, then make them disappear; keep turn
-                                isResolving = true;
-                                new Thread(() -> {
-                                    try {
-                                        Thread.sleep(1000); // wait 1s to let second card finish flip and be visible
-                                        javafx.application.Platform.runLater(() -> {
-                                            if (cardIndex1 != null && cardIndex1 >= 0 && cardIndex1 < cards.size()) {
-                                                cards.get(cardIndex1).setVisible(false);
-                                            }
-                                            if (cardIndex2 != null && cardIndex2 >= 0 && cardIndex2 < cards.size()) {
-                                                cards.get(cardIndex2).setVisible(false);
-                                            }
-                                            // Update scores
-                                            if (player1Score != null) this.player1Score = player1Score;
-                                            if (player2Score != null) this.player2Score = player2Score;
-                                            System.out.println("[GameScreen] Cards matched! Disappeared after delay. Scores - P1: " + this.player1Score + ", P2: " + this.player2Score);
-                                            updateScoreLabels();
-                                            resetFlippedCards();
-                                            isResolving = false;
-                                            restartTurnTimer();
-                                        });
-                                    } catch (InterruptedException e) {
-                                        Thread.currentThread().interrupt();
-                                    }
-                                }).start();
-                                return;
-                            } else {
-                                // Cards don't match - flip them back after delay
-                                System.out.println("[GameScreen] Cards don't match - starting flip back process");
-                                isResolving = true;
-                                new Thread(() -> {
-                                    try {
-                                        Thread.sleep(1000); // Show cards briefly (1s)
+                            return; // Defer rest until disappearance completes
+                        } else {
+                            // Cards don't match - flip them back after 1s delay
+                            System.out.println("[GameScreen] Cards don't match - starting flip back process");
+                            new Thread(() -> {
+                                try {
+                                    Thread.sleep(1000); // Show cards briefly (1s)
+                                    Platform.runLater(() -> {
+                                        System.out.println("[GameScreen] Flipping back cards - cardIndex1: " + cardIndex1 + ", cardIndex2: " + cardIndex2);
+                                        if (cardIndex1 != null && cardIndex1 >= 0 && cardIndex1 < cards.size()) {
+                                            cards.get(cardIndex1).flipToBack();
+                                            System.out.println("[GameScreen] Flipped back card " + cardIndex1);
+                                        }
+                                        if (cardIndex2 != null && cardIndex2 >= 0 && cardIndex2 < cards.size()) {
+                                            cards.get(cardIndex2).flipToBack();
+                                            System.out.println("[GameScreen] Flipped back card " + cardIndex2);
+                                        }
                                         
-                                        javafx.application.Platform.runLater(() -> {
-                                            System.out.println("[GameScreen] Flipping back cards - cardIndex1: " + cardIndex1 + ", cardIndex2: " + cardIndex2);
-                                            if (cardIndex1 != null && cardIndex1 >= 0 && cardIndex1 < cards.size()) {
-                                                cards.get(cardIndex1).flipToBack();
-                                                System.out.println("[GameScreen] Flipped back card " + cardIndex1);
-                                            }
-                                            if (cardIndex2 != null && cardIndex2 >= 0 && cardIndex2 < cards.size()) {
-                                                cards.get(cardIndex2).flipToBack();
-                                                System.out.println("[GameScreen] Flipped back card " + cardIndex2);
-                                            }
-                                            
-                                            // Reset state AFTER flip-back completes
-                                            resetFlippedCards();
-                                            
-                                            // Switch turn if needed
-                                            if (shouldSwitchTurn != null && shouldSwitchTurn) {
-                                                System.out.println("[GameScreen] Switching turn - was my turn: " + isMyTurn);
-                                                isMyTurn = !isMyTurn;
-                                                System.out.println("[GameScreen] Turn switched via server. Is my turn: " + isMyTurn);
-                                            } else {
-                                                System.out.println("[GameScreen] No turn switch needed - shouldSwitchTurn: " + shouldSwitchTurn);
-                                            }
-                                            
-                                            isResolving = false;
-                                            System.out.println("[GameScreen] Cards don't match - flipped back and state reset");
-                                            updateScoreLabels();
-                                            restartTurnTimer();
-                                        });
-                                    } catch (InterruptedException e) {
-                                        Thread.currentThread().interrupt();
-                                    }
-                                }).start();
-                                return; // Defer rest until flip-back completes
-                            }
-                            // No immediate reset here; both branches handle reset and resolving state
-                        });
-                    }
-                });
+                                        // Reset state AFTER flip-back completes
+                                        resetFlippedCards();
+                                        
+                                        // Switch turn if needed
+                                        if (shouldSwitchTurn != null && shouldSwitchTurn) {
+                                            System.out.println("[GameScreen] Switching turn - was my turn: " + isMyTurn);
+                                            isMyTurn = !isMyTurn;
+                                            System.out.println("[GameScreen] Turn switched via server. Is my turn: " + isMyTurn);
+                                            resetTurnTimer(); // Reset timer for the new turn
+                                        } else {
+                                            System.out.println("[GameScreen] No turn switch needed - shouldSwitchTurn: " + shouldSwitchTurn);
+                                        }
+                                        
+                                        isResolving = false; // Unlock input
+                                        System.out.println("[GameScreen] Cards don't match - flipped back and state reset");
+                                    });
+                                } catch (InterruptedException e) {
+                                    Thread.currentThread().interrupt();
+                                }
+                            }).start();
+                            return; // Defer rest until flip-back completes
+                        }
+                    });
+                }
+            });
             
             System.out.println("[GameScreen] TCP handlers setup completed");
         } catch (Exception e) {
@@ -784,81 +584,168 @@ public class GameScreenController {
         }
     }
     
-    /**
-     * Flip card at specific position (called when receiving TCP message)
-     */
-    private void flipCardAtPosition(int cardIndex, int row, int col) {
-        // Don't flip if we're currently sending a message (to prevent double-flip)
-        if (isSendingMessage) {
-            System.out.println("[GameScreen] Ignoring TCP flip message - currently sending message");
-            return;
-        }
-        
-        if (cardIndex >= 0 && cardIndex < cards.size()) {
-            MemoryCard card = cards.get(cardIndex);
-            if (!card.isFlipped() && !card.isMatched()) {
-                card.flipToFront();
-                flippedCardsCount++;
-                System.out.println("[GameScreen] Flipped card at position " + row + "," + col + " from TCP message (flipped: " + flippedCardsCount + ")");
-                
-                // Store flipped card for matching logic
-                if (firstFlippedCard == null) {
-                    firstFlippedCard = card;
-                } else {
-                    secondFlippedCard = card;
-                }
-            }
-        }
-    }
-    
-    /**
-     * Mark cards as matched (called when receiving TCP message)
-     */
-    private void markCardsAsMatched(int cardIndex1, int cardIndex2) {
-        if (cardIndex1 >= 0 && cardIndex1 < cards.size() && 
-            cardIndex2 >= 0 && cardIndex2 < cards.size()) {
-            cards.get(cardIndex1).markAsMatched();
-            cards.get(cardIndex2).markAsMatched();
-            System.out.println("[GameScreen] Marked cards " + cardIndex1 + " and " + cardIndex2 + " as matched from TCP message");
-        }
-    }
-    
-    /**
-     * Send card flipped message via TCP to synchronize with other player
-     */
     private void sendCardFlippedMessage(int cardIndex, int row, int col) {
         try {
-            isSendingMessage = true; // Set flag to prevent double-flip
-            
             TCPClient client = TCPClient.getInstance();
             Map<String, Object> data = new HashMap<>();
             data.put("cardIndex", cardIndex);
             data.put("row", row);
             data.put("col", col);
-            data.put("imagePath", cardData.get(cardIndex).getImagePath());
             
             TCPClient.TCPMessage message = new TCPClient.TCPMessage("CARD_FLIPPED", data, null, null);
             client.sendMessage(message);
-            System.out.println("[GameScreen] Sent CARD_FLIPPED message: " + data);
-            
-            // Reset flag after a short delay
-            new Thread(() -> {
-                try {
-                    Thread.sleep(100); // Small delay to ensure message is sent
-                    isSendingMessage = false;
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-            }).start();
+            System.out.println("[GameScreen] Sent card flipped message for position: " + row + "," + col);
         } catch (Exception e) {
             System.err.println("[GameScreen] Failed to send card flipped message: " + e.getMessage());
-            e.printStackTrace();
-            isSendingMessage = false; // Reset flag on error
         }
     }
     
-    // Getters and setters
-    public GameSettings getGameSettings() {
-        return gameSettings;
+    private void sendCardsForMatchCheck() {
+        if (firstFlippedCard == null || secondFlippedCard == null) {
+            System.err.println("[GameScreen] Cannot check match - missing cards");
+            return;
+        }
+        
+        int cardIndex1 = cards.indexOf(firstFlippedCard);
+        int cardIndex2 = cards.indexOf(secondFlippedCard);
+        
+        try {
+            TCPClient client = TCPClient.getInstance();
+            Map<String, Object> data = new HashMap<>();
+            data.put("roomId", gameSettings.getRoomId());
+            data.put("cardIndex1", cardIndex1);
+            data.put("cardIndex2", cardIndex2);
+            data.put("isHost", gameSettings.isHost());
+            
+            TCPClient.TCPMessage message = new TCPClient.TCPMessage("CARDS_FOR_MATCH_CHECK", data, null, null);
+            client.sendMessage(message);
+            System.out.println("[GameScreen] Sent cards for match check - indices: " + cardIndex1 + ", " + cardIndex2);
+        } catch (Exception e) {
+            System.err.println("[GameScreen] Failed to send cards for match check: " + e.getMessage());
+            isResolving = false;
+        }
+    }
+    
+    private void flipCardAtPosition(int cardIndex, int row, int col) {
+        if (cardIndex >= 0 && cardIndex < cards.size()) {
+            MemoryCard card = cards.get(cardIndex);
+            if (!card.isFlipped() && !card.isMatched()) {
+                card.flipToFront();
+                System.out.println("[GameScreen] Flipped card via TCP at position: " + row + "," + col);
+            }
+        }
+    }
+    
+    private void resetFlippedCards() {
+        firstFlippedCard = null;
+        secondFlippedCard = null;
+        flippedCardsCount = 0;
+        System.out.println("[GameScreen] Reset flipped cards state");
+    }
+    
+    private void updateScoreLabels() {
+        if (gameSettings != null) {
+            if (gameSettings.isHost()) {
+                // Host: myScore = player1Score, opponentScore = player2Score
+                if (myScoreLabel != null) {
+                    myScoreLabel.setText(String.valueOf(player1Score));
+                }
+                if (opponentScoreLabel != null) {
+                    opponentScoreLabel.setText(String.valueOf(player2Score));
+                }
+            } else {
+                // Guest: myScore = player2Score, opponentScore = player1Score
+                if (myScoreLabel != null) {
+                    myScoreLabel.setText(String.valueOf(player2Score));
+                }
+                if (opponentScoreLabel != null) {
+                    opponentScoreLabel.setText(String.valueOf(player1Score));
+                }
+            }
+        } else {
+            // Fallback
+            if (myScoreLabel != null) {
+                myScoreLabel.setText(String.valueOf(player1Score));
+            }
+            if (opponentScoreLabel != null) {
+                opponentScoreLabel.setText(String.valueOf(player2Score));
+            }
+        }
+    }
+    
+    private void startTurnTimer() {
+        if (turnTimer != null) {
+            turnTimer.stop();
+        }
+        
+        currentTurnTime = initialTurnTime;
+        updateTimerDisplay();
+        
+        turnTimer = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
+            currentTurnTime--;
+            updateTimerDisplay();
+            
+            if (currentTurnTime <= 0) {
+                handleTimerEnd();
+            }
+        }));
+        turnTimer.setCycleCount(Timeline.INDEFINITE);
+        turnTimer.play();
+    }
+    
+    private void resetTurnTimer() {
+        startTurnTimer();
+    }
+    
+    private void updateTimerDisplay() {
+        if (timerLabel != null) {
+            timerLabel.setText(currentTurnTime + "s");
+        }
+    }
+    
+    private void handleTimerEnd() {
+        if (turnTimer != null) {
+            turnTimer.stop();
+        }
+        
+        if (isMyTurn) {
+            // Time's up for current player - switch turn
+            isMyTurn = false;
+            System.out.println("[GameScreen] Timer ended - switching turn");
+            
+            // Send turn switch message to opponent
+            try {
+                TCPClient client = TCPClient.getInstance();
+                Map<String, Object> data = new HashMap<>();
+                data.put("switchTurn", true);
+                
+                TCPClient.TCPMessage message = new TCPClient.TCPMessage("TURN_SWITCH", data, null, null);
+                client.sendMessage(message);
+            } catch (Exception e) {
+                System.err.println("[GameScreen] Failed to send turn switch: " + e.getMessage());
+            }
+        }
+        
+        resetTurnTimer();
+    }
+    
+    private int parseTimeSetting(String timeSetting) {
+        try {
+            return Integer.parseInt(timeSetting.replace("s", ""));
+        } catch (Exception e) {
+            System.err.println("[GameScreen] Failed to parse time setting: " + timeSetting);
+            return 30; // Default
+        }
+    }
+    
+    private Integer convertToInteger(Object obj) {
+        if (obj == null) return null;
+        if (obj instanceof Integer) return (Integer) obj;
+        if (obj instanceof Number) return ((Number) obj).intValue();
+        try {
+            return Integer.parseInt(obj.toString());
+        } catch (Exception e) {
+            return null;
+        }
     }
 }

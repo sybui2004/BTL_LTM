@@ -554,9 +554,17 @@ public class RoomScreenController {
                 time = "30s"; // Default
             }
             
-            // Get player names (TODO: get actual names from room)
-            String player1Name = "Player 1";
-            String player2Name = "Player 2";
+            // Get player names based on host/guest role
+            String player1Name, player2Name;
+            if (stateManager.isHost()) {
+                // Current user is host
+                player1Name = getCurrentUserName();
+                player2Name = getOpponentName();
+            } else {
+                // Current user is guest
+                player1Name = getOpponentName(); // Host is player1
+                player2Name = getCurrentUserName(); // Guest is player2
+            }
             
             GameSettings gameSettings = new GameSettings(theme, size, time);
             gameSettings.setPlayer1Name(player1Name);
@@ -569,6 +577,31 @@ public class RoomScreenController {
         } catch (Exception e) {
             System.err.println("[RoomScreen] Error getting game settings: " + e.getMessage());
             return null;
+        }
+    }
+    
+    private String getCurrentUserName() {
+        try {
+            UserSummary currentUser = UserApi.getCurrentUser();
+            return currentUser != null ? currentUser.displayName : "Me";
+        } catch (Exception e) {
+            System.err.println("[RoomScreen] Failed to get current user name: " + e.getMessage());
+            return "Me";
+        }
+    }
+    
+    private String getOpponentName() {
+        try {
+            // Get opponent from room state
+            Long opponentId = stateManager.getCurrentGuestId();
+            if (opponentId != null) {
+                UserSummary opponent = UserApi.getUserById(opponentId);
+                return opponent != null ? opponent.displayName : "Opponent";
+            }
+            return "Opponent";
+        } catch (Exception e) {
+            System.err.println("[RoomScreen] Failed to get opponent name: " + e.getMessage());
+            return "Opponent";
         }
     }
     
@@ -610,6 +643,8 @@ public class RoomScreenController {
             data.put("theme", gameSettings.getTheme().name);
             data.put("size", gameSettings.getSize());
             data.put("time", gameSettings.getTime());
+            data.put("player1Name", gameSettings.getPlayer1Name());
+            data.put("player2Name", gameSettings.getPlayer2Name());
             
             TCPClient.TCPMessage message = new TCPClient.TCPMessage("GAME_STARTED", data, null, null);
             System.out.println("[DEBUG] Creating GAME_STARTED message: " + message.getType() + " with data: " + data);
@@ -621,16 +656,18 @@ public class RoomScreenController {
         }
     }
     
-    private void handleGameStart(String theme, String size, String time) {
+    private void handleGameStart(String theme, String size, String time, String player1Name, String player2Name) {
         System.out.println("[RoomScreen] Received game start from host - Theme: " + theme + ", Size: " + size + ", Time: " + time);
+        System.out.println("[RoomScreen] Player names - Player1: " + player1Name + ", Player2: " + player2Name);
         
         // Create GameSettings for guest
         GameSettings gameSettings = new GameSettings();
         gameSettings.setTheme(findThemeByName(theme));
         gameSettings.setSize(size);
         gameSettings.setTime(time);
-        gameSettings.setPlayer1Name("Player 1");
-        gameSettings.setPlayer2Name("Player 2");
+        // Use names from host's TCP message
+        gameSettings.setPlayer1Name(player1Name);
+        gameSettings.setPlayer2Name(player2Name);
         gameSettings.setHost(false); // Guest is not host
         gameSettings.setRoomId(stateManager.getCurrentRoomId()); // Set room ID for synchronization
         

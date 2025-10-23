@@ -1,3 +1,78 @@
+/* Back Button Styling */
+.back-button-container {
+  -fx-background-color: transparent;
+  -fx-background-radius: 999;
+  -fx-padding: 6;
+  -fx-cursor: hand;
+}
+
+.back-button-container:hover {
+  -fx-background-color: rgba(102, 185, 231, 0.25);
+}
+
+.back-button-container:pressed {
+  -fx-background-color: rgba(102, 185, 231, 0.35);
+}
+
+/* Player Panel Styling */
+.player-panel {
+  -fx-background-color: white;
+  -fx-background-radius: 15;
+  -fx-padding: 12 16 12 16;
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.15), 8, 0.2, 0, 2);
+  -fx-spacing: 12;
+}
+
+.player-avatar {
+  -fx-border-color: #66b9e7;
+  -fx-border-width: 2;
+  -fx-border-radius: 24;
+  -fx-background-radius: 24;
+}
+
+.player-name {
+  -fx-font-size: 14px;
+  -fx-font-weight: bold;
+  -fx-text-fill: #333333;
+}
+
+.chat-input {
+  -fx-background-color: transparent;
+  -fx-border-color: transparent transparent #cccccc transparent;
+  -fx-border-width: 0 0 1 0;
+  -fx-padding: 4 0 4 0;
+  -fx-font-size: 14px;
+  -fx-prompt-text-fill: #999999;
+  -fx-text-fill: #333333;
+}
+
+.send-button {
+  -fx-background-color: #ff6b35;
+  -fx-text-fill: white;
+  -fx-background-radius: 8;
+  -fx-border-radius: 8;
+  -fx-padding: 8 12 8 12;
+  -fx-font-size: 16px;
+  -fx-font-weight: bold;
+  -fx-min-width: 40;
+  -fx-min-height: 40;
+  -fx-cursor: hand;
+}
+
+.send-button:hover {
+  -fx-background-color: #ff5722;
+}
+
+.send-button:pressed {
+  -fx-background-color: #e64a19;
+}
+
+.player-score {
+  -fx-font-size: 32px;
+  -fx-font-weight: bold;
+  -fx-text-fill: #ff4444;
+}
+
 /* Game Screen Styles */
 .game-overlay {
   -fx-background-color: transparent;

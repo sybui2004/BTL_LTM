@@ -28,7 +28,7 @@ public class TCPMessageHandler {
     
     @FunctionalInterface
     public interface GameStartCallback {
-        void accept(String theme, String size, String time);
+        void accept(String theme, String size, String time, String player1Name, String player2Name);
     }
     
     public TCPMessageHandler(RoomUIUpdater uiUpdater, 
@@ -295,13 +295,16 @@ public class TCPMessageHandler {
                 String theme = (String) data.get("theme");
                 String size = (String) data.get("size");
                 String time = (String) data.get("time");
+                String player1Name = (String) data.get("player1Name");
+                String player2Name = (String) data.get("player2Name");
                 
                 System.out.println("[TCP][RoomScreen] Game started by host - Theme: " + theme + ", Size: " + size + ", Time: " + time);
+                System.out.println("[TCP][RoomScreen] Player names - Player1: " + player1Name + ", Player2: " + player2Name);
                 
                 Platform.runLater(() -> {
                     // Start game for guest
                     if (onGameStart != null) {
-                        onGameStart.accept(theme, size, time);
+                        onGameStart.accept(theme, size, time, player1Name, player2Name);
                     }
                 });
             }
