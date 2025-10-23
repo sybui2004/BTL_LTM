@@ -32,16 +32,17 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
+        .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/themes/**").permitAll()
+                .requestMatchers("/api/cards/**").permitAll()
                 .requestMatchers("/",
                                  "/error",
                                  "/favicon.ico",
                                  "/static/**",
                                  "/images/**").permitAll()
                 .anyRequest().authenticated()
-            )
+        )
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint((request, response, authException) -> {
                     response.setStatus(HttpStatus.UNAUTHORIZED.value());

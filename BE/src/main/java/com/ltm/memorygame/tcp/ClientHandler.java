@@ -110,6 +110,10 @@ public class ClientHandler extends Thread {
             case "WORLD_CHAT" -> handleWorldChat(message);
             case "PRIVATE_CHAT" -> handlePrivateChat(message);
             case "ROOM_SETTINGS_CHANGED" -> handleRoomSettingsChanged(message);
+            case "GAME_STARTED" -> handleGameStarted(message);
+            case "CARD_FLIPPED" -> handleCardFlipped(message);
+            case "CARD_MATCHED" -> handleCardMatched(message);
+            case "GAME_STATE_SYNC" -> handleGameStateSync(message);
             case "PING" -> sendMessage(new TCPMessage("PONG", null, "server", username));
             default -> log.warn("[TCP] Unknown type: {}", message.getType());
         }
@@ -224,12 +228,54 @@ public class ClientHandler extends Thread {
             }
         }
     }
+    
+    private void handleGameStarted(TCPMessage message) {
+        log.info("[TCP] Game started by {}: {}", username, message.getData());
+        
+        // Forward the message to all other clients in the same room
+        // For now, we'll broadcast to all clients (can be optimized later)
+        for (ClientHandler client : onlineClients.values()) {
+            if (!client.username.equals(username)) { // Don't send back to sender
+                client.sendMessage(message);
+            }
+        }
+    }
 
     private void broadcastUserStatus(String user, boolean online) {
         TCPMessage msg = new TCPMessage("USER_STATUS",
                 Map.of("user", user, "online", online), "server", null);
         for (ClientHandler client : onlineClients.values()) {
             client.sendMessage(msg);
+        }
+    }
+
+    private void handleCardFlipped(TCPMessage message) {
+        log.info("[TCP] Card flipped by {}: {}", username, message.getData());
+        // Forward the message to all other clients in the same room
+        for (ClientHandler client : onlineClients.values()) {
+            if (!client.username.equals(username)) { // Don't send back to sender
+                client.sendMessage(message);
+            }
+        }
+    }
+
+    private void handleCardMatched(TCPMessage message) {
+        log.info("[TCP] Card matched by {}: {}", username, message.getData());
+        // Forward the message to all other clients in the same room
+        for (ClientHandler client : onlineClients.values()) {
+            if (!client.username.equals(username)) { // Don't send back to sender
+                client.sendMessage(message);
+            }
+        }
+    }
+
+    private void handleGameStateSync(TCPMessage message) {
+        log.info("[TCP] Game state sync by {}: {}", username, message.getData());
+        // Forward the message to all other clients in the same room
+        for (ClientHandler client : onlineClients.values()) {
+            if (!client.username.equals(username)) { // Don't send back to sender
+                client.sendMessage(message);
+            }
         }
     }
 

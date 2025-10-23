@@ -19,9 +19,15 @@ public class TCPMessageHandler {
     private final Runnable onComboBoxStateUpdate;
     private final SettingsUpdateCallback onSettingsUpdate;
     private final Runnable onSendCurrentSettings;
+    private final GameStartCallback onGameStart;
     
     @FunctionalInterface
     public interface SettingsUpdateCallback {
+        void accept(String theme, String size, String time);
+    }
+    
+    @FunctionalInterface
+    public interface GameStartCallback {
         void accept(String theme, String size, String time);
     }
     
@@ -31,7 +37,8 @@ public class TCPMessageHandler {
                             RoomStateManager stateManager,
                             Runnable onComboBoxStateUpdate,
                             SettingsUpdateCallback onSettingsUpdate,
-                            Runnable onSendCurrentSettings) {
+                            Runnable onSendCurrentSettings,
+                            GameStartCallback onGameStart) {
         this.uiUpdater = uiUpdater;
         this.onRefreshTab = onRefreshTab;
         this.onLoadInvites = onLoadInvites;
@@ -39,6 +46,7 @@ public class TCPMessageHandler {
         this.onComboBoxStateUpdate = onComboBoxStateUpdate;
         this.onSettingsUpdate = onSettingsUpdate;
         this.onSendCurrentSettings = onSendCurrentSettings;
+        this.onGameStart = onGameStart;
     }
     
     public void setupListeners() {
@@ -74,6 +82,7 @@ public class TCPMessageHandler {
     
     private void setupInviteReceivedHandler(TCPClient client) {
         client.onMessage("INVITE_RECEIVED", message -> {
+            System.out.println("[TCP][RoomScreen] Received INVITE_RECEIVED message: " + message.getData());
             Map<String, Object> data = message.getData();
             if (data != null) {
                 Object senderNameObj = data.get("senderName");
@@ -81,7 +90,11 @@ public class TCPMessageHandler {
                     String senderName = senderNameObj.toString();
                     System.out.println("[TCP][RoomScreen] Received invite from: " + senderName);
                     Platform.runLater(onLoadInvites);
+                } else {
+                    System.err.println("[TCP][RoomScreen] INVITE_RECEIVED message missing senderName");
                 }
+            } else {
+                System.err.println("[TCP][RoomScreen] INVITE_RECEIVED message has no data");
             }
         });
     }
@@ -271,6 +284,26 @@ public class TCPMessageHandler {
                 });
             } else {
                 System.out.println("[TCP][RoomScreen] ROOM_SETTINGS_CHANGED message has no data!");
+            }
+        });
+        
+        // Handle game start from host
+        client.onMessage("GAME_STARTED", message -> {
+            System.out.println("[TCP][RoomScreen] Received GAME_STARTED message");
+            Map<String, Object> data = message.getData();
+            if (data != null) {
+                String theme = (String) data.get("theme");
+                String size = (String) data.get("size");
+                String time = (String) data.get("time");
+                
+                System.out.println("[TCP][RoomScreen] Game started by host - Theme: " + theme + ", Size: " + size + ", Time: " + time);
+                
+                Platform.runLater(() -> {
+                    // Start game for guest
+                    if (onGameStart != null) {
+                        onGameStart.accept(theme, size, time);
+                    }
+                });
             }
         });
     }
