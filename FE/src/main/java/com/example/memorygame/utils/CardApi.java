@@ -7,6 +7,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.Collections;
 import java.util.List;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 /**
  * API client for card-related operations
@@ -20,7 +22,9 @@ public class CardApi {
      */
     public static List<CardDTO> getCardsForGame(String themeName, String size, Long roomId) {
         try {
-            String endpoint = "/api/cards/game?theme=" + themeName + "&size=" + size + "&roomId=" + roomId;
+            String encodedTheme = URLEncoder.encode(themeName, StandardCharsets.UTF_8);
+            String encodedSize = URLEncoder.encode(size, StandardCharsets.UTF_8);
+            String endpoint = "/api/cards/game?theme=" + encodedTheme + "&size=" + encodedSize + "&roomId=" + roomId;
             String json = ApiClient.get(endpoint);
             return MAPPER.readValue(json, new TypeReference<List<CardDTO>>(){});
         } catch (Exception e) {
@@ -34,7 +38,9 @@ public class CardApi {
      */
     public static List<CardDTO> getCardsForGame(String themeName, String size) {
         try {
-            String endpoint = "/api/cards/game?theme=" + themeName + "&size=" + size;
+            String encodedTheme = URLEncoder.encode(themeName, StandardCharsets.UTF_8);
+            String encodedSize = URLEncoder.encode(size, StandardCharsets.UTF_8);
+            String endpoint = "/api/cards/game?theme=" + encodedTheme + "&size=" + encodedSize;
             String json = ApiClient.get(endpoint);
             return MAPPER.readValue(json, new TypeReference<List<CardDTO>>(){});
         } catch (Exception e) {

@@ -16,5 +16,41 @@
       <GridPane fx:id="cardGrid" alignment="CENTER" styleClass="card-grid" maxWidth="600" maxHeight="400">
          <!-- Cards will be added programmatically -->
       </GridPane>
+
+      <!-- Overlay UI -->
+      <AnchorPane pickOnBounds="false">
+         <!-- Back button - top-left -->
+         <Button fx:id="backButton" prefWidth="36" prefHeight="36" layoutX="10" layoutY="10">
+            <graphic>
+               <ImageView fitWidth="28" fitHeight="28" preserveRatio="true">
+                  <Image url="@assets/images/icon/back.png"/>
+               </ImageView>
+            </graphic>
+         </Button>
+
+         <!-- Opponent panel - top-right -->
+         <VBox spacing="6" AnchorPane.topAnchor="10.0" AnchorPane.rightAnchor="10.0" alignment="TOP_RIGHT">
+            <HBox spacing="8" alignment="CENTER_RIGHT">
+               <Label text="0" fx:id="opponentScoreLabel" />
+               <ImageView fx:id="opponentAvatar" fitWidth="36" fitHeight="36" preserveRatio="true" />
+            </HBox>
+            <TextField fx:id="opponentChatField" promptText="Opponent chat" editable="false" />
+         </VBox>
+
+         <!-- My panel - bottom-left -->
+         <VBox spacing="6" AnchorPane.bottomAnchor="10.0" AnchorPane.leftAnchor="10.0" alignment="BOTTOM_LEFT">
+            <HBox spacing="8" alignment="CENTER_LEFT">
+               <ImageView fx:id="myAvatar" fitWidth="36" fitHeight="36" preserveRatio="true" />
+               <Label text="0" fx:id="myScoreLabel" />
+            </HBox>
+            <HBox spacing="6">
+               <TextField fx:id="myChatField" promptText="Type a message" prefWidth="220" />
+               <Button fx:id="sendChatButton" text=">" prefWidth="34" />
+            </HBox>
+         </VBox>
+
+         <!-- Timer - bottom-right -->
+         <Label fx:id="timerLabel" text="10s" AnchorPane.bottomAnchor="10.0" AnchorPane.rightAnchor="10.0" />
+      </AnchorPane>
    </children>
 </StackPane>

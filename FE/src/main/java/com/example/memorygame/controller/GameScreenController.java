@@ -8,9 +8,19 @@ import com.example.memorygame.utils.CardApi;
 import com.example.memorygame.utils.TCPClient;
 import com.example.memorygame.view.GameScreen;
 import javafx.fxml.FXML;
+import javafx.application.Platform;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.image.ImageView;
+import javafx.scene.image.Image;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
+import javafx.animation.Timeline;
+import javafx.animation.KeyFrame;
+import javafx.util.Duration;
+import javafx.stage.Stage;
+import javafx.scene.Scene;
 import java.util.List;
 import java.util.Collections;
 import java.util.ArrayList;
@@ -44,6 +54,14 @@ public class GameScreenController {
     @FXML private StackPane gameContainer;
     @FXML private GridPane cardGrid;
     @FXML private ImageView backgroundImage;
+    @FXML private Button backButton;
+    @FXML private ImageView myAvatar;
+    @FXML private ImageView opponentAvatar;
+    @FXML private Label myScoreLabel;
+    @FXML private Label opponentScoreLabel;
+    @FXML private TextField myChatField;
+    @FXML private TextField opponentChatField;
+    @FXML private Label timerLabel;
     
     private GameScreen screen;
     
@@ -81,6 +99,8 @@ public class GameScreenController {
         System.out.println("[GameScreen] Initializing with settings: " + gameSettings);
         setupGame();
         setupResizeListener();
+        setupOverlayUI();
+        restartTurnTimer();
     }
     
     private void setupGame() {
@@ -96,6 +116,135 @@ public class GameScreenController {
         setupCardGrid();
         
         System.out.println("[GameScreen] Game setup completed");
+    }
+
+    private void setupOverlayUI() {
+        if (backButton != null) {
+            backButton.setOnAction(e -> handleBack());
+        }
+        // Load default avatars (can be replaced with real URLs later)
+        String defaultAvatar = "http://localhost:8080/static/avatars/default_avatar.png";
+        try {
+            if (myAvatar != null) {
+                myAvatar.setImage(new Image(defaultAvatar));
+            }
+            if (opponentAvatar != null) {
+                opponentAvatar.setImage(new Image(defaultAvatar));
+            }
+        } catch (Exception ignored) {}
+        
+        updateScoreLabels();
+        updateTimerLabel();
+    }
+
+    private void handleBack() {
+        try {
+            stopTurnTimer();
+            Stage stage = (Stage) gameContainer.getScene().getWindow();
+            // Use controller-driven loader so RoomScreen initializes helpers/APIs correctly
+            RoomScreenController controller = new RoomScreenController();
+            Scene scene = new Scene(controller.getScreen().getRoot());
+            stage.setScene(scene);
+        } catch (Exception e) {
+            System.err.println("[GameScreen] Failed to go back: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private int parseTurnSeconds() {
+        if (gameSettings == null || gameSettings.getTime() == null) return 10; // default
+        String t = gameSettings.getTime().trim().toLowerCase();
+        try {
+            if (t.endsWith("s")) t = t.substring(0, t.length()-1);
+            return Integer.parseInt(t);
+        } catch (NumberFormatException e) {
+            return 10;
+        }
+    }
+
+    private Timeline turnTimer;
+    private int turnDurationSeconds;
+    private int turnSecondsRemaining;
+
+    private void restartTurnTimer() {
+        stopTurnTimer();
+        turnDurationSeconds = parseTurnSeconds();
+        turnSecondsRemaining = turnDurationSeconds;
+        updateTimerLabel();
+        startTurnTimer();
+    }
+
+    private void startTurnTimer() {
+        turnTimer = new Timeline(new KeyFrame(Duration.seconds(1), ev -> {
+            turnSecondsRemaining = Math.max(0, turnSecondsRemaining - 1);
+            updateTimerLabel();
+            if (turnSecondsRemaining <= 0) {
+                stopTurnTimer();
+                onTurnTimeout();
+            }
+        }));
+        turnTimer.setCycleCount(Timeline.INDEFINITE);
+        turnTimer.play();
+    }
+
+    private void stopTurnTimer() {
+        if (turnTimer != null) {
+            turnTimer.stop();
+            turnTimer = null;
+        }
+    }
+
+    private void updateTimerLabel() {
+        if (timerLabel != null) {
+            Platform.runLater(() -> timerLabel.setText(turnSecondsRemaining + "s"));
+        }
+    }
+
+    private void onTurnTimeout() {
+        System.out.println("[GameScreen] Turn timeout. Current isMyTurn=" + isMyTurn);
+        if (isMyTurn) {
+            // Flip back any currently flipped, then switch turn
+            Platform.runLater(() -> {
+                if (secondFlippedCard != null) {
+                    secondFlippedCard.flipToBack();
+                }
+                if (firstFlippedCard != null) {
+                    firstFlippedCard.flipToBack();
+                }
+                resetFlippedCards();
+                isResolving = false;
+                // Notify other player and switch locally
+                sendTurnSwitchMessage();
+                isMyTurn = false;
+                restartTurnTimer();
+            });
+        } else {
+            // Not my turn: do nothing on local timeout; timer will be restarted when TURN_SWITCH arrives
+        }
+    }
+
+    private void sendTurnSwitchMessage() {
+        try {
+            TCPClient client = TCPClient.getInstance();
+            Map<String, Object> data = new HashMap<>();
+            data.put("isHost", gameSettings.isHost());
+            TCPClient.TCPMessage msg = new TCPClient.TCPMessage("TURN_SWITCH", data, null, null);
+            client.sendMessage(msg);
+            System.out.println("[GameScreen] Sent TURN_SWITCH due to timeout");
+        } catch (Exception e) {
+            System.err.println("[GameScreen] Failed to send TURN_SWITCH: " + e.getMessage());
+        }
+    }
+
+    private void updateScoreLabels() {
+        if (myScoreLabel == null || opponentScoreLabel == null) return;
+        if (gameSettings != null && gameSettings.isHost()) {
+            myScoreLabel.setText(String.valueOf(player1Score));
+            opponentScoreLabel.setText(String.valueOf(player2Score));
+        } else {
+            myScoreLabel.setText(String.valueOf(player2Score));
+            opponentScoreLabel.setText(String.valueOf(player1Score));
+        }
     }
     
     private void setupThemeBackground() {
@@ -497,6 +646,7 @@ public class GameScreenController {
                             System.out.println("[GameScreen] Turn switched via TCP. Is my turn: " + isMyTurn);
                             
                             // Don't reset flipped cards here - wait for CARDS_FLIP_BACK message
+                            restartTurnTimer();
                         });
                     }
                 });
@@ -513,7 +663,7 @@ public class GameScreenController {
                             // Flip back the cards after a delay (to match the sender's timing)
                             new Thread(() -> {
                                 try {
-                                    Thread.sleep(2000); // Same delay as sender
+                                    Thread.sleep(1000); // Same delay as sender
                                     
                                     javafx.application.Platform.runLater(() -> {
                                         if (cardIndex1 != null && cardIndex1 >= 0 && cardIndex1 < cards.size()) {
@@ -570,8 +720,10 @@ public class GameScreenController {
                                             if (player1Score != null) this.player1Score = player1Score;
                                             if (player2Score != null) this.player2Score = player2Score;
                                             System.out.println("[GameScreen] Cards matched! Disappeared after delay. Scores - P1: " + this.player1Score + ", P2: " + this.player2Score);
+                                            updateScoreLabels();
                                             resetFlippedCards();
                                             isResolving = false;
+                                            restartTurnTimer();
                                         });
                                     } catch (InterruptedException e) {
                                         Thread.currentThread().interrupt();
@@ -611,6 +763,8 @@ public class GameScreenController {
                                             
                                             isResolving = false;
                                             System.out.println("[GameScreen] Cards don't match - flipped back and state reset");
+                                            updateScoreLabels();
+                                            restartTurnTimer();
                                         });
                                     } catch (InterruptedException e) {
                                         Thread.currentThread().interrupt();

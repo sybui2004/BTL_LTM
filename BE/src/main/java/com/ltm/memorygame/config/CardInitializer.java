@@ -29,20 +29,26 @@ public class CardInitializer implements CommandLineRunner {
             return;
         }
         
-        // Check if cards exist and have correct count
-        long totalCards = cardRepository.count();
-        long expectedCards = themes.size() * 25; // 25 cards per theme
-        
-        if (totalCards == expectedCards) {
-            System.out.println("[CardInitializer] Cards already exist with correct count (" + totalCards + "), skipping initialization.");
+        boolean needsRecreateAll = false;
+        // Validate per-theme correctness (count and filename pattern)
+        for (Theme theme : themes) {
+            List<Card> existing = cardRepository.findByTheme(theme);
+            if (existing.size() != 25) {
+                needsRecreateAll = true; break;
+            }
+            // Both themes use "card_XX.png" files (as per assets)
+            String prefix = theme.getAssetPath() + "/card_";
+            boolean anyWrong = existing.stream().anyMatch(c -> !c.getCardPath().startsWith(prefix));
+            if (anyWrong) { needsRecreateAll = true; break; }
+        }
+
+        if (!needsRecreateAll) {
+            System.out.println("[CardInitializer] Cards already valid, skipping initialization.");
             return;
         }
-        
-        if (totalCards > 0) {
-            System.out.println("[CardInitializer] Cards exist but count is incorrect (" + totalCards + " vs " + expectedCards + "), recreating...");
-            cardRepository.deleteAll();
-        }
-        
+
+        System.out.println("[CardInitializer] Recreating cards due to invalid count or paths...");
+        cardRepository.deleteAll();
         for (Theme theme : themes) {
             createCardsForTheme(theme);
         }
