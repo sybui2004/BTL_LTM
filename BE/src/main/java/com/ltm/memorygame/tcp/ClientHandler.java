@@ -2,7 +2,7 @@ package com.ltm.memorygame.tcp;
 
 import com.ltm.memorygame.service.user.UserService;
 import com.ltm.memorygame.service.room.RoomService;
-import com.ltm.memorygame.service.notification.NotificationService;
+import com.ltm.memorygame.service.game.GameSessionService;
 import com.ltm.memorygame.security.JwtService;
 import com.ltm.memorygame.model.enums.UserStatus;
 import org.slf4j.Logger;
@@ -21,6 +21,7 @@ public class ClientHandler extends Thread {
 
     private final UserService userService;
     private final RoomService roomService;
+    private final GameSessionService gameSessionService;
     private final JwtService jwtService;
     private final boolean requireJwt;
     private final int maxPerSecond;
@@ -35,7 +36,7 @@ public class ClientHandler extends Thread {
                          Map<String, ClientHandler> onlineClients,
                          UserService userService,
                          RoomService roomService,
-                         NotificationService notificationService,
+                         GameSessionService gameSessionService,
                          JwtService jwtService,
                          boolean requireJwt,
                          int maxPerSecond) throws IOException {
@@ -43,6 +44,7 @@ public class ClientHandler extends Thread {
         this.onlineClients = onlineClients;
         this.userService = userService;
         this.roomService = roomService;
+        this.gameSessionService = gameSessionService;
         this.jwtService = jwtService;
         this.requireJwt = requireJwt;
         this.maxPerSecond = maxPerSecond;
@@ -109,6 +111,14 @@ public class ClientHandler extends Thread {
             case "LOGOUT_REQUEST" -> handleLogout();
             case "WORLD_CHAT" -> handleWorldChat(message);
             case "PRIVATE_CHAT" -> handlePrivateChat(message);
+            case "ROOM_SETTINGS_CHANGED" -> handleRoomSettingsChanged(message);
+            case "GAME_STARTED" -> handleGameStarted(message);
+            case "CARD_FLIPPED" -> handleCardFlipped(message);
+            case "CARD_MATCHED" -> handleCardMatched(message);
+            case "TURN_SWITCH" -> handleTurnSwitch(message);
+            case "CARDS_FLIP_BACK" -> handleCardsFlipBack(message);
+            case "CARDS_FOR_MATCH_CHECK" -> handleCardsForMatchCheck(message);
+            case "GAME_STATE_SYNC" -> handleGameStateSync(message);
             case "PING" -> sendMessage(new TCPMessage("PONG", null, "server", username));
             default -> log.warn("[TCP] Unknown type: {}", message.getType());
         }
@@ -212,11 +222,136 @@ public class ClientHandler extends Thread {
         }
     }
 
+    private void handleRoomSettingsChanged(TCPMessage message) {
+        log.info("[TCP] Room settings changed by {}: {}", username, message.getData());
+        
+        // Forward the message to all other clients in the same room
+        // For now, we'll broadcast to all clients (can be optimized later)
+        for (ClientHandler client : onlineClients.values()) {
+            if (!client.username.equals(username)) { // Don't send back to sender
+                client.sendMessage(message);
+            }
+        }
+    }
+    
+    private void handleGameStarted(TCPMessage message) {
+        log.info("[TCP] Game started by {}: {}", username, message.getData());
+        
+        // Forward the message to all other clients in the same room
+        // For now, we'll broadcast to all clients (can be optimized later)
+        for (ClientHandler client : onlineClients.values()) {
+            if (!client.username.equals(username)) { // Don't send back to sender
+                client.sendMessage(message);
+            }
+        }
+    }
+
     private void broadcastUserStatus(String user, boolean online) {
         TCPMessage msg = new TCPMessage("USER_STATUS",
                 Map.of("user", user, "online", online), "server", null);
         for (ClientHandler client : onlineClients.values()) {
             client.sendMessage(msg);
+        }
+    }
+
+    private void handleCardFlipped(TCPMessage message) {
+        log.info("[TCP] Card flipped by {}: {}", username, message.getData());
+        // Forward the message to all other clients in the same room
+        for (ClientHandler client : onlineClients.values()) {
+            if (!client.username.equals(username)) { // Don't send back to sender
+                client.sendMessage(message);
+            }
+        }
+    }
+
+    private void handleCardMatched(TCPMessage message) {
+        log.info("[TCP] Card matched by {}: {}", username, message.getData());
+        // Forward the message to all other clients in the same room
+        for (ClientHandler client : onlineClients.values()) {
+            if (!client.username.equals(username)) { // Don't send back to sender
+                client.sendMessage(message);
+            }
+        }
+    }
+
+    private void handleTurnSwitch(TCPMessage message) {
+        log.info("[TCP] Turn switch by {}: {}", username, message.getData());
+        // Forward the message to all other clients in the same room
+        for (ClientHandler client : onlineClients.values()) {
+            if (!client.username.equals(username)) { // Don't send back to sender
+                client.sendMessage(message);
+            }
+        }
+    }
+    
+    private void handleCardsForMatchCheck(TCPMessage message) {
+        log.info("[TCP] Cards for match check by {}: {}", username, message.getData());
+        
+        Map<String, Object> data = message.getData();
+        if (data == null) {
+            log.warn("[TCP] CARDS_FOR_MATCH_CHECK with no data");
+            return;
+        }
+        
+        Object roomIdObj = data.get("roomId");
+        Object cardIndex1Obj = data.get("cardIndex1");
+        Object cardIndex2Obj = data.get("cardIndex2");
+        Object isHostObj = data.get("isHost");
+        
+        Long roomId = toLong(roomIdObj);
+        Integer cardIndex1 = toInt(cardIndex1Obj);
+        Integer cardIndex2 = toInt(cardIndex2Obj);
+        Boolean isHost = (isHostObj != null) ? Boolean.valueOf(isHostObj.toString()) : Boolean.FALSE;
+        
+        if (roomId == null || cardIndex1 == null || cardIndex2 == null) {
+            log.error("[TCP] Invalid CARDS_FOR_MATCH_CHECK payload: roomId={}, cardIndex1={}, cardIndex2={}", roomIdObj, cardIndex1Obj, cardIndex2Obj);
+            return;
+        }
+        
+        try {
+            gameSessionService.processCardsForMatch(roomId, cardIndex1, cardIndex2, isHost, username);
+        } catch (Exception e) {
+            log.error("[TCP] Error processing cards for match check: {}", e.getMessage());
+        }
+    }
+
+    private Integer toInt(Object value) {
+        if (value == null) return null;
+        if (value instanceof Number n) return n.intValue();
+        try {
+            return (int) Math.round(Double.parseDouble(value.toString()));
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+
+    private Long toLong(Object value) {
+        if (value == null) return null;
+        if (value instanceof Number n) return n.longValue();
+        try {
+            return (long) Math.round(Double.parseDouble(value.toString()));
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+    
+    private void handleCardsFlipBack(TCPMessage message) {
+        log.info("[TCP] Cards flip back by {}: {}", username, message.getData());
+        // Forward the message to all other clients in the same room
+        for (ClientHandler client : onlineClients.values()) {
+            if (!client.username.equals(username)) { // Don't send back to sender
+                client.sendMessage(message);
+            }
+        }
+    }
+    
+    private void handleGameStateSync(TCPMessage message) {
+        log.info("[TCP] Game state sync by {}: {}", username, message.getData());
+        // Forward the message to all other clients in the same room
+        for (ClientHandler client : onlineClients.values()) {
+            if (!client.username.equals(username)) { // Don't send back to sender
+                client.sendMessage(message);
+            }
         }
     }
 

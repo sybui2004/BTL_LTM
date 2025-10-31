@@ -63,7 +63,6 @@
                                     <StackPane prefWidth="96" prefHeight="96" maxWidth="96" maxHeight="96">
                                         <ImageView fx:id="hostAvatar" fitWidth="96"
                                                    fitHeight="96">
-                                            <Image url="@assets/images/name.png"/>
                                         </ImageView>
                                         <StackPane alignment="TOP_LEFT">
                                             <StackPane.margin>
@@ -95,7 +94,6 @@
                                         <ImageView fx:id="guestAvatar" fitWidth="96"
                                                    fitHeight="96"
                                                    visible="false">
-                                            <Image url="@assets/images/name.png"/>
                                         </ImageView>
                                         <Label fx:id="guestPlaceholder" text="?"
                                                styleClass="empty-slot"/>
@@ -129,21 +127,33 @@
                                 <VBox spacing="6" alignment="CENTER">
                                     <Label text="Theme" styleClass="field-label" prefWidth="180"
                                            alignment="CENTER"/>
-                                    <ComboBox promptText="Default" prefWidth="180"
+                                    <ComboBox fx:id="themeComboBox" promptText="Default" prefWidth="180"
                                               minWidth="180" maxWidth="180"
                                               styleClass="select"/>
+                                    <Label fx:id="themeLabel" text="Default" prefWidth="180"
+                                           minWidth="180" maxWidth="180"
+                                           styleClass="select-display" alignment="CENTER"
+                                           visible="false"/>
                                 </VBox>
                                 <VBox spacing="6" alignment="CENTER">
                                     <Label text="Size" styleClass="field-label" prefWidth="180"
                                            alignment="CENTER"/>
-                                    <ComboBox promptText="4x4" prefWidth="180" minWidth="180"
+                                    <ComboBox fx:id="sizeComboBox" promptText="5x6" prefWidth="180" minWidth="180"
                                               maxWidth="180" styleClass="select"/>
+                                    <Label fx:id="sizeLabel" text="5x6" prefWidth="180"
+                                           minWidth="180" maxWidth="180"
+                                           styleClass="select-display" alignment="CENTER"
+                                           visible="false"/>
                                 </VBox>
                                 <VBox spacing="6" alignment="CENTER">
                                     <Label text="Time" styleClass="field-label" prefWidth="180"
                                            alignment="CENTER"/>
-                                    <ComboBox promptText="60s" prefWidth="180" minWidth="180"
+                                    <ComboBox fx:id="timeComboBox" promptText="30s" prefWidth="180" minWidth="180"
                                               maxWidth="180" styleClass="select"/>
+                                    <Label fx:id="timeLabel" text="30s" prefWidth="180"
+                                           minWidth="180" maxWidth="180"
+                                           styleClass="select-display" alignment="CENTER"
+                                           visible="false"/>
                                 </VBox>
                             </HBox>
                             <Pane prefHeight="12"/>

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<StackPane fx:id="gameContainer" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" prefWidth="1400.0"
+           prefHeight="787.0" fx:controller="com.example.memorygame.controller.GameScreenController">
+   <children>
+      <!-- Background -->
+      <ImageView fx:id="backgroundImage" fitHeight="720" fitWidth="1024" pickOnBounds="true" preserveRatio="false" />
+      
+      <!-- Card Grid - Direct placement -->
+      <GridPane fx:id="cardGrid" alignment="CENTER" styleClass="card-grid" maxWidth="600" maxHeight="400">
+         <!-- Cards will be added programmatically -->
+      </GridPane>
+
+      <!-- Overlay UI -->
+      <AnchorPane pickOnBounds="false">
+         <!-- Back button - top-left -->
+         <StackPane fx:id="backButton" layoutX="10" layoutY="10" styleClass="back-button-container">
+            <ImageView fitWidth="36" fitHeight="36" pickOnBounds="true">
+               <Image url="@assets/images/icon/back.png"/>
+            </ImageView>
+         </StackPane>
+
+         <!-- Opponent panel - top-right -->
+         <HBox fx:id="opponentPanel" spacing="12" alignment="CENTER_RIGHT" styleClass="player-panel" AnchorPane.topAnchor="10.0" AnchorPane.rightAnchor="10.0">
+            <Label fx:id="opponentScoreLabel" text="0" styleClass="player-score" />
+            <Button fx:id="opponentSendButton" text="▶" styleClass="send-button" />
+            <VBox spacing="4" alignment="CENTER_RIGHT">
+               <Label fx:id="opponentNameLabel" text="Opponent" styleClass="player-name" />
+               <TextField fx:id="opponentChatField" promptText="Opponent chat" editable="false" styleClass="chat-input" />
+            </VBox>
+            <ImageView fx:id="opponentAvatar" fitWidth="48" fitHeight="48" preserveRatio="true" styleClass="player-avatar" />
+         </HBox>
+
+         <!-- My panel - bottom-left -->
+         <HBox fx:id="myPanel" spacing="12" alignment="CENTER_LEFT" styleClass="player-panel" AnchorPane.bottomAnchor="10.0" AnchorPane.leftAnchor="10.0">
+            <ImageView fx:id="myAvatar" fitWidth="48" fitHeight="48" preserveRatio="true" styleClass="player-avatar" />
+            <VBox spacing="4" alignment="CENTER_LEFT">
+               <Label fx:id="myNameLabel" text="Me" styleClass="player-name" />
+               <TextField fx:id="myChatField" promptText="Type a message" styleClass="chat-input" />
+            </VBox>
+            <Button fx:id="sendChatButton" text="▶" styleClass="send-button" />
+            <Label fx:id="myScoreLabel" text="0" styleClass="player-score" />
+         </HBox>
+
+         <!-- Timer - bottom-right -->
+         <Label fx:id="timerLabel" text="10s" AnchorPane.bottomAnchor="10.0" AnchorPane.rightAnchor="10.0" />
+      </AnchorPane>
+   </children>
+</StackPane>

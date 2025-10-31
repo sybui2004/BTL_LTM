@@ -9,12 +9,18 @@ import com.example.memorygame.controller.room.RoomUIUpdater;
 import com.example.memorygame.controller.room.TCPMessageHandler;
 import com.example.memorygame.model.game.InviteDTO;
 import com.example.memorygame.model.user.UserSummary;
+import com.example.memorygame.utils.ApiClient;
+import com.example.memorygame.model.game.GameSettings;
+import com.example.memorygame.model.game.ThemeDTO;
+import com.example.memorygame.utils.TCPClient;
+import com.example.memorygame.utils.ThemeApi;
 import com.example.memorygame.utils.UserApi;
 import com.example.memorygame.view.RoomScreen;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
@@ -26,14 +32,22 @@ import javafx.scene.layout.VBox;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
+import javafx.stage.Stage;
+import javafx.scene.Scene;
 
-import java.util.Objects;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Main controller for RoomScreen - delegates to helper classes
  */
 public class RoomScreenController {
     private final RoomScreen screen;
+    
+    // Helper classes
+    private RoomStateManager stateManager;
+    private RoomUIUpdater uiUpdater;
     
     // FXML Components
     @FXML private VBox listContainer;
@@ -55,6 +69,14 @@ public class RoomScreenController {
     @FXML private Button closePopupButton;
     @FXML private VBox inviteListContainer;
     @FXML private VBox inviteList;
+    @FXML private ComboBox<ThemeDTO> themeComboBox;
+    @FXML private ComboBox<String> sizeComboBox;
+    @FXML private ComboBox<String> timeComboBox;
+    
+    // Labels for guest view (read-only)
+    @FXML private Label themeLabel;
+    @FXML private Label sizeLabel;
+    @FXML private Label timeLabel;
 
     private RoomManager roomManager;
     private FriendListManager friendListManager;
@@ -97,11 +119,10 @@ public class RoomScreenController {
     
     private void initializeHelpers() {
         // State manager
-        // Helper classes
-        RoomStateManager stateManager = new RoomStateManager();
+        this.stateManager = new RoomStateManager();
         
         // UI updater
-        RoomUIUpdater uiUpdater = new RoomUIUpdater(
+        this.uiUpdater = new RoomUIUpdater(
                 hostAvatar, guestAvatar,
                 hostStatus, guestStatus, guestPlaceholder,
                 playButton,
@@ -137,7 +158,11 @@ public class RoomScreenController {
                 uiUpdater,
             friendListManager::refreshCurrentTab,
             this::loadInvites,
-                stateManager
+                stateManager,
+                this::updateComboBoxStates,
+                this::updateLabelsFromSettings,
+                this::sendCurrentSettingsToGuest,
+                this::handleGameStart
         );
     }
     
@@ -147,8 +172,16 @@ public class RoomScreenController {
         if (btnSearch != null) btnSearch.setOnAction(e -> friendListManager.handleSearch());
         if (txtSearch != null) txtSearch.setOnAction(e -> friendListManager.handleSearch());
         
+        // Setup play button
+        if (playButton != null) {
+            playButton.setOnMouseClicked(e -> handlePlayButton());
+        }
+        
         setupRoomAvatars();
         setupPopup();
+        loadThemes();
+        setupGameOptions();
+        updateComboBoxStates();
         tcpHandler.setupListeners();
     }
     
@@ -182,6 +215,11 @@ public class RoomScreenController {
                     }
                     hostStatus.setText(displayName);
                 }
+                
+                // Set initial play button state - disable if no guest
+                boolean canStart = stateManager.canStartGame();
+                System.out.println("[DEBUG] Initial setup - canStartGame: " + canStart + ", currentGuestId: " + stateManager.getCurrentGuestId());
+                uiUpdater.setPlayButtonEnabled(canStart);
             });
         }).start();
         
@@ -258,21 +296,398 @@ public class RoomScreenController {
     }
     
     private Image loadUserAvatarOrFallback(String candidateUrl) {
-        String fallbackResource = "/com/example/memorygame/assets/images/name.png";
+        // Default avatar URL from server using ApiClient base URL
+        String serverDefaultAvatarUrl = ApiClient.getBaseUrl() + "/static/avatars/default_avatar.png";
+        
         try {
             if (candidateUrl != null) {
                 String trimmed = candidateUrl.trim();
                 if (!trimmed.isEmpty()) {
                     String lower = trimmed.toLowerCase();
+                    
+                    // Check if it's already a full URL
                     if (lower.startsWith("http://") || lower.startsWith("https://")) {
                         return new Image(trimmed, true);
                     }
+                    
+                    // If it's a relative path, prepend base URL
+                    if (trimmed.startsWith("/")) {
+                        String fullUrl = ApiClient.getBaseUrl() + trimmed;
+                        return new Image(fullUrl, true);
+                    }
+                    
+                    // If it doesn't start with /, assume it's a path under /static/
+                    String fullUrl = ApiClient.getBaseUrl() + "/static/" + trimmed;
+                    return new Image(fullUrl, true);
                 }
             }
-        } catch (IllegalArgumentException ignored) { }
+        } catch (IllegalArgumentException e) {
+            System.err.println("[ERROR] Failed to load avatar: " + e.getMessage());
+        }
         
-        var url = getClass().getResource(fallbackResource);
-        return new Image(Objects.requireNonNull(url).toExternalForm(), true);
+        // Fallback to server default avatar
+        return new Image(serverDefaultAvatarUrl, true);
+    }
+    
+    private void loadThemes() {
+        new Thread(() -> {
+            try {
+                List<ThemeDTO> themes = ThemeApi.getAllThemes();
+                Platform.runLater(() -> {
+                    if (themeComboBox != null && themes != null) {
+                        themeComboBox.getItems().clear();
+                        themeComboBox.getItems().addAll(themes);
+                        
+                        // Set default selection to first theme
+                        if (!themes.isEmpty()) {
+                            themeComboBox.setValue(themes.get(0));
+                        }
+                        
+                        // Set cell factory to display theme name
+                        themeComboBox.setCellFactory(listView -> new javafx.scene.control.ListCell<ThemeDTO>() {
+                            @Override
+                            protected void updateItem(ThemeDTO theme, boolean empty) {
+                                super.updateItem(theme, empty);
+                                if (empty || theme == null) {
+                                    setText(null);
+                                } else {
+                                    setText(theme.name);
+                                }
+                            }
+                        });
+                        
+                        // Set button cell to display theme name
+                        themeComboBox.setButtonCell(new javafx.scene.control.ListCell<ThemeDTO>() {
+                            @Override
+                            protected void updateItem(ThemeDTO theme, boolean empty) {
+                                super.updateItem(theme, empty);
+                                if (empty || theme == null) {
+                                    setText(null);
+                                } else {
+                                    setText(theme.name);
+                                }
+                            }
+                        });
+                        
+                        System.out.println("[DEBUG] Loaded " + themes.size() + " themes");
+                    }
+                });
+            } catch (Exception e) {
+                System.err.println("[ERROR] Failed to load themes: " + e.getMessage());
+            }
+        }).start();
+    }
+    
+    private void setupGameOptions() {
+        // Setup Size ComboBox
+        if (sizeComboBox != null) {
+            sizeComboBox.getItems().addAll("5x6", "6x7");
+            sizeComboBox.setValue("5x6"); // Default selection
+        }
+        
+        // Setup Time ComboBox
+        if (timeComboBox != null) {
+            timeComboBox.getItems().addAll("20s", "30s", "40s");
+            timeComboBox.setValue("30s"); // Default selection
+        }
+        
+        // Add change listeners for synchronization
+        setupComboBoxListeners();
+        
+        System.out.println("[DEBUG] Game options setup completed");
+    }
+    
+    private void updateComboBoxStates() {
+        boolean isHost = stateManager.isHost();
+        
+        // Show ComboBox for host, Label for guest
+        if (themeComboBox != null && themeLabel != null) {
+            themeComboBox.setVisible(isHost);
+            themeLabel.setVisible(!isHost);
+        }
+        
+        if (sizeComboBox != null && sizeLabel != null) {
+            sizeComboBox.setVisible(isHost);
+            sizeLabel.setVisible(!isHost);
+        }
+        
+        if (timeComboBox != null && timeLabel != null) {
+            timeComboBox.setVisible(isHost);
+            timeLabel.setVisible(!isHost);
+        }
+        
+        System.out.println("[DEBUG] ComboBox/Label states updated - isHost: " + isHost);
+    }
+    
+    private void setupComboBoxListeners() {
+        // Only host can change settings and sync to guest
+        if (themeComboBox != null) {
+            themeComboBox.valueProperty().addListener((obs, oldVal, newVal) -> {
+                if (stateManager.isHost() && newVal != null) {
+                    syncSettingsToGuest();
+                }
+            });
+        }
+        
+        if (sizeComboBox != null) {
+            sizeComboBox.valueProperty().addListener((obs, oldVal, newVal) -> {
+                if (stateManager.isHost() && newVal != null) {
+                    syncSettingsToGuest();
+                }
+            });
+        }
+        
+        if (timeComboBox != null) {
+            timeComboBox.valueProperty().addListener((obs, oldVal, newVal) -> {
+                if (stateManager.isHost() && newVal != null) {
+                    syncSettingsToGuest();
+                }
+            });
+        }
+        
+        System.out.println("[DEBUG] ComboBox listeners setup completed");
+    }
+    
+    private void syncSettingsToGuest() {
+        // TODO: Send TCP message to guest with current settings
+        // For now, just log the current settings
+        String theme = themeComboBox != null && themeComboBox.getValue() != null ? themeComboBox.getValue().name : "Default";
+        String size = sizeComboBox != null ? sizeComboBox.getValue() : "5x6";
+        String time = timeComboBox != null ? timeComboBox.getValue() : "30s";
+        
+        System.out.println("[DEBUG] Host changed settings - Theme: " + theme + ", Size: " + size + ", Time: " + time);
+        
+        // Send TCP message to sync settings to guest
+        sendSettingsToGuest(theme, size, time);
+    }
+    
+    private void sendSettingsToGuest(String theme, String size, String time) {
+        try {
+            TCPClient client = TCPClient.getInstance();
+            Map<String, Object> data = new HashMap<>();
+            data.put("theme", theme);
+            data.put("size", size);
+            data.put("time", time);
+            
+            TCPClient.TCPMessage message = new TCPClient.TCPMessage("ROOM_SETTINGS_CHANGED", data, null, null);
+            System.out.println("[DEBUG] Creating TCP message: " + message.getType() + " with data: " + data);
+            client.sendMessage(message);
+            System.out.println("[DEBUG] Sent settings to guest - Theme: " + theme + ", Size: " + size + ", Time: " + time);
+        } catch (Exception e) {
+            System.err.println("[ERROR] Failed to send settings to guest: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    private void updateLabelsFromSettings(String theme, String size, String time) {
+        Platform.runLater(() -> {
+            if (themeLabel != null) {
+                themeLabel.setText(theme);
+            }
+            if (sizeLabel != null) {
+                sizeLabel.setText(size);
+            }
+            if (timeLabel != null) {
+                timeLabel.setText(time);
+            }
+            System.out.println("[DEBUG] Labels updated - Theme: " + theme + ", Size: " + size + ", Time: " + time);
+        });
+    }
+    
+    private void sendCurrentSettingsToGuest() {
+        // Only send if we are the host
+        if (!stateManager.isHost()) {
+            return;
+        }
+        
+        String theme = themeComboBox != null && themeComboBox.getValue() != null ? themeComboBox.getValue().name : "Default";
+        String size = sizeComboBox != null ? sizeComboBox.getValue() : "5x6";
+        String time = timeComboBox != null ? timeComboBox.getValue() : "30s";
+        
+        System.out.println("[DEBUG] Sending current settings to newly joined guest - Theme: " + theme + ", Size: " + size + ", Time: " + time);
+        sendSettingsToGuest(theme, size, time);
+    }
+    
+    private void handlePlayButton() {
+        System.out.println("[RoomScreen] Play button clicked");
+        
+        // Check if game can start
+        if (!stateManager.canStartGame()) {
+            System.err.println("[RoomScreen] Cannot start game - room not ready");
+            return;
+        }
+        
+        // Get current game settings
+        GameSettings gameSettings = getCurrentGameSettings();
+        if (gameSettings == null) {
+            System.err.println("[RoomScreen] Failed to get game settings");
+            return;
+        }
+        
+        System.out.println("[RoomScreen] Starting game with settings: " + gameSettings);
+        
+        // Send TCP message to notify guest about game start
+        sendGameStartToGuest(gameSettings);
+        
+        // Navigate to game screen
+        navigateToGameScreen(gameSettings);
+    }
+    
+    private GameSettings getCurrentGameSettings() {
+        try {
+            // Get theme
+            ThemeDTO theme = themeComboBox != null ? themeComboBox.getValue() : null;
+            if (theme == null) {
+                System.err.println("[RoomScreen] No theme selected");
+                return null;
+            }
+            
+            // Get size
+            String size = sizeComboBox != null ? sizeComboBox.getValue() : "5x6";
+            if (size == null) {
+                size = "5x6"; // Default
+            }
+            
+            // Get time
+            String time = timeComboBox != null ? timeComboBox.getValue() : "30s";
+            if (time == null) {
+                time = "30s"; // Default
+            }
+            
+            // Get player names based on host/guest role
+            String player1Name, player2Name;
+            if (stateManager.isHost()) {
+                // Current user is host
+                player1Name = getCurrentUserName();
+                player2Name = getOpponentName();
+            } else {
+                // Current user is guest
+                player1Name = getOpponentName(); // Host is player1
+                player2Name = getCurrentUserName(); // Guest is player2
+            }
+            
+            GameSettings gameSettings = new GameSettings(theme, size, time);
+            gameSettings.setPlayer1Name(player1Name);
+            gameSettings.setPlayer2Name(player2Name);
+            gameSettings.setHost(stateManager.isHost());
+            gameSettings.setRoomId(stateManager.getCurrentRoomId()); // Set room ID for synchronization
+            
+            return gameSettings;
+                    
+        } catch (Exception e) {
+            System.err.println("[RoomScreen] Error getting game settings: " + e.getMessage());
+            return null;
+        }
+    }
+    
+    private String getCurrentUserName() {
+        try {
+            UserSummary currentUser = UserApi.getCurrentUser();
+            return currentUser != null ? currentUser.displayName : "Me";
+        } catch (Exception e) {
+            System.err.println("[RoomScreen] Failed to get current user name: " + e.getMessage());
+            return "Me";
+        }
+    }
+    
+    private String getOpponentName() {
+        try {
+            // Get opponent from room state
+            Long opponentId = stateManager.getCurrentGuestId();
+            if (opponentId != null) {
+                UserSummary opponent = UserApi.getUserById(opponentId);
+                return opponent != null ? opponent.displayName : "Opponent";
+            }
+            return "Opponent";
+        } catch (Exception e) {
+            System.err.println("[RoomScreen] Failed to get opponent name: " + e.getMessage());
+            return "Opponent";
+        }
+    }
+    
+    private void navigateToGameScreen(GameSettings gameSettings) {
+        try {
+            // Get current stage
+            Stage stage = (Stage) playButton.getScene().getWindow();
+            
+            // Set game settings for GameScreenController
+            GameScreenController.setGameSettings(gameSettings);
+            
+            // Create game screen controller
+            GameScreenController gameController = new GameScreenController();
+            
+            // Create scene
+            Scene gameScene = new Scene(gameController.getScreen().getRoot());
+            
+            // Apply CSS
+            gameScene.getStylesheets().add(getClass().getResource("/com/example/memorygame/GameScreenStyle.css").toExternalForm());
+            
+            // Set scene and show
+            stage.setScene(gameScene);
+            stage.setTitle("Memory Game - " + gameSettings.getTheme().name);
+            stage.setResizable(true);
+            stage.show();
+            
+            System.out.println("[RoomScreen] Navigated to game screen successfully");
+            
+        } catch (Exception e) {
+            System.err.println("[RoomScreen] Failed to navigate to game screen: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    private void sendGameStartToGuest(GameSettings gameSettings) {
+        try {
+            TCPClient client = TCPClient.getInstance();
+            Map<String, Object> data = new HashMap<>();
+            data.put("theme", gameSettings.getTheme().name);
+            data.put("size", gameSettings.getSize());
+            data.put("time", gameSettings.getTime());
+            data.put("player1Name", gameSettings.getPlayer1Name());
+            data.put("player2Name", gameSettings.getPlayer2Name());
+            
+            TCPClient.TCPMessage message = new TCPClient.TCPMessage("GAME_STARTED", data, null, null);
+            System.out.println("[DEBUG] Creating GAME_STARTED message: " + message.getType() + " with data: " + data);
+            client.sendMessage(message);
+            System.out.println("[DEBUG] Sent game start to guest - Theme: " + gameSettings.getTheme().name + ", Size: " + gameSettings.getSize() + ", Time: " + gameSettings.getTime());
+        } catch (Exception e) {
+            System.err.println("[ERROR] Failed to send game start to guest: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    private void handleGameStart(String theme, String size, String time, String player1Name, String player2Name) {
+        System.out.println("[RoomScreen] Received game start from host - Theme: " + theme + ", Size: " + size + ", Time: " + time);
+        System.out.println("[RoomScreen] Player names - Player1: " + player1Name + ", Player2: " + player2Name);
+        
+        // Create GameSettings for guest
+        GameSettings gameSettings = new GameSettings();
+        gameSettings.setTheme(findThemeByName(theme));
+        gameSettings.setSize(size);
+        gameSettings.setTime(time);
+        // Use names from host's TCP message
+        gameSettings.setPlayer1Name(player1Name);
+        gameSettings.setPlayer2Name(player2Name);
+        gameSettings.setHost(false); // Guest is not host
+        gameSettings.setRoomId(stateManager.getCurrentRoomId()); // Set room ID for synchronization
+        
+        // Navigate to game screen
+        navigateToGameScreen(gameSettings);
+    }
+    
+    private ThemeDTO findThemeByName(String themeName) {
+        if (themeComboBox != null) {
+            for (ThemeDTO theme : themeComboBox.getItems()) {
+                if (theme.name.equals(themeName)) {
+                    return theme;
+                }
+            }
+        }
+        // Fallback - create a basic theme
+        ThemeDTO fallbackTheme = new ThemeDTO();
+        fallbackTheme.name = themeName;
+        fallbackTheme.assetPath = "/static/themes/" + themeName;
+        return fallbackTheme;
     }
 }
 

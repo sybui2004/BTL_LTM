@@ -70,9 +70,13 @@ public class InviteFacadeService {
         
         // Send real-time TCP notification to receiver if online
         try {
+            System.out.println("[Invite] Sending TCP notification to: " + receiver.getUsername() + 
+                             " for room: " + roomId + " from: " + sender.getUsername());
             tcpServer.sendInviteNotification(receiver.getUsername(), roomId, sender.getUsername());
+            System.out.println("[Invite] TCP notification sent successfully");
         } catch (Exception e) {
-            // Ignore if TCP fails (user might be offline)
+            System.err.println("[Invite] Failed to send TCP notification: " + e.getMessage());
+            e.printStackTrace();
         }
 	}
 

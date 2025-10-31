@@ -1,544 +1,613 @@
 .icon-hover {
-    -fx-background-color: transparent;
-    -fx-background-radius: 999;
-    -fx-padding: 6;
-    -fx-cursor: hand;
+  -fx-background-color: transparent;
+  -fx-background-radius: 999;
+  -fx-padding: 6;
+  -fx-cursor: hand;
 }
-.icon-hover:hover { -fx-background-color: rgba(102,185,231,0.25); }
-.icon-hover:pressed { -fx-background-color: rgba(102,185,231,0.35); }
+.icon-hover:hover {
+  -fx-background-color: rgba(102, 185, 231, 0.25);
+}
+.icon-hover:pressed {
+  -fx-background-color: rgba(102, 185, 231, 0.35);
+}
 /* Fonts */
 @font-face {
-    font-family: 'BeVietnamPro';
-    src: url('assets/fonts/BeVietnamPro-Regular.ttf');
+  font-family: "BeVietnamPro";
+  src: url("assets/fonts/BeVietnamPro-Regular.ttf");
 }
 @font-face {
-    font-family: 'BeVietnamPro';
-    src: url('assets/fonts/BeVietnamPro-Bold.ttf');
-    font-weight: bold;
+  font-family: "BeVietnamPro";
+  src: url("assets/fonts/BeVietnamPro-Bold.ttf");
+  font-weight: bold;
 }
 @font-face {
-    font-family: 'PlaywriteDESAS';
-    src: url('assets/fonts/PlaywriteDESAS-VariableFont_wght.ttf');
+  font-family: "PlaywriteDESAS";
+  src: url("assets/fonts/PlaywriteDESAS-VariableFont_wght.ttf");
 }
 
 /* Root background */
 #root {
-    -fx-background-color: linear-gradient(to bottom, #d9f3ff, #a1ddf6);
-    -fx-font-family: 'BeVietnamPro', 'Segoe UI', sans-serif;
+  -fx-background-color: linear-gradient(to bottom, #d9f3ff, #a1ddf6);
+  -fx-font-family: "BeVietnamPro", "Segoe UI", sans-serif;
 }
 
 .app-title {
-    -fx-font-size: 26px;
-    -fx-font-weight: bold;
-    -fx-text-fill: #2d6f99;
-    -fx-effect: dropshadow( gaussian , rgba(45,111,153,0.2) , 6, 0.2 , 0 , 1 );
-    -fx-font-family: 'PlaywriteDESAS', 'BeVietnamPro', 'Segoe UI', sans-serif;
+  -fx-font-size: 26px;
+  -fx-font-weight: bold;
+  -fx-text-fill: #2d6f99;
+  -fx-effect: dropshadow(gaussian, rgba(45, 111, 153, 0.2), 6, 0.2, 0, 1);
+  -fx-font-family: "PlaywriteDESAS", "BeVietnamPro", "Segoe UI", sans-serif;
 }
 
 .room-card {
-    -fx-background-color: #66b9e7;
-    -fx-background-radius: 16;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.15), 12, 0.2, 0, 4);
+  -fx-background-color: #66b9e7;
+  -fx-background-radius: 16;
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.15), 12, 0.2, 0, 4);
 }
 
 .panel-title {
-    -fx-font-size: 22px;
-    -fx-font-weight: bold;
-    -fx-text-fill: #154f79;
-    -fx-font-family: 'PlaywriteDESAS', 'BeVietnamPro', 'Segoe UI', sans-serif;
+  -fx-font-size: 22px;
+  -fx-font-weight: bold;
+  -fx-text-fill: #154f79;
+  -fx-font-family: "PlaywriteDESAS", "BeVietnamPro", "Segoe UI", sans-serif;
 }
 
 .avatar {
-    -fx-background-color: white;
-    -fx-background-radius: 12;
-    -fx-border-color: black;
-    -fx-border-radius: 12;
-    -fx-border-width: 4;
-    -fx-min-width: 64;
-    -fx-min-height: 64;
-    -fx-max-width: 64;
-    -fx-max-height: 64;
-    -fx-alignment: center;
+  -fx-background-color: white;
+  -fx-background-radius: 12;
+  -fx-border-color: black;
+  -fx-border-radius: 12;
+  -fx-border-width: 4;
+  -fx-min-width: 64;
+  -fx-min-height: 64;
+  -fx-max-width: 64;
+  -fx-max-height: 64;
+  -fx-alignment: center;
 }
 .avatar.empty {
-    -fx-background-color: white;
-    -fx-border-color: black;
-    -fx-border-radius: 12;
-    -fx-border-width: 4;
+  -fx-background-color: white;
+  -fx-border-color: black;
+  -fx-border-radius: 12;
+  -fx-border-width: 4;
 }
 
 .small-muted {
-    -fx-text-fill: #0f3b5d;
-    -fx-opacity: 0.7;
-    -fx-font-size: 12px;
+  -fx-text-fill: #0f3b5d;
+  -fx-opacity: 0.7;
+  -fx-font-size: 12px;
 }
 
 .field-label {
-    -fx-text-fill: #0f3b5d;
-    -fx-font-weight: bold;
-    -fx-font-size: 16px; /* larger labels for Theme/Size/Time */
+  -fx-text-fill: #0f3b5d;
+  -fx-font-weight: bold;
+  -fx-font-size: 16px; /* larger labels for Theme/Size/Time */
 }
 
 .chat-box {
-    -fx-background-color: white;
-    -fx-background-radius: 10;
-    -fx-padding: 8 12 8 12;
+  -fx-background-color: white;
+  -fx-background-radius: 10;
+  -fx-padding: 8 12 8 12;
 }
 .chat-ellipsis {
-    -fx-text-fill: #2d6f99;
-    -fx-font-weight: bold;
+  -fx-text-fill: #2d6f99;
+  -fx-font-weight: bold;
 }
 .chat-placeholder {
-    -fx-text-fill: #7aa8c3;
+  -fx-text-fill: #7aa8c3;
 }
 
 .primary {
-    -fx-background-color: #2d6f99;
-    -fx-text-fill: white;
-    -fx-background-radius: 10;
-    -fx-padding: 10 18 10 18;
+  -fx-background-color: #2d6f99;
+  -fx-text-fill: white;
+  -fx-background-radius: 10;
+  -fx-padding: 10 18 10 18;
 }
-.primary:hover { -fx-background-color: #347da9; }
-.primary:pressed { -fx-background-color: #255d82; }
+.primary:hover {
+  -fx-background-color: #347da9;
+}
+.primary:pressed {
+  -fx-background-color: #255d82;
+}
 
-.button.secondary, .secondary {
-    -fx-background-color: linear-gradient(#ffe27a, #ffd14c);
-    -fx-background-insets: 0; /* remove Modena overlay */
-    -fx-text-fill: #2d2d2d;
-    -fx-background-radius: 12;
-    -fx-padding: 10 18 10 18;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.18), 12, 0.2, 0, 2);
+.button.secondary,
+.secondary {
+  -fx-background-color: linear-gradient(#ffe27a, #ffd14c);
+  -fx-background-insets: 0; /* remove Modena overlay */
+  -fx-text-fill: #2d2d2d;
+  -fx-background-radius: 12;
+  -fx-padding: 10 18 10 18;
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.18), 12, 0.2, 0, 2);
 }
-.button.secondary:hover, .secondary:hover {
-    -fx-background-color: linear-gradient(#ffea96, #ffd95e);
+.button.secondary:hover,
+.secondary:hover {
+  -fx-background-color: linear-gradient(#ffea96, #ffd95e);
 }
-.button.secondary:pressed, .secondary:pressed {
-    -fx-background-color: linear-gradient(#ffd14c, #ffc738);
+.button.secondary:pressed,
+.secondary:pressed {
+  -fx-background-color: linear-gradient(#ffd14c, #ffc738);
 }
 
 /* Play CTA tweaks */
 .cta {
-    -fx-font-size: 16px;
-    -fx-font-weight: bold;
-    -fx-padding: 12 26 12 26;
-    -fx-background-radius: 14;
-    -fx-min-width: 120;
+  -fx-font-size: 16px;
+  -fx-font-weight: bold;
+  -fx-padding: 12 26 12 26;
+  -fx-background-radius: 14;
+  -fx-min-width: 120;
 }
 
 /* Image-only CTA (non-Button) */
 .cta-btn {
-    -fx-background-color: linear-gradient(#ffe97a, #ffd24a);
-    -fx-background-radius: 16;
-    -fx-padding: 10 24 10 24;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.20), 14, 0.25, 0, 2);
-    -fx-cursor: hand;
+  -fx-background-color: linear-gradient(#ffe97a, #ffd24a);
+  -fx-background-radius: 16;
+  -fx-padding: 10 24 10 24;
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 14, 0.25, 0, 2);
+  -fx-cursor: hand;
 }
-.cta-btn:hover { -fx-background-color: linear-gradient(#fff08f, #ffdb5f); }
+.cta-btn:hover {
+  -fx-background-color: linear-gradient(#fff08f, #ffdb5f);
+}
 .cta-btn-disabled {
-    -fx-background-color: linear-gradient(#b0b0b0, #909090);
-    -fx-cursor: default;
+  -fx-background-color: linear-gradient(#b0b0b0, #909090);
+  -fx-cursor: default;
 }
-.cta-btn-disabled:hover { -fx-background-color: linear-gradient(#b0b0b0, #909090); }
-.cta-label { -fx-text-fill: #2d2d2d; -fx-font-size: 16px; -fx-font-weight: bold; }
+.cta-btn-disabled:hover {
+  -fx-background-color: linear-gradient(#b0b0b0, #909090);
+}
+.cta-label {
+  -fx-text-fill: #2d2d2d;
+  -fx-font-size: 16px;
+  -fx-font-weight: bold;
+}
 
 /* ComboBox styling */
 .combo-box.select {
-    -fx-background-color: linear-gradient(#ffffff, #f2f7fb);
-    -fx-background-insets: 0, 1;
-    -fx-background-radius: 10;
-    -fx-border-color: rgba(45,111,153,0.25);
-    -fx-border-radius: 10;
-    -fx-padding: 6 14 6 14;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 8, 0.2, 0, 2);
-    -fx-min-height: 36;
-    -fx-pref-height: 36;
+  -fx-background-color: linear-gradient(#ffffff, #f2f7fb);
+  -fx-background-insets: 0, 1;
+  -fx-background-radius: 10;
+  -fx-border-color: rgba(45, 111, 153, 0.25);
+  -fx-border-radius: 10;
+  -fx-padding: 6 14 6 14;
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.08), 8, 0.2, 0, 2);
+  -fx-min-height: 36;
+  -fx-pref-height: 36;
 }
 .combo-box.select:focused {
-    -fx-border-color: #5fa7c8;
-    -fx-effect: dropshadow(gaussian, rgba(95,167,200,0.3), 8, 0.3, 0, 2);
+  -fx-border-color: #5fa7c8;
+  -fx-effect: dropshadow(gaussian, rgba(95, 167, 200, 0.3), 8, 0.3, 0, 2);
 }
 .combo-box.select .list-cell {
-    -fx-padding: 4 10 4 10; /* more right padding to avoid arrow overlap */
-    -fx-background-color: transparent; /* show gradient */
-    -fx-text-fill: #1c5178;
+  -fx-padding: 4 10 4 10; /* more right padding to avoid arrow overlap */
+  -fx-background-color: transparent; /* show gradient */
+  -fx-text-fill: #1c5178;
 }
 .combo-box.select .list-view {
-    -fx-background-color: #ffffff;
-    -fx-background-radius: 10;
+  -fx-background-color: #ffffff;
+  -fx-background-radius: 10;
 }
 .combo-box.select .list-view .list-cell:selected {
-    -fx-background-color: rgba(95,167,200,0.15);
+  -fx-background-color: rgba(95, 167, 200, 0.15);
 }
-.combo-box.select { -fx-mark-color: #2e8fe5; }
+.combo-box.select {
+  -fx-mark-color: #2e8fe5;
+}
 .combo-box.select .arrow-button {
-    -fx-background-color: transparent;
-    -fx-padding: 0 8 0 8;
-    -fx-background-radius: 0 10 10 0;
-    -fx-min-width: 28;
-    -fx-pref-width: 28;
+  -fx-background-color: transparent;
+  -fx-padding: 0 8 0 8;
+  -fx-background-radius: 0 10 10 0;
+  -fx-min-width: 28;
+  -fx-pref-width: 28;
 }
 .combo-box.select .arrow {
-    -fx-background-color: -fx-mark-color;
-    -fx-padding: 0.25em 0.25em 0.25em 0.25em;
-    -fx-shape: "M 0 0 L 7 0 L 3.5 4 Z"; /* down triangle */
+  -fx-background-color: -fx-mark-color;
+  -fx-padding: 0.25em 0.25em 0.25em 0.25em;
+  -fx-shape: "M 0 0 L 7 0 L 3.5 4 Z"; /* down triangle */
+}
+
+/* Disabled ComboBox styling */
+.combo-box.select:disabled {
+  -fx-background-color: #f5f5f5;
+  -fx-border-color: #d0d0d0;
+  -fx-opacity: 0.6;
+}
+
+.combo-box.select:disabled .list-cell {
+  -fx-text-fill: #888888;
+}
+
+.combo-box.select:disabled .arrow-button {
+  -fx-background-color: transparent;
+}
+
+.combo-box.select:disabled .arrow {
+  -fx-background-color: #888888;
+}
+
+/* Label styling to look like ComboBox (read-only) */
+.label.select-display {
+  -fx-background-color: linear-gradient(#ffffff, #f2f7fb);
+  -fx-background-insets: 0, 1;
+  -fx-background-radius: 10;
+  -fx-border-color: rgba(45, 111, 153, 0.25);
+  -fx-border-radius: 10;
+  -fx-padding: 6 14 6 14;
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.08), 8, 0.2, 0, 2);
+  -fx-min-height: 36;
+  -fx-pref-height: 36;
+  -fx-text-fill: #1c5178;
+  -fx-font-size: 14px;
+  -fx-font-family: "Segoe UI", sans-serif;
+  -fx-alignment: center;
 }
 
 .side-panel {
-    -fx-background-color: rgba(255,255,255,0.45);
-    -fx-background-radius: 14;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.15), 12, 0.2, 0, 3);
+  -fx-background-color: rgba(255, 255, 255, 0.45);
+  -fx-background-radius: 14;
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.15), 12, 0.2, 0, 3);
 }
 
 .friend-item {
-    -fx-background-color: rgba(255,255,255,0.7);
-    -fx-background-radius: 10;
-    -fx-padding: 8 10 8 10;
-    -fx-border-color: rgba(45,111,153,0.15);
-    -fx-border-radius: 10;
+  -fx-background-color: rgba(255, 255, 255, 0.7);
+  -fx-background-radius: 10;
+  -fx-padding: 8 10 8 10;
+  -fx-border-color: rgba(45, 111, 153, 0.15);
+  -fx-border-radius: 10;
 }
 .friend-name {
-    -fx-font-weight: bold;
-    -fx-text-fill: #1c5178;
+  -fx-font-weight: bold;
+  -fx-text-fill: #1c5178;
 }
 .status {
-    -fx-font-size: 12px;
-    -fx-opacity: 0.8;
+  -fx-font-size: 12px;
+  -fx-opacity: 0.8;
 }
-.status.online { -fx-text-fill: #007f2b; }
-.status.busy { -fx-text-fill: #b8860b; }
-.status.offline { -fx-text-fill: #8a8a8a; }
-
+.status.online {
+  -fx-text-fill: #007f2b;
+}
+.status.busy {
+  -fx-text-fill: #b8860b;
+}
+.status.offline {
+  -fx-text-fill: #8a8a8a;
+}
 
 /* Tabs */
 .toggle-tab {
-    -fx-background-color: transparent;
-    -fx-background-radius: 12;
-    -fx-padding: 8 18 8 18; /* keep height, widen horizontally */
-    -fx-min-width: 80;      /* wider pill */
-    -fx-min-height: 0;      /* don't force extra height */
-    -fx-opacity: 0.6;
+  -fx-background-color: transparent;
+  -fx-background-radius: 12;
+  -fx-padding: 8 18 8 18; /* keep height, widen horizontally */
+  -fx-min-width: 80; /* wider pill */
+  -fx-min-height: 0; /* don't force extra height */
+  -fx-opacity: 0.6;
 }
 .toggle-tab:hover {
-    -fx-background-color: rgba(102,185,231,0.25);
-    -fx-opacity: 0.85;
+  -fx-background-color: rgba(102, 185, 231, 0.25);
+  -fx-opacity: 0.85;
 }
 .toggle-tab:selected {
-    -fx-background-color: rgba(102,185,231,0.45);
-    -fx-background-radius: 12;
-    -fx-opacity: 1.0;
-    -fx-effect: dropshadow(gaussian, rgba(45,111,153,0.25), 8, 0.2, 0, 1);
+  -fx-background-color: rgba(102, 185, 231, 0.45);
+  -fx-background-radius: 12;
+  -fx-opacity: 1;
+  -fx-effect: dropshadow(gaussian, rgba(45, 111, 153, 0.25), 8, 0.2, 0, 1);
 }
 
 /* Search */
 .search-field {
-    -fx-background-color: transparent;
-    -fx-padding: 8 0 8 6;
-    -fx-border-color: transparent transparent rgba(45,111,153,0.3) transparent;
-    -fx-border-width: 0 0 2 0;
-    -fx-prompt-text-fill: #7aa8c3;
-    -fx-text-fill: #1c5178;
-    -fx-font-size: 13px;
+  -fx-background-color: transparent;
+  -fx-padding: 8 0 8 6;
+  -fx-border-color: transparent transparent rgba(45, 111, 153, 0.3) transparent;
+  -fx-border-width: 0 0 2 0;
+  -fx-prompt-text-fill: #7aa8c3;
+  -fx-text-fill: #1c5178;
+  -fx-font-size: 13px;
 }
 
-.button.icon-button, .icon-button {
-    -fx-background-color: transparent;
-    -fx-background-insets: 0;
-    -fx-background-radius: 999;           /* circle */
-    -fx-border-color: transparent;
-    -fx-padding: 6;
-    -fx-cursor: hand;
-    -fx-focus-color: transparent;          /* remove blue focus ring */
-    -fx-faint-focus-color: transparent;    /* remove faint ring */
+.button.icon-button,
+.icon-button {
+  -fx-background-color: transparent;
+  -fx-background-insets: 0;
+  -fx-background-radius: 999; /* circle */
+  -fx-border-color: transparent;
+  -fx-padding: 6;
+  -fx-cursor: hand;
+  -fx-focus-color: transparent; /* remove blue focus ring */
+  -fx-faint-focus-color: transparent; /* remove faint ring */
 }
-.button.icon-button:hover, .icon-button:hover {
-    -fx-background-color: rgba(102,185,231,0.25);
+.button.icon-button:hover,
+.icon-button:hover {
+  -fx-background-color: rgba(102, 185, 231, 0.25);
 }
-.button.icon-button:pressed, .icon-button:pressed {
-    -fx-background-color: rgba(102,185,231,0.35);
+.button.icon-button:pressed,
+.icon-button:pressed {
+  -fx-background-color: rgba(102, 185, 231, 0.35);
 }
-.button.icon-button:focused, .icon-button:focused {
-    -fx-background-color: transparent;     /* keep clean when focused */
-    -fx-border-color: transparent;
+.button.icon-button:focused,
+.icon-button:focused {
+  -fx-background-color: transparent; /* keep clean when focused */
+  -fx-border-color: transparent;
 }
 
-.icon-round { -fx-padding: 6; }
+.icon-round {
+  -fx-padding: 6;
+}
 
 /* Empty slot styling */
 .empty-slot {
-    -fx-font-size: 24px;
-    -fx-font-weight: bold;
-    -fx-text-fill: #7aa8c3;
-    -fx-background-color: transparent;
-    -fx-alignment: center;
+  -fx-font-size: 24px;
+  -fx-font-weight: bold;
+  -fx-text-fill: #7aa8c3;
+  -fx-background-color: transparent;
+  -fx-alignment: center;
 }
-
 
 /* ScrollPane - custom scrollbar for friend list */
 .scroll-pane.list-scroll {
-    -fx-background-color: transparent;
+  -fx-background-color: transparent;
 }
 .scroll-pane.list-scroll .viewport {
-    -fx-background-color: transparent;
+  -fx-background-color: transparent;
 }
 .scroll-pane.list-scroll .corner {
-    -fx-background-color: transparent;
+  -fx-background-color: transparent;
 }
 
 /* Vertical scrollbar */
 .scroll-pane.list-scroll .scroll-bar:vertical {
-    -fx-background-color: transparent;
-    -fx-pref-width: 12;
+  -fx-background-color: transparent;
+  -fx-pref-width: 12;
 }
 .scroll-pane.list-scroll .scroll-bar:vertical .track {
-    -fx-background-color: rgba(255,255,255,0.55);
-    -fx-background-radius: 8;
-    -fx-border-color: rgba(45,111,153,0.15);
-    -fx-border-radius: 8;
+  -fx-background-color: rgba(255, 255, 255, 0.55);
+  -fx-background-radius: 8;
+  -fx-border-color: rgba(45, 111, 153, 0.15);
+  -fx-border-radius: 8;
 }
 .scroll-pane.list-scroll .scroll-bar:vertical .thumb {
-    -fx-background-color: linear-gradient(#9ed0f0, #5fa7c8);
-    -fx-background-insets: 0;
-    -fx-background-radius: 8;
+  -fx-background-color: linear-gradient(#9ed0f0, #5fa7c8);
+  -fx-background-insets: 0;
+  -fx-background-radius: 8;
 }
 .scroll-pane.list-scroll .scroll-bar:vertical .thumb:hover {
-    -fx-background-color: linear-gradient(#bfe1f6, #73b7d3);
+  -fx-background-color: linear-gradient(#bfe1f6, #73b7d3);
 }
 .scroll-pane.list-scroll .scroll-bar:vertical .thumb:pressed {
-    -fx-background-color: linear-gradient(#5fa7c8, #2e8fe5);
+  -fx-background-color: linear-gradient(#5fa7c8, #2e8fe5);
 }
 .scroll-pane.list-scroll .increment-button,
 .scroll-pane.list-scroll .decrement-button {
-    -fx-background-color: transparent;
-    -fx-padding: 0;
+  -fx-background-color: transparent;
+  -fx-padding: 0;
 }
 .scroll-pane.list-scroll .increment-arrow,
 .scroll-pane.list-scroll .decrement-arrow {
-    -fx-background-color: transparent;
+  -fx-background-color: transparent;
 }
 
 /* Horizontal scrollbar (rarely visible) */
 .scroll-pane.list-scroll .scroll-bar:horizontal {
-    -fx-background-color: transparent;
-    -fx-pref-height: 10;
+  -fx-background-color: transparent;
+  -fx-pref-height: 10;
 }
 .scroll-pane.list-scroll .scroll-bar:horizontal .track {
-    -fx-background-color: rgba(255,255,255,0.55);
-    -fx-background-radius: 8;
-    -fx-border-color: rgba(45,111,153,0.15);
-    -fx-border-radius: 8;
+  -fx-background-color: rgba(255, 255, 255, 0.55);
+  -fx-background-radius: 8;
+  -fx-border-color: rgba(45, 111, 153, 0.15);
+  -fx-border-radius: 8;
 }
 .scroll-pane.list-scroll .scroll-bar:horizontal .thumb {
-    -fx-background-color: linear-gradient(#9ed0f0, #5fa7c8);
-    -fx-background-insets: 0;
-    -fx-background-radius: 8;
+  -fx-background-color: linear-gradient(#9ed0f0, #5fa7c8);
+  -fx-background-insets: 0;
+  -fx-background-radius: 8;
 }
 /* Avatar frame với viền rõ */
 /* Chung cho cả host và guest: có viền, bo nhẹ */
 .avatar-frame {
-    -fx-background-color: white;
-    -fx-border-color: transparent;
-    -fx-border-width: 0; /* no outer border */
-    -fx-border-radius: 12;
-    -fx-background-radius: 12;
-    -fx-padding: 0; /* no inner gap so content fills 96x96 */
-    -fx-min-width: 96;
-    -fx-min-height: 96;
-    -fx-max-width: 96;
-    -fx-max-height: 96;
-    -fx-alignment: center;
+  -fx-background-color: white;
+  -fx-border-color: transparent;
+  -fx-border-width: 0; /* no outer border */
+  -fx-border-radius: 12;
+  -fx-background-radius: 12;
+  -fx-padding: 0; /* no inner gap so content fills 96x96 */
+  -fx-min-width: 96;
+  -fx-min-height: 96;
+  -fx-max-width: 96;
+  -fx-max-height: 96;
+  -fx-alignment: center;
 }
 
 /* Host avatar: also no border (override any previous) */
-.host-avatar-frame { -fx-border-width: 0; -fx-border-color: transparent; }
+.host-avatar-frame {
+  -fx-border-width: 0;
+  -fx-border-color: transparent;
+}
 
 /* Guest placeholder */
 .guest-placeholder {
-    -fx-fill: white;
+  -fx-fill: white;
 }
 
-
 .empty-slot {
-    -fx-font-size: 22px;
-    -fx-font-weight: bold;
-    -fx-text-fill: #7aa8c3;
-    -fx-alignment: center;
+  -fx-font-size: 22px;
+  -fx-font-weight: bold;
+  -fx-text-fill: #7aa8c3;
+  -fx-alignment: center;
 }
 
 /* Game Rules Popup Styles */
 .popup-overlay {
-    /* Cover the entire scene */
-    -fx-background-color: rgba(0,0,0,0.4); /* dim backdrop */
-    -fx-alignment: center;
-    -fx-padding: 32 24 32 24; /* spacing top/bottom so card doesn't hug edges */
+  /* Cover the entire scene */
+  -fx-background-color: rgba(0, 0, 0, 0.4); /* dim backdrop */
+  -fx-alignment: center;
+  -fx-padding: 32 24 32 24; /* spacing top/bottom so card doesn't hug edges */
 }
 
 .popup-content {
-    /* Light mint/blue panel similar to reference */
-    -fx-background-color: linear-gradient(to bottom, #e9fbf7, #d9f6f0);
-    -fx-background-radius: 16;
-    -fx-border-color: rgba(45,111,153,0.45);
-    -fx-border-radius: 16;
-    -fx-border-width: 1.5;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 18, 0.25, 0, 6);
-    -fx-padding: 36 44 36 44;
-    -fx-max-width: 850;
-    -fx-min-width: 780;
-    -fx-alignment: center;
+  /* Light mint/blue panel similar to reference */
+  -fx-background-color: linear-gradient(to bottom, #e9fbf7, #d9f6f0);
+  -fx-background-radius: 16;
+  -fx-border-color: rgba(45, 111, 153, 0.45);
+  -fx-border-radius: 16;
+  -fx-border-width: 1.5;
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.25), 18, 0.25, 0, 6);
+  -fx-padding: 36 44 36 44;
+  -fx-max-width: 850;
+  -fx-min-width: 780;
+  -fx-alignment: center;
 }
 
 .popup-title {
-    -fx-font-size: 30px;
-    -fx-font-weight: bold;
-    -fx-text-fill: #2d6f99;
-    -fx-font-family: 'PlaywriteDESAS', 'BeVietnamPro', 'Segoe UI', sans-serif;
-    -fx-effect: dropshadow(gaussian, rgba(45,111,153,0.3), 4, 0.2, 0, 1);
+  -fx-font-size: 30px;
+  -fx-font-weight: bold;
+  -fx-text-fill: #2d6f99;
+  -fx-font-family: "PlaywriteDESAS", "BeVietnamPro", "Segoe UI", sans-serif;
+  -fx-effect: dropshadow(gaussian, rgba(45, 111, 153, 0.3), 4, 0.2, 0, 1);
 }
 
 .rules-list {
-    -fx-padding: 0 0 0 0;
-    -fx-alignment: center;
-    -fx-hgap: 0;
-    -fx-vgap: 0;
+  -fx-padding: 0 0 0 0;
+  -fx-alignment: center;
+  -fx-hgap: 0;
+  -fx-vgap: 0;
 }
 
 .rule-text {
-    -fx-font-size: 17px;
-    -fx-text-fill: #1c5178;
-    -fx-font-weight: normal;
-    -fx-wrap-text: true;
-    -fx-max-width: 620; /* wider to match expanded card */
-    -fx-alignment: center-left;
+  -fx-font-size: 17px;
+  -fx-text-fill: #1c5178;
+  -fx-font-weight: normal;
+  -fx-wrap-text: true;
+  -fx-max-width: 620; /* wider to match expanded card */
+  -fx-alignment: center-left;
 }
 
 .case-examples {
-    -fx-padding: 12 16 12 16;
-    -fx-background-color: transparent; /* remove box look */
-    -fx-border-color: transparent;
-    -fx-border-width: 0;
-    -fx-background-radius: 0;
-    -fx-border-radius: 0;
-    -fx-alignment: center;
-    -fx-spacing: 80; /* increase gap between Match and No Match groups */
+  -fx-padding: 12 16 12 16;
+  -fx-background-color: transparent; /* remove box look */
+  -fx-border-color: transparent;
+  -fx-border-width: 0;
+  -fx-background-radius: 0;
+  -fx-border-radius: 0;
+  -fx-alignment: center;
+  -fx-spacing: 80; /* increase gap between Match and No Match groups */
 }
 
 .case-label {
-    -fx-font-size: 16px;
-    -fx-text-fill: #1c5178;
-    -fx-font-weight: bold;
-    -fx-alignment: center;
+  -fx-font-size: 16px;
+  -fx-text-fill: #1c5178;
+  -fx-font-weight: bold;
+  -fx-alignment: center;
 }
 
 .popup-close-btn {
-    -fx-background-color: #2d6f99;
-    -fx-text-fill: white;
-    -fx-background-radius: 12;
-    -fx-padding: 10 24 10 24;
-    -fx-font-size: 16px;
-    -fx-font-weight: bold;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 8, 0.2, 0, 2);
-    -fx-cursor: hand;
+  -fx-background-color: #2d6f99;
+  -fx-text-fill: white;
+  -fx-background-radius: 12;
+  -fx-padding: 10 24 10 24;
+  -fx-font-size: 16px;
+  -fx-font-weight: bold;
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 8, 0.2, 0, 2);
+  -fx-cursor: hand;
 }
 
 .popup-close-btn:hover {
-    -fx-background-color: #347da9;
+  -fx-background-color: #347da9;
 }
 
 .popup-close-btn:pressed {
-    -fx-background-color: #255d82;
+  -fx-background-color: #255d82;
 }
 
 /* Invite list styles */
 .invite-scroll {
-    -fx-background-color: transparent;
-    -fx-padding: 0;
+  -fx-background-color: transparent;
+  -fx-padding: 0;
 }
 
 .invite-scroll .viewport {
-    -fx-background-color: transparent;
+  -fx-background-color: transparent;
 }
 
 .invite-scroll .scroll-bar:vertical {
-    -fx-background-color: transparent;
-    -fx-pref-width: 6;
+  -fx-background-color: transparent;
+  -fx-pref-width: 6;
 }
 
 .invite-scroll .scroll-bar:vertical .track {
-    -fx-background-color: rgba(255,255,255,0.3);
-    -fx-background-radius: 3;
+  -fx-background-color: rgba(255, 255, 255, 0.3);
+  -fx-background-radius: 3;
 }
 
 .invite-scroll .scroll-bar:vertical .thumb {
-    -fx-background-color: rgba(255,255,255,0.6);
-    -fx-background-radius: 3;
+  -fx-background-color: rgba(255, 255, 255, 0.6);
+  -fx-background-radius: 3;
 }
 
 .invite-item {
-    -fx-background-color: linear-gradient(to bottom, #ffffff, #f8fbfd);
-    -fx-background-radius: 12;
-    -fx-padding: 0;
-    -fx-spacing: 12;
-    -fx-effect: dropshadow(gaussian, rgba(45, 95, 126, 0.12), 8, 0.2, 0, 2);
-    -fx-border-color: rgba(95, 167, 200, 0.15);
-    -fx-border-width: 1;
-    -fx-border-radius: 12;
+  -fx-background-color: linear-gradient(to bottom, #ffffff, #f8fbfd);
+  -fx-background-radius: 12;
+  -fx-padding: 0;
+  -fx-spacing: 12;
+  -fx-effect: dropshadow(gaussian, rgba(45, 95, 126, 0.12), 8, 0.2, 0, 2);
+  -fx-border-color: rgba(95, 167, 200, 0.15);
+  -fx-border-width: 1;
+  -fx-border-radius: 12;
 }
 
 .invite-item:hover {
-    -fx-background-color: linear-gradient(to bottom, #ffffff, #f0f7fc);
-    -fx-effect: dropshadow(gaussian, rgba(45, 95, 126, 0.2), 10, 0.3, 0, 3);
-    -fx-border-color: rgba(95, 167, 200, 0.25);
-    -fx-scale-x: 1.01;
-    -fx-scale-y: 1.01;
+  -fx-background-color: linear-gradient(to bottom, #ffffff, #f0f7fc);
+  -fx-effect: dropshadow(gaussian, rgba(45, 95, 126, 0.2), 10, 0.3, 0, 3);
+  -fx-border-color: rgba(95, 167, 200, 0.25);
+  -fx-scale-x: 1.01;
+  -fx-scale-y: 1.01;
 }
 
 .invite-sender {
-    -fx-text-fill: #1a4d6f;
-    -fx-font-size: 15px;
-    -fx-font-weight: bold;
+  -fx-text-fill: #1a4d6f;
+  -fx-font-size: 15px;
+  -fx-font-weight: bold;
 }
 
 .invite-text {
-    -fx-font-size: 12px;
-    -fx-text-fill: #5a89a8;
-    -fx-font-style: italic;
+  -fx-font-size: 12px;
+  -fx-text-fill: #5a89a8;
+  -fx-font-style: italic;
 }
 
 .invite-btn {
-    -fx-background-radius: 20;
-    -fx-padding: 0;
-    -fx-font-size: 18px;
-    -fx-font-weight: bold;
-    -fx-cursor: hand;
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 4, 0.3, 0, 2);
-    -fx-min-width: 40;
-    -fx-pref-width: 40;
-    -fx-max-width: 40;
-    -fx-min-height: 40;
-    -fx-pref-height: 40;
-    -fx-max-height: 40;
+  -fx-background-radius: 20;
+  -fx-padding: 0;
+  -fx-font-size: 18px;
+  -fx-font-weight: bold;
+  -fx-cursor: hand;
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 4, 0.3, 0, 2);
+  -fx-min-width: 40;
+  -fx-pref-width: 40;
+  -fx-max-width: 40;
+  -fx-min-height: 40;
+  -fx-pref-height: 40;
+  -fx-max-height: 40;
 }
 
 .invite-btn:hover {
-    -fx-scale-x: 1.05;
-    -fx-scale-y: 1.05;
+  -fx-scale-x: 1.05;
+  -fx-scale-y: 1.05;
 }
 
 .invite-accept-btn {
-    -fx-background-color: linear-gradient(to bottom, #4caf50, #45a049);
-    -fx-text-fill: white;
+  -fx-background-color: linear-gradient(to bottom, #4caf50, #45a049);
+  -fx-text-fill: white;
 }
 
 .invite-accept-btn:hover {
-    -fx-background-color: linear-gradient(to bottom, #5bc85f, #4caf50);
-    -fx-effect: dropshadow(gaussian, rgba(76, 175, 80, 0.5), 8, 0.4, 0, 3);
+  -fx-background-color: linear-gradient(to bottom, #5bc85f, #4caf50);
+  -fx-effect: dropshadow(gaussian, rgba(76, 175, 80, 0.5), 8, 0.4, 0, 3);
 }
 
 .invite-reject-btn {
-    -fx-background-color: linear-gradient(to bottom, #f44336, #e53935);
-    -fx-text-fill: white;
+  -fx-background-color: linear-gradient(to bottom, #f44336, #e53935);
+  -fx-text-fill: white;
 }
 
 .invite-reject-btn:hover {
-    -fx-background-color: linear-gradient(to bottom, #ff5449, #f44336);
-    -fx-effect: dropshadow(gaussian, rgba(244, 67, 54, 0.5), 8, 0.4, 0, 3);
+  -fx-background-color: linear-gradient(to bottom, #ff5449, #f44336);
+  -fx-effect: dropshadow(gaussian, rgba(244, 67, 54, 0.5), 8, 0.4, 0, 3);
 }
