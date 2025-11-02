@@ -75,6 +75,7 @@ public class GameScreenController {
     @FXML private TextField myChatField;
     @FXML private TextField opponentChatField;
     @FXML private Label timerLabel;
+    @FXML private Label turnIndicatorLabel;
     
     private GameScreen screen;
     private volatile boolean gameEndReceived = false;
@@ -110,6 +111,7 @@ public class GameScreenController {
         setupGame();
         setupResizeListener();
         setupOverlayUI();
+        updateTurnIndicator();
         startTurnTimer();
     }
     
@@ -503,6 +505,7 @@ public class GameScreenController {
                     Platform.runLater(() -> {
                         isMyTurn = !isMyTurn;
                         System.out.println("[GameScreen] Turn switched via TCP. Is my turn: " + isMyTurn);
+                        updateTurnIndicator();
                         resetTurnTimer(); // Reset timer for the new turn
                     });
                 }
@@ -636,6 +639,7 @@ public class GameScreenController {
                                             System.out.println("[GameScreen] Switching turn - was my turn: " + isMyTurn);
                                             isMyTurn = !isMyTurn;
                                             System.out.println("[GameScreen] Turn switched via server. Is my turn: " + isMyTurn);
+                                            updateTurnIndicator();
                                             resetTurnTimer(); // Reset timer for the new turn
                                         } else {
                                             System.out.println("[GameScreen] No turn switch needed - shouldSwitchTurn: " + shouldSwitchTurn);
@@ -1024,6 +1028,7 @@ public class GameScreenController {
         
         // Switch turn since cards don't match
         isMyTurn = !isMyTurn;
+        updateTurnIndicator();
         resetTurnTimer();
         System.out.println("[GameScreen] Match timeout - flipped back and switched turn");
     }
@@ -1075,6 +1080,16 @@ public class GameScreenController {
             }
             if (opponentScoreLabel != null) {
                 opponentScoreLabel.setText(String.valueOf(player2Score));
+            }
+        }
+    }
+    
+    private void updateTurnIndicator() {
+        if (turnIndicatorLabel != null) {
+            if (isMyTurn) {
+                turnIndicatorLabel.setText("Your turn");
+            } else {
+                turnIndicatorLabel.setText("Opponent's turn");
             }
         }
     }
@@ -1134,6 +1149,7 @@ public class GameScreenController {
             
             // Switch turn
             isMyTurn = false;
+            updateTurnIndicator();
             
             // Send turn switch message to opponent
             try {

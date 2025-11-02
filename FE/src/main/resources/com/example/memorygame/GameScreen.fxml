@@ -50,6 +50,11 @@
 
          <!-- Timer - bottom-right -->
          <Label fx:id="timerLabel" text="10s" AnchorPane.bottomAnchor="10.0" AnchorPane.rightAnchor="10.0" />
+
+         <!-- Turn indicator - top-center -->
+         <HBox alignment="CENTER" AnchorPane.topAnchor="20.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
+            <Label fx:id="turnIndicatorLabel" text="Your turn" styleClass="turn-indicator" />
+         </HBox>
       </AnchorPane>
    </children>
 </StackPane>
