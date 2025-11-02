@@ -5,6 +5,7 @@ import com.ltm.memorygame.dto.game.response.RoomResponseDTO;
 import com.ltm.memorygame.dto.game.response.MatchResponseDTO;
 import com.ltm.memorygame.dto.game.request.CreateMatchRequest;
 import com.ltm.memorygame.service.room.RoomService;
+import com.ltm.memorygame.mapper.RoomMapper;
 import com.ltm.memorygame.facade.RoomFacadeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -68,5 +69,19 @@ public class RoomController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         return ResponseEntity.ok(roomFacadeService.startMatch(request));
+    }
+
+    /**
+     * Danh sách phòng đang active (WAITING/READY/PLAYING) của user hiện tại.
+     * FE dùng để biết mình đang ở phòng nào cho MatchChat.
+     */
+    @GetMapping("/my-active")
+    public ResponseEntity<java.util.List<RoomResponseDTO>> getMyActiveRooms() {
+        Long authId = AuthUtils.getAuthenticatedUserId();
+        if (authId == null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        var rooms = roomService.findRoomsByPlayer(authId);
+        return ResponseEntity.ok(RoomMapper.toDTOList(rooms));
     }
 }

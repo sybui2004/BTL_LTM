@@ -28,16 +28,16 @@ public class MessageMapper {
         User sender = entity.getSender();
         Sticker sticker = entity.getSticker();
 
-        return WorldMessageResponse.builder()
-                .id(entity.getId())
-                .senderId(sender != null ? sender.getId() : null)
-                .senderName(sender != null ? sender.getDisplayName() : null)
-                .content(entity.getContent())
-                .avatarUrl(entity.getSender().getAvatarUrl())
-                .messageType(entity.getMessageType())
-                .sticker(sticker != null ? StickerMapper.toResponse(sticker) : null)
-                .createdAt(entity.getCreatedAt() != null ? entity.getCreatedAt().toInstant() : null)
-                .build();
+    return WorldMessageResponse.builder()
+        .id(entity.getId())
+        .senderId(sender != null ? sender.getId() : null)
+        .senderName(sender != null ? sender.getDisplayName() : null)
+        .content(entity.getContent())
+        .avatarUrl(sender != null ? sender.getAvatarUrl() : null)
+        .messageType(entity.getMessageType())
+        .sticker(sticker != null ? StickerMapper.toResponse(sticker) : null)
+        .createdAt(entity.getCreatedAt() != null ? entity.getCreatedAt().toInstant() : null)
+        .build();
     }
 
     // PrivateMessage

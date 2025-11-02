@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.net.URL?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<!--
+  Match Chat Layout
+  - Chat giữa 2 players trong trận
+  - Tích hợp vào match screen
+  - Temporary (xóa sau match)
+-->
+
+<VBox xmlns="http://javafx.com/javafx/11.0.1" 
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.example.memorygame.controller.chat.MatchChatController"
+      prefWidth="350.0" prefHeight="500.0"
+      styleClass="match-chat-container">
+    <stylesheets>
+                <URL value="@chatstyles/BaseChatStyle.css"/>
+                <URL value="@chatstyles/MatchChatStyle.css"/>
+                <!-- Fallback for case differences when packaged -->
+                <URL value="@ChatStyles/BaseChatStyle.css"/>
+                <URL value="@ChatStyles/MatchChatStyle.css"/>
+    </stylesheets>
+    
+    <!-- Header -->
+    <HBox styleClass="chat-header" alignment="CENTER_LEFT" spacing="10.0">
+        <padding>
+            <Insets top="8.0" right="12.0" bottom="8.0" left="12.0"/>
+        </padding>
+        
+        <Label text="⚔️ Match Chat" styleClass="chat-title"/>
+        
+        <Region HBox.hgrow="ALWAYS"/>
+        
+        <!-- Match status indicator -->
+        <Label fx:id="matchStatusLabel" text="●" styleClass="status-indicator" 
+               style="-fx-text-fill: #00ff00; -fx-font-size: 18px;"/>
+    </HBox>
+    
+    <!-- Chat Container - sẽ chứa ChatComponent -->
+    <VBox fx:id="chatContainer" VBox.vgrow="ALWAYS" styleClass="chat-content">
+        <!-- ChatComponent sẽ được add vào đây từ controller -->
+    </VBox>
+    
+    <!-- Quick reactions (optional) -->
+    <HBox styleClass="quick-reactions" alignment="CENTER" spacing="8.0" 
+          visible="false" managed="false">
+        <padding>
+            <Insets top="5.0" right="10.0" bottom="5.0" left="10.0"/>
+        </padding>
+        <Button text="👍" styleClass="reaction-btn"/>
+        <Button text="😄" styleClass="reaction-btn"/>
+        <Button text="😮" styleClass="reaction-btn"/>
+        <Button text="👏" styleClass="reaction-btn"/>
+        <Button text="🔥" styleClass="reaction-btn"/>
+    </HBox>
+    
+</VBox>

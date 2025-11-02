@@ -25,7 +25,7 @@
                     <Label fx:id="titleLabel" text="MEMORY MATCHING GAME" styleClass="app-title"/>
                 </center>
                 <right>
-                    <HBox spacing="12" alignment="CENTER_RIGHT">
+                            <HBox spacing="12" alignment="CENTER_RIGHT">
                         <StackPane styleClass="icon-hover" fx:id="questionButton">
                             <ImageView fitWidth="28" fitHeight="28" preserveRatio="true">
                                 <Image url="@assets/images/icon/question.png"/>
@@ -126,9 +126,9 @@
 
                             <Pane VBox.vgrow="ALWAYS"/>
                             <HBox spacing="36" alignment="CENTER">
-                                <VBox spacing="6" alignment="CENTER">
-                                    <Label text="Theme" styleClass="field-label" prefWidth="180"
-                                           alignment="CENTER"/>
+                                <HBox spacing="12" alignment="CENTER">
+                                    <HBox fx:id="chatShortcut" spacing="8" alignment="CENTER_LEFT" styleClass="chat-box"
+                                          prefWidth="420" prefHeight="40">
                                     <ComboBox promptText="Default" prefWidth="180"
                                               minWidth="180" maxWidth="180"
                                               styleClass="select"/>
@@ -337,6 +337,8 @@
             <Button text="Got it" styleClass="popup-close-btn" fx:id="closePopupButton"/>
         </VBox>
     </StackPane>
+    <fx:include fx:id="lobbyChat" source="chat/LobbyChat.fxml" 
+                visible="false" managed="false" />
 </StackPane>
 
 

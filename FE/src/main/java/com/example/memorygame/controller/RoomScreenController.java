@@ -1,5 +1,8 @@
 package com.example.memorygame.controller;
 
+import java.util.Objects;
+
+import com.example.memorygame.controller.chat.LobbyChatController;
 import com.example.memorygame.controller.friend.FriendItemBuilder;
 import com.example.memorygame.controller.friend.FriendListManager;
 import com.example.memorygame.controller.room.InviteItemBuilder;
@@ -11,6 +14,7 @@ import com.example.memorygame.model.game.InviteDTO;
 import com.example.memorygame.model.user.UserSummary;
 import com.example.memorygame.utils.UserApi;
 import com.example.memorygame.view.RoomScreen;
+
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
@@ -26,8 +30,6 @@ import javafx.scene.layout.VBox;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
-
-import java.util.Objects;
 
 /**
  * Main controller for RoomScreen - delegates to helper classes
@@ -55,8 +57,13 @@ public class RoomScreenController {
     @FXML private Button closePopupButton;
     @FXML private VBox inviteListContainer;
     @FXML private VBox inviteList;
+    @FXML private HBox chatShortcut;
+    // Included LobbyChat.fxml root and controller
+    @FXML private VBox lobbyChat;
+    @FXML private LobbyChatController lobbyChatController;
 
     private RoomManager roomManager;
+    private RoomStateManager stateManager;
     private FriendListManager friendListManager;
     private InviteItemBuilder inviteItemBuilder;
     private TCPMessageHandler tcpHandler;
@@ -98,7 +105,7 @@ public class RoomScreenController {
     private void initializeHelpers() {
         // State manager
         // Helper classes
-        RoomStateManager stateManager = new RoomStateManager();
+        stateManager = new RoomStateManager();
         
         // UI updater
         RoomUIUpdater uiUpdater = new RoomUIUpdater(
@@ -146,10 +153,39 @@ public class RoomScreenController {
         
         if (btnSearch != null) btnSearch.setOnAction(e -> friendListManager.handleSearch());
         if (txtSearch != null) txtSearch.setOnAction(e -> friendListManager.handleSearch());
+        if (chatShortcut != null) chatShortcut.setOnMouseClicked(e -> openLobbyChat());
         
         setupRoomAvatars();
         setupPopup();
         tcpHandler.setupListeners();
+    }
+
+    private void openLobbyChat() {
+        // Ensure lobby chat UI is visible
+        if (lobbyChat != null) {
+            lobbyChat.setVisible(true);
+            lobbyChat.setManaged(true);
+        }
+
+        // Prepare context for lobby chat
+        Long roomId = stateManager != null ? stateManager.getCurrentRoomId() : null;
+        if (lobbyChatController != null) {
+            if (roomId == null) {
+                showAlert("Room is not ready. Please wait a moment.", Alert.AlertType.WARNING);
+                return;
+            }
+            // Fetch current user and setup lobby
+            new Thread(() -> {
+                var currentUser = UserApi.getCurrentUser();
+                Platform.runLater(() -> {
+                    try {
+                        lobbyChatController.setupLobby(String.valueOf(roomId), currentUser);
+                    } catch (Exception ex) {
+                        showAlert("Unable to open lobby chat: " + ex.getMessage(), Alert.AlertType.ERROR);
+                    }
+                });
+            }).start();
+        }
     }
     
     private void setupRoomAvatars() {

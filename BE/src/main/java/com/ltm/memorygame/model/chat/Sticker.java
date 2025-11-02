@@ -14,7 +14,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
-@Table(name = "world_message")
+@Table(name = "sticker")
 @Getter
 @Setter
 public class Sticker {

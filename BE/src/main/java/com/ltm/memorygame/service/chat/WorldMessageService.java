@@ -30,8 +30,16 @@ public class WorldMessageService {
     // Lưu tin nhắn toàn cầu
     public WorldMessageResponse postWorldMessage(Long senderId, String content, MessageType type,
             Long stickerId) {
-        if (content == null || content.isBlank()) {
-            throw new IllegalArgumentException("Message content cannot be empty");
+        // Validation theo loại message
+        if (type == MessageType.TEXT) {
+            if (content == null || content.isBlank()) {
+                throw new IllegalArgumentException("Message content cannot be empty for TEXT messages");
+            }
+        } else if (type == MessageType.STICKER) {
+            // Cho phép content rỗng với STICKER, nhưng cần stickerId hợp lệ
+            if (stickerId == null) {
+                throw new IllegalArgumentException("Sticker id is required for STICKER messages");
+            }
         }
 
         Sticker sticker = null;
@@ -44,7 +52,9 @@ public class WorldMessageService {
 
         WorldMessage message = new WorldMessage();
         message.setSender(sender);
-        message.setContent(content.trim());
+        // DB column `content` is NOT NULL, đảm bảo không null
+        String persistedContent = (type == MessageType.TEXT) ? content.trim() : "";
+        message.setContent(persistedContent);
         message.setCreatedAt(java.util.Date.from(Instant.now()));
         message.setMessageType(type);
         message.setSticker(sticker);

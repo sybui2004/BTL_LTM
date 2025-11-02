@@ -1,0 +1,24 @@
+<!-- resources/chat/base_chat.fxml -->
+<fx:root type="VBox" xmlns:fx="http://javafx.com/fxml/1" styleClass="chat-container">
+    <ScrollPane VBox.vgrow="ALWAYS" fitToWidth="true">
+        <VBox fx:id="messageContainer" spacing="8" styleClass="message-container"/>
+    </ScrollPane>
+    
+    <HBox spacing="8" styleClass="input-container">
+        <Button fx:id="emojiButton" styleClass="emoji-button">
+            <graphic>
+                <ImageView>
+                    <Image url="@/assets/images/emoji.png"/>
+                </ImageView>
+            </graphic>
+        </Button>
+        <TextField fx:id="inputField" HBox.hgrow="ALWAYS"/>
+        <Button fx:id="sendButton" styleClass="send-button">
+            <graphic>
+                <ImageView>
+                    <Image url="@/assets/images/send.png"/>
+                </ImageView>
+            </graphic>
+        </Button>
+    </HBox>
+</fx:root>

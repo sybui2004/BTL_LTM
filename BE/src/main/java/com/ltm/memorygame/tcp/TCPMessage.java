@@ -1,9 +1,9 @@
 package com.ltm.memorygame.tcp;
 
+import java.util.Map;
+
 import lombok.Getter;
 import lombok.Setter;
-
-import java.util.Map;
 
 @Setter
 @Getter

@@ -26,11 +26,16 @@ public class PrivateMessageController {
     
 @GetMapping("/{otherUserId}")
 public Page<PrivateMessageResponse> getPrivateMessageHistory(
-        @RequestHeader("userId") Long userId,
+        @RequestHeader(value = "userId", required = false) Long userIdHeader,
         @PathVariable Long otherUserId,
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "20") int size) {
-    return privateMessageService.getPrivateMessageHistory(userId, otherUserId, page, size);
+    // If userId not in header, extract from JWT token (handled by security context)
+    // For now, require userId in header or implement JWT extraction
+    if (userIdHeader == null) {
+        throw new IllegalArgumentException("Missing userId in request header");
+    }
+    return privateMessageService.getPrivateMessageHistory(userIdHeader, otherUserId, page, size);
 }
     
     // lấy danh sách người nhắn tin

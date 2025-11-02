@@ -36,11 +36,21 @@ public class ApiClient {
             if (token == null || token.isBlank()) {
                 throw new IllegalStateException("Missing auth token");
             }
-            HttpRequest request = HttpRequest.newBuilder()
+            
+            // Extract userId from JWT token for header
+            Long userId = JwtDecoder.extractUserId(token);
+            
+            HttpRequest.Builder builder = HttpRequest.newBuilder()
                     .uri(URI.create(baseUrl + path))
                     .header("Authorization", "Bearer " + token)
-                    .GET()
-                    .build();
+                    .GET();
+            
+            // Add userId header if available (for private chat endpoints)
+            if (userId != null) {
+                builder.header("userId", String.valueOf(userId));
+            }
+            
+            HttpRequest request = builder.build();
 			HttpResponse<String> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
 			int status = response.statusCode();
 			if (status >= 200 && status < 300) {

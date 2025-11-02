@@ -64,5 +64,35 @@ public class RoomApi {
             return java.util.Collections.emptyList();
         }
     }
+
+    /**
+     * Lấy danh sách phòng đang hoạt động (WAITING/READY/PLAYING) của user hiện tại.
+     */
+    public static java.util.List<RoomResponseDTO> getMyActiveRooms() {
+        try {
+            String response = ApiClient.getAuth("/api/rooms/my-active");
+            return MAPPER.readValue(response, new TypeReference<List<RoomResponseDTO>>(){});
+        } catch (Exception e) {
+            System.err.println("[RoomApi] Failed to get my active rooms: " + e.getMessage());
+            return java.util.Collections.emptyList();
+        }
+    }
+
+    /**
+     * Chọn room ưu tiên theo trạng thái (PLAYING > READY > WAITING). Trả null nếu không có.
+     */
+    public static Long pickBestRoomId(java.util.List<RoomResponseDTO> rooms) {
+        if (rooms == null || rooms.isEmpty()) return null;
+        // Ưu tiên PLAYING
+        for (RoomResponseDTO r : rooms) {
+            if ("PLAYING".equalsIgnoreCase(r.status)) return r.id;
+        }
+        // Sau đó READY
+        for (RoomResponseDTO r : rooms) {
+            if ("READY".equalsIgnoreCase(r.status)) return r.id;
+        }
+        // Cuối cùng bất kỳ
+        return rooms.get(0).id;
+    }
 }
 

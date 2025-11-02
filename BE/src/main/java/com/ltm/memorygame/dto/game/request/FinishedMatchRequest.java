@@ -1,7 +1,9 @@
 package com.ltm.memorygame.dto.game.request;
 
-import lombok.*;
 import jakarta.validation.constraints.Min;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor

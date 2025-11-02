@@ -1,14 +1,9 @@
 package com.ltm.memorygame.tcp;
 
-import com.ltm.memorygame.service.user.UserService;
-import com.ltm.memorygame.service.room.RoomService;
-import com.ltm.memorygame.service.notification.NotificationService;
-import com.ltm.memorygame.security.JwtService;
-import com.ltm.memorygame.model.enums.UserStatus;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.Map;
 import java.util.Set;
@@ -26,6 +21,7 @@ import com.ltm.memorygame.dto.chat.response.WorldMessageResponse;
 import com.ltm.memorygame.dto.user.response.UserPresenceDTO;
 import com.ltm.memorygame.model.enums.MessageType;
 import com.ltm.memorygame.model.enums.UserStatus;
+import com.ltm.memorygame.model.game.Room;
 import com.ltm.memorygame.security.JwtService;
 import com.ltm.memorygame.service.chat.MatchMessageService;
 import com.ltm.memorygame.service.chat.PrivateMessageService;
@@ -160,6 +156,8 @@ public class ClientHandler extends Thread {
                 handlePrivateChat(message);
             case "MATCH_CHAT" ->
                 handleMatchChat(message);
+            case "LOBBY_CHAT" ->
+                handleLobbyChat(message);
             case "SET_STATUS_REQUEST" ->
                 handleSetStatus(message);
             case "PING" ->
@@ -362,7 +360,7 @@ public class ClientHandler extends Thread {
             return;
         }
 
-        // Kiểm tra RoomId
+        // Extract roomId trước khi map vào DTO
         String roomId = (String) message.getData().get("roomId");
 
         if (roomId == null) {
@@ -373,7 +371,11 @@ public class ClientHandler extends Thread {
         MatchMessageRequest request;
 
         try {
-            request = objectMapper.convertValue(message.getData(), MatchMessageRequest.class);
+            // Tạo bản sao data không có roomId để tránh lỗi "unrecognized field"
+            Map<String, Object> dataForDTO = new java.util.HashMap<>(message.getData());
+            dataForDTO.remove("roomId");
+            
+            request = objectMapper.convertValue(dataForDTO, MatchMessageRequest.class);
 
             // VALIDATION 
             Set<ConstraintViolation<MatchMessageRequest>> violations = validator.validate(request);
@@ -388,13 +390,31 @@ public class ClientHandler extends Thread {
                 throw new IllegalArgumentException("Message content cannot be empty for TEXT messages.");
             }
 
-            // Kiểm tra tồn tại Room Session
+            // Kiểm tra tồn tại Room Session (RAM). Nếu chưa có, cố gắng khởi tạo từ DB Room.
             RoomSession session = RoomSessionManager.getRoom(roomId);
             if (session == null) {
-                throw new IllegalStateException("Room not found or session expired.");
+                try {
+                    // roomId trong TCP là String, DB là Long
+                    Long rid = Long.parseLong(roomId);
+                    com.ltm.memorygame.model.game.Room room = roomService.getEntityById(rid);
+
+                    // Tạo session và add thành viên (host + guest nếu có)
+                    session = RoomSessionManager.createRoom(roomId, room.getHost().getUsername());
+                    session.addMember(room.getHost().getUsername());
+                    if (room.getGuest() != null) {
+                        session.addMember(room.getGuest().getUsername());
+                    }
+                    session.setActive(true);
+                    log.info("[MATCH_CHAT] Created transient session for room {}", roomId);
+                } catch (Exception ex) {
+                    throw new IllegalStateException("Room not found or session expired.");
+                }
             }
 
-            // Gọi Service lưu RAM
+        // Đảm bảo sender là thành viên của RoomSession
+        try { session.addMember(this.username); } catch (Exception ignored) {}
+
+        // Gọi Service lưu RAM
             MatchMessageDTO matchMsgDTO = matchMessageService.sendMatchMessage(
                     roomId,
                     userId,
@@ -415,6 +435,85 @@ public class ClientHandler extends Thread {
 
         } catch (Exception e) {
             String defaultReason = "An unexpected error occurred.";
+            Map<String, Object> errorMap = TcpErrorUtil.getErrorMap(e, username, defaultReason);
+            sendMessage(new TCPMessage("ERROR", errorMap, "server", username));
+        }
+    }
+
+    private void handleLobbyChat(TCPMessage message) {
+        if (username == null || userId == null) {
+            return;
+        }
+
+        // Kiểm tra RoomId
+        Object roomIdObj = message.getData().get("roomId");
+        if (roomIdObj == null) {
+            sendMessage(new TCPMessage("ERROR", Map.of("reason", "Missing roomId"), "server", username));
+            return;
+        }
+
+        Long roomId;
+        try {
+            roomId = Long.parseLong(roomIdObj.toString());
+        } catch (NumberFormatException e) {
+            sendMessage(new TCPMessage("ERROR", Map.of("reason", "Invalid roomId format"), "server", username));
+            return;
+        }
+
+        try {
+            // Lấy Room entity từ DB để biết host + guest
+            Room room = roomService.getEntityById(roomId);
+            if (room == null) {
+                throw new IllegalStateException("Room not found: " + roomId);
+            }
+
+            // Validate request
+            String content = (String) message.getData().get("content");
+            if (content == null || content.trim().isEmpty()) {
+                throw new IllegalArgumentException("Message content cannot be empty.");
+            }
+
+            String messageTypeStr = (String) message.getData().getOrDefault("messageType", "TEXT");
+            MessageType messageType = MessageType.valueOf(messageTypeStr);
+            String stickerId = (String) message.getData().get("stickerId");
+
+            // Tạo message DTO đơn giản (không lưu DB, chỉ broadcast)
+            Map<String, Object> lobbyMessage = new java.util.HashMap<>();
+            lobbyMessage.put("id", java.util.UUID.randomUUID().toString());
+            lobbyMessage.put("roomId", String.valueOf(roomId));
+            lobbyMessage.put("content", content);
+            lobbyMessage.put("messageType", messageType.name());
+            if (stickerId != null) lobbyMessage.put("stickerId", stickerId);
+            lobbyMessage.put("timestamp", System.currentTimeMillis());
+            
+            // Thêm sender info
+            Map<String, Object> sender = new java.util.HashMap<>();
+            sender.put("id", userId);
+            sender.put("username", username);
+            lobbyMessage.put("sender", sender);
+
+            // Broadcast LOBBY_CHAT_MESSAGE cho host và guest
+            TCPMessage realtimeMsg = new TCPMessage("LOBBY_CHAT_MESSAGE",
+                    Map.of("message", lobbyMessage), username, String.valueOf(roomId));
+
+            // Gửi cho host
+            String hostUsername = room.getHost().getUsername();
+            ClientHandler hostHandler = onlineClients.get(hostUsername);
+            if (hostHandler != null) {
+                hostHandler.sendMessage(realtimeMsg);
+            }
+
+            // Gửi cho guest (nếu có)
+            if (room.getGuest() != null) {
+                String guestUsername = room.getGuest().getUsername();
+                ClientHandler guestHandler = onlineClients.get(guestUsername);
+                if (guestHandler != null) {
+                    guestHandler.sendMessage(realtimeMsg);
+                }
+            }
+
+        } catch (Exception e) {
+            String defaultReason = "An unexpected error occurred during lobby chat.";
             Map<String, Object> errorMap = TcpErrorUtil.getErrorMap(e, username, defaultReason);
             sendMessage(new TCPMessage("ERROR", errorMap, "server", username));
         }

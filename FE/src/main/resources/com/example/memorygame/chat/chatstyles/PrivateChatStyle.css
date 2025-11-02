@@ -1,0 +1,62 @@
+/* Private Chat theme - Màu xanh dương nhạt */
+
+.private-chat-container {
+  -fx-background-color: #ffffff;
+  -fx-border-color: #e5e7eb;
+  -fx-border-radius: 10;
+  -fx-background-radius: 10;
+}
+
+.private-chat-container .list-header {
+  -fx-background-color: #f8fafc;
+  -fx-border-color: #e5e7eb;
+  -fx-border-width: 0 0 1 0;
+}
+.private-chat-container .list-title {
+  -fx-text-fill: #1f2937;
+}
+.private-chat-container .new-chat-btn {
+  -fx-background-color: #e2e8f0;
+  -fx-background-radius: 14;
+}
+.private-chat-container .search-input {
+  -fx-background-color: white;
+  -fx-border-color: #e2e8f0;
+  -fx-border-radius: 14;
+  -fx-background-radius: 14;
+}
+.private-chat-container .conversation-list {
+  -fx-background-insets: 0;
+}
+
+.private-chat-container .chat-header {
+  -fx-background-color: #f8fafc;
+  -fx-border-color: #e5e7eb;
+}
+.private-chat-container .chat-title {
+  -fx-text-fill: #111827;
+}
+.private-chat-container .status-label {
+  -fx-text-fill: #6b7280;
+}
+.private-chat-container .options-btn {
+  -fx-text-fill: #374151;
+}
+
+.private-chat-container .chat-content {
+  -fx-padding: 6;
+}
+
+/* Message area background - Xanh dương nhạt */
+.private-chat-container .base-chat-container {
+  -fx-background-color: #B3E5FC;
+}
+
+.private-chat-container .chat-scroll-pane,
+.private-chat-container .chat-scroll-pane > .viewport {
+  -fx-background-color: #B3E5FC;
+}
+
+.private-chat-container .empty-state {
+  -fx-background-color: #ffffff;
+}

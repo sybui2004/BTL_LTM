@@ -1,0 +1,52 @@
+/* Match Chat theme - Màu vàng kem như hình */
+
+.match-chat-container {
+  -fx-background-color: #ffffff;
+  -fx-border-color: #e5e7eb;
+  -fx-border-radius: 10;
+  -fx-background-radius: 10;
+}
+
+.match-chat-container .chat-header {
+  -fx-background-color: linear-gradient(to right, #fffbeb, #fef3c7);
+  -fx-border-color: #fde68a;
+}
+
+.match-chat-container .chat-title {
+  -fx-text-fill: #78350f;
+}
+
+.match-chat-container .status-indicator {
+  -fx-text-fill: #10b981; /* green */
+}
+
+.match-chat-container .chat-content {
+  -fx-padding: 6;
+}
+
+/* Message area background - Vàng kem như hình */
+.match-chat-container .base-chat-container {
+  -fx-background-color: #FFF9E6;
+}
+
+.match-chat-container .chat-scroll-pane,
+.match-chat-container .chat-scroll-pane > .viewport {
+  -fx-background-color: #FFF9E6;
+}
+
+/* Override chat bubbles for dark theme */
+.match-chat-container .chat-bubble {
+  -fx-background-color: #1f2937;
+  -fx-text-fill: #e5e7eb;
+}
+.match-chat-container .chat-bubble.mine {
+  -fx-background-color: #2563eb;
+}
+
+.quick-reactions .reaction-btn {
+  -fx-background-color: #111827;
+  -fx-text-fill: #e5e7eb;
+}
+.quick-reactions .reaction-btn:hover {
+  -fx-background-color: #1f2937;
+}

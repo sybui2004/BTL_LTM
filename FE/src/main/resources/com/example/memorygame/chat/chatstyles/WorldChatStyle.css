@@ -1,0 +1,91 @@
+/* Load VT323 font if bundled in resources */
+@font-face {
+  font-family: "VT323";
+  src: url("/com/example/memorygame/assets/fonts/VT323-Regular.ttf");
+}
+
+/* World Chat theme - Màu xanh dương nhạt */
+
+.world-chat-container {
+  -fx-background-color: #B3E5FC;
+  -fx-border-color: #e5e7eb;
+  -fx-border-radius: 8;
+  -fx-background-radius: 8;
+}
+
+.world-chat-container .chat-header {
+  -fx-background-color: linear-gradient(to right, #eef2ff, #eff6ff);
+  -fx-border-color: #dbeafe;
+}
+
+.world-chat-container .chat-title {
+  -fx-text-fill: #1e293b;
+  -fx-font-family: "VT323", "Consolas", "Courier New", monospace;
+  -fx-font-size: 26px; /* Bigger title */
+  -fx-font-weight: normal; /* VT323 is a display font; normal looks better */
+}
+
+.world-chat-container .toggle-btn {
+  -fx-background-color: #e2e8f0;
+  -fx-background-radius: 8;
+}
+.world-chat-container .toggle-btn:hover {
+  -fx-background-color: #cbd5e1;
+}
+
+.world-chat-container .chat-content {
+  -fx-padding: 6;
+}
+
+/* Message area background - Xanh dương nhạt như hình */
+.world-chat-container .base-chat-container {
+  -fx-background-color: #B3E5FC;
+}
+
+.world-chat-container .chat-scroll-pane,
+.world-chat-container .chat-scroll-pane > .viewport {
+  -fx-background-color: #B3E5FC;
+}
+
+.world-chat-container .chat-footer {
+  -fx-background-color: #f8fafc;
+}
+
+/* ===== Split layout (2 cột) ===== */
+.world-chat-split {
+  -fx-padding: 8 10 8 10;
+}
+
+.left-pane, .right-pane {
+  -fx-background-color: rgba(255,255,255,0.65);
+  -fx-background-radius: 10;
+  -fx-border-color: rgba(0,0,0,0.06);
+  -fx-border-radius: 10;
+}
+
+.left-pane .message-container,
+.right-pane .message-container {
+  -fx-padding: 10 10 10 10;
+  -fx-spacing: 10;
+}
+
+/* Make scroll panes blend with pane backgrounds */
+.left-pane .chat-scroll-pane, .left-pane .chat-scroll-pane > .viewport,
+.right-pane .chat-scroll-pane, .right-pane .chat-scroll-pane > .viewport {
+  -fx-background-color: transparent;
+}
+
+/* Input on the left only: tighten spacing to fit narrow column */
+.left-pane .input-area {
+  -fx-background-color: transparent;
+  -fx-border-width: 0;
+  -fx-padding: 8 8 10 8;
+}
+.left-pane .message-input {
+  -fx-font-size: 13px;
+}
+
+/* Chat bubbles inside narrow columns */
+.left-pane .chat-bubble, .right-pane .chat-bubble {
+  -fx-max-width: 220px;
+}
