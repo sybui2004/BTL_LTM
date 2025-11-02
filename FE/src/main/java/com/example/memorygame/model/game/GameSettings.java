@@ -13,6 +13,7 @@ public class GameSettings {
     private String player1Name;
     private String player2Name;
     private boolean isHost;
+    private boolean hostFirstTurn; // true if host goes first, false if guest goes first
     
     // Constructors
     public GameSettings() {}
@@ -80,6 +81,14 @@ public class GameSettings {
         isHost = host;
     }
     
+    public boolean isHostFirstTurn() {
+        return hostFirstTurn;
+    }
+    
+    public void setHostFirstTurn(boolean hostFirstTurn) {
+        this.hostFirstTurn = hostFirstTurn;
+    }
+    
     @Override
     public String toString() {
         return "GameSettings{" +
@@ -90,6 +99,7 @@ public class GameSettings {
                 ", player1Name='" + player1Name + '\'' +
                 ", player2Name='" + player2Name + '\'' +
                 ", isHost=" + isHost +
+                ", hostFirstTurn=" + hostFirstTurn +
                 '}';
     }
 }

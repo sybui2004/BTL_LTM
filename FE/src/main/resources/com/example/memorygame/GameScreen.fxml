@@ -19,7 +19,12 @@
 
       <!-- Overlay UI -->
       <AnchorPane pickOnBounds="false">
-         <!-- Back button - top-left -->
+         <!-- Turn indicator - top-center (placed first, so back button can be on top) -->
+         <HBox alignment="CENTER" AnchorPane.topAnchor="20.0" AnchorPane.leftAnchor="80.0" AnchorPane.rightAnchor="80.0" mouseTransparent="true" pickOnBounds="false">
+            <Label fx:id="turnIndicatorLabel" text="Your turn" styleClass="turn-indicator" mouseTransparent="true" />
+         </HBox>
+
+         <!-- Back button - top-left (placed after turn indicator to be on top) -->
          <StackPane fx:id="backButton" layoutX="10" layoutY="10" styleClass="back-button-container">
             <ImageView fitWidth="36" fitHeight="36" pickOnBounds="true">
                <Image url="@assets/images/icon/back.png"/>
@@ -50,11 +55,6 @@
 
          <!-- Timer - bottom-right -->
          <Label fx:id="timerLabel" text="10s" AnchorPane.bottomAnchor="10.0" AnchorPane.rightAnchor="10.0" />
-
-         <!-- Turn indicator - top-center -->
-         <HBox alignment="CENTER" AnchorPane.topAnchor="20.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
-            <Label fx:id="turnIndicatorLabel" text="Your turn" styleClass="turn-indicator" />
-         </HBox>
       </AnchorPane>
    </children>
 </StackPane>

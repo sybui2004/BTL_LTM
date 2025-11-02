@@ -84,9 +84,20 @@ public class GameScreenController {
         this.gameSettings = staticGameSettings;
         
         if (gameSettings != null) {
-            isMyTurn = gameSettings.isHost();
+            // Determine who goes first based on coin flip result
+            boolean hostFirstTurn = gameSettings.isHostFirstTurn();
+            if (gameSettings.isHost()) {
+                // I am host - I go first if hostFirstTurn is true
+                isMyTurn = hostFirstTurn;
+            } else {
+                // I am guest - I go first if hostFirstTurn is false
+                isMyTurn = !hostFirstTurn;
+            }
             initialTurnTime = parseTimeSetting(gameSettings.getTime());
+            System.out.println("[GameScreen] Turn initialization - hostFirstTurn: " + hostFirstTurn + 
+                             ", isHost: " + gameSettings.isHost() + ", isMyTurn: " + isMyTurn);
         } else {
+            isMyTurn = true; // Default
             initialTurnTime = 30; // Default if no settings
         }
         currentTurnTime = initialTurnTime;

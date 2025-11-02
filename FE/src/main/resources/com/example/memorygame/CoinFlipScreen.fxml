@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<StackPane fx:id="rootContainer" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" 
+           prefWidth="1024.0" prefHeight="720.0" styleClass="coin-flip-container">
+   <children>
+      <!-- Background -->
+      <Region styleClass="background-region" />
+      
+      <!-- Content -->
+      <VBox alignment="CENTER" spacing="40">
+         <children>
+            <!-- Title -->
+            <Label fx:id="titleLabel" text="Tung Đồng Xu" styleClass="title-text" />
+            
+            <!-- Coin Image -->
+            <StackPane>
+               <children>
+                  <ImageView fx:id="coinImageView" fitWidth="200" fitHeight="200" preserveRatio="true" 
+                             styleClass="coin-image" />
+               </children>
+            </StackPane>
+            
+            <!-- Result Text -->
+            <Label fx:id="resultLabel" text="" styleClass="result-text" />
+            
+            <!-- Instruction Text -->
+            <Label fx:id="instructionLabel" text="Đang tung đồng xu..." styleClass="instruction-text" />
+         </children>
+      </VBox>
+   </children>
+</StackPane>
+

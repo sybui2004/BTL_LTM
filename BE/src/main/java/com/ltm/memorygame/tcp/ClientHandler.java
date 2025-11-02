@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.net.Socket;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.List;
 
 public class ClientHandler extends Thread {
@@ -64,8 +65,22 @@ public class ClientHandler extends Thread {
                     sendMessage(new TCPMessage("ERROR", Map.of("reason", "Rate limit exceeded"), "server", username));
                     continue;
                 }
-                TCPMessage msg = JsonUtil.fromJson(raw, TCPMessage.class);
-                handleMessage(msg);
+                log.debug("[TCP] Raw message received: {}", raw);
+                try {
+                    TCPMessage msg = JsonUtil.fromJson(raw, TCPMessage.class);
+                    if (msg == null) {
+                        log.warn("[TCP] Failed to parse message: null");
+                        continue;
+                    }
+                    if (msg.getType() == null) {
+                        log.warn("[TCP] Message has null type. Raw: {}", raw);
+                        continue;
+                    }
+                    handleMessage(msg);
+                } catch (Exception e) {
+                    log.error("[TCP] Error parsing/handling message: {}", e.getMessage());
+                    e.printStackTrace();
+                }
             }
         } catch (IOException e) {
             log.warn("[TCP] Client disconnected: {}", username);
@@ -122,7 +137,12 @@ public class ClientHandler extends Thread {
 
 
     private void handleMessage(TCPMessage message) {
-        switch (message.getType()) {
+        String msgType = message.getType();
+        log.info("[TCP] Received message type: '{}' from user: {}", msgType, username);
+        log.info("[TCP] Message type length: {}, equals COIN_FLIP_REQUEST: {}", 
+                 msgType != null ? msgType.length() : "null", 
+                 "COIN_FLIP_REQUEST".equals(msgType));
+        switch (msgType) {
             case "LOGIN_REQUEST" -> handleLogin(message);
             case "LOGOUT_REQUEST" -> handleLogout();
             case "WORLD_CHAT" -> handleWorldChat(message);
@@ -136,6 +156,7 @@ public class ClientHandler extends Thread {
             case "CARDS_FOR_MATCH_CHECK" -> handleCardsForMatchCheck(message);
             case "GAME_STATE_SYNC" -> handleGameStateSync(message);
             case "PLAYER_SURRENDER" -> handlePlayerSurrender(message);
+            case "COIN_FLIP_REQUEST" -> handleCoinFlipRequest(message);
             case "PING" -> sendMessage(new TCPMessage("PONG", null, "server", username));
             default -> log.warn("[TCP] Unknown type: {}", message.getType());
         }
@@ -451,6 +472,96 @@ public class ClientHandler extends Thread {
             }
         } catch (Exception e) {
             log.error("[TCP] Error handling player surrender: {}", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    private void handleCoinFlipRequest(TCPMessage message) {
+        log.info("[TCP] ===== COIN_FLIP_REQUEST received from {} =====", username);
+        log.info("[TCP] Coin flip request from {}: {}", username, message.getData());
+        
+        if (message.getData() == null) {
+            log.warn("[TCP] COIN_FLIP_REQUEST has null data");
+            return;
+        }
+        
+        Object roomIdObj = message.getData().get("roomId");
+        Long roomId = toLong(roomIdObj);
+        
+        if (roomId == null) {
+            log.error("[TCP] COIN_FLIP_REQUEST missing roomId");
+            return;
+        }
+        
+        try {
+            // Get room to find host and guest
+            Room room = roomService.getEntityById(roomId);
+            if (room == null) {
+                log.error("[TCP] Room {} not found for coin flip", roomId);
+                return;
+            }
+            
+            if (room.getHost() == null) {
+                log.error("[TCP] Room {} has no host", roomId);
+                return;
+            }
+            
+            if (room.getGuest() == null) {
+                log.error("[TCP] Room {} has no guest", roomId);
+                return;
+            }
+            
+            String hostUsername = room.getHost().getUsername();
+            String guestUsername = room.getGuest().getUsername();
+            
+            // Only host can request coin flip
+            if (!username.equals(hostUsername)) {
+                log.warn("[TCP] Non-host user {} tried to request coin flip for room {}", username, roomId);
+                return;
+            }
+            
+            // Random coin result: 1 or 2
+            // 1 = host goes first, 2 = guest goes first
+            // Use SecureRandom without seeding for true randomness
+            java.security.SecureRandom secureRandom = new java.security.SecureRandom();
+            
+            // Test: generate multiple random values to verify randomness
+            int test1 = secureRandom.nextInt(2) + 1;
+            int test2 = secureRandom.nextInt(2) + 1;
+            int test3 = secureRandom.nextInt(2) + 1;
+            
+            int coinResult = secureRandom.nextInt(2) + 1; // Returns 1 or 2
+            
+            log.info("[TCP] Coin flip for room {} - Test random values: [{}, {}, {}], Final Result: {} (1=host first, 2=guest first)", 
+                    roomId, test1, test2, test3, coinResult);
+            
+            // Send result to both host and guest
+            Map<String, Object> resultData = new HashMap<>();
+            resultData.put("coinResult", coinResult);
+            resultData.put("roomId", roomId);
+            
+            TCPMessage resultMessage = new TCPMessage("COIN_FLIP_RESULT", resultData, "server", null);
+            
+            // Send to host
+            ClientHandler hostHandler = onlineClients.get(hostUsername);
+            if (hostHandler != null) {
+                hostHandler.sendMessage(resultMessage);
+                log.info("[TCP] Sent COIN_FLIP_RESULT to host: {}", hostUsername);
+            } else {
+                log.warn("[TCP] Host {} not online", hostUsername);
+            }
+            
+            // Send to guest
+            ClientHandler guestHandler = onlineClients.get(guestUsername);
+            if (guestHandler != null) {
+                guestHandler.sendMessage(resultMessage);
+                log.info("[TCP] Sent COIN_FLIP_RESULT to guest: {}", guestUsername);
+            } else {
+                log.warn("[TCP] Guest {} not online", guestUsername);
+            }
+            
+        } catch (Exception e) {
+            log.error("[TCP] Error handling coin flip request: {}", e.getMessage());
             e.printStackTrace();
         }
     }
