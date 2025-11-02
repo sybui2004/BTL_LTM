@@ -14,7 +14,7 @@
             <BorderPane BorderPane.alignment="CENTER">
                 <left>
                     <HBox spacing="12" alignment="CENTER_LEFT">
-                        <StackPane styleClass="icon-hover">
+                        <StackPane fx:id="backButton" styleClass="icon-hover">
                             <ImageView fitWidth="28" fitHeight="28" preserveRatio="true">
                                 <Image url="@assets/images/icon/back.png"/>
                             </ImageView>

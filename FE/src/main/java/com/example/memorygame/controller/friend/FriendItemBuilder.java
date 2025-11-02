@@ -4,6 +4,7 @@ import com.example.memorygame.controller.room.RoomStateManager;
 import com.example.memorygame.controller.room.RoomUIUpdater;
 import com.example.memorygame.model.user.FriendDTO;
 import com.example.memorygame.model.user.UserSummary;
+import com.example.memorygame.utils.SoundManager;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
@@ -66,7 +67,10 @@ public class FriendItemBuilder {
         plusBtn.getStyleClass().add("icon-button");
         HBox.setMargin(plusBtn, new Insets(0, 8, 0, 0));
         
-        plusBtn.setOnMouseClicked(e -> onInviteUser.accept(user.id));
+        plusBtn.setOnMouseClicked(e -> {
+            SoundManager.playSound("button.wav");
+            onInviteUser.accept(user.id);
+        });
         
         // Hide + button logic
         boolean isOffline = user.status == null || "OFFLINE".equalsIgnoreCase(user.status.trim());
@@ -119,7 +123,10 @@ public class FriendItemBuilder {
         plusBtn.getStyleClass().add("icon-button");
         HBox.setMargin(plusBtn, new Insets(0, 8, 0, 0));
         
-        plusBtn.setOnMouseClicked(e -> onInviteUser.accept(friend.id));
+        plusBtn.setOnMouseClicked(e -> {
+            SoundManager.playSound("button.wav");
+            onInviteUser.accept(friend.id);
+        });
         
         // Hide + button logic
         boolean isOffline = friend.status == null || "OFFLINE".equalsIgnoreCase(friend.status.trim());

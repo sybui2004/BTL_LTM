@@ -3,6 +3,8 @@ module com.example.memorygame {
     requires javafx.fxml;
     requires javafx.web;
     requires javafx.graphics;
+    requires javafx.media;
+    requires java.desktop; // for javax.sound.sampled fallback
 
     requires org.controlsfx.controls;
     requires com.dlsc.formsfx;
