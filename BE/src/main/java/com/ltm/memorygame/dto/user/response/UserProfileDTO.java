@@ -15,5 +15,6 @@ public class UserProfileDTO {
     private String displayName;
     private String avatarUrl;
     private Date createdAt;
+    private int score;
     private List<MatchHistoryDTO> matchHistory;
 }

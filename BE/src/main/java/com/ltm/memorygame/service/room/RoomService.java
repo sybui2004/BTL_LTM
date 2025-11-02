@@ -71,7 +71,13 @@ public class RoomService {
 
     @Transactional(readOnly = true)
     public List<RoomResponseDTO> getWaitingRooms() {
-        return RoomMapper.toDTOList(roomRepository.findByStatusOrderByCreatedAtDesc(RoomStatus.WAITING));
+        // Include READY rooms as reusable rooms for rematch
+        List<Room> waiting = roomRepository.findByStatusOrderByCreatedAtDesc(RoomStatus.WAITING);
+        List<Room> ready = roomRepository.findByStatusOrderByCreatedAtDesc(RoomStatus.READY);
+        java.util.List<Room> all = new java.util.ArrayList<>();
+        all.addAll(waiting);
+        all.addAll(ready);
+        return RoomMapper.toDTOList(all);
     }
 
     /*

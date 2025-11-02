@@ -61,6 +61,8 @@ public class CardService {
     
     private int getTotalCards(String size) {
         switch (size) {
+            case "2x3":
+                return 6; // 2 rows × 3 columns (for testing)
             case "5x6":
                 return 30; // 5 rows × 6 columns
             case "6x7":

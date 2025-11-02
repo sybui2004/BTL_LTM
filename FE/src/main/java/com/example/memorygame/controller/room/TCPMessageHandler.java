@@ -101,11 +101,14 @@ public class TCPMessageHandler {
     
     private void setupRoomUpdatedHandler(TCPClient client) {
         client.onMessage("ROOM_UPDATED", message -> {
+            System.out.println("[TCP][RoomScreen] Received ROOM_UPDATED message: " + message.getData());
             Map<String, Object> data = message.getData();
             if (data != null) {
                 Object guestIdObj = data.get("guestId");
                 Object guestDisplayNameObj = data.get("guestDisplayName");
                 Object guestAvatarUrlObj = data.get("guestAvatarUrl");
+                
+                System.out.println("[TCP][RoomScreen] Parsing ROOM_UPDATED - guestId: " + guestIdObj + ", displayName: " + guestDisplayNameObj);
                 
                 if (guestDisplayNameObj != null) {
                     String guestDisplayName = guestDisplayNameObj.toString();
@@ -116,8 +119,9 @@ public class TCPMessageHandler {
                         try {
                             Long guestId = Long.parseLong(guestIdObj.toString());
                             stateManager.setCurrentGuestId(guestId);
-                            System.out.println("[TCP][RoomScreen] Guest ID: " + guestId + " joined room");
+                            System.out.println("[TCP][RoomScreen] Set guest ID: " + guestId);
                         } catch (NumberFormatException e) {
+                            System.err.println("[TCP][RoomScreen] Failed to parse guestId: " + guestIdObj);
                             stateManager.setCurrentGuestId(null);
                         }
                     }
@@ -125,6 +129,7 @@ public class TCPMessageHandler {
                     System.out.println("[TCP][RoomScreen] Guest joined room: " + guestDisplayName);
                     
                     Platform.runLater(() -> {
+                        System.out.println("[TCP][RoomScreen] Updating UI with guest info: " + guestDisplayName);
                         uiUpdater.updateGuestInfo(guestDisplayName, guestAvatarUrl);
                         
                         // Enable play button for host when guest joins
@@ -145,7 +150,11 @@ public class TCPMessageHandler {
                         onRefreshTab.run();
                         showAlert(guestDisplayName + " joined the room!");
                     });
+                } else {
+                    System.err.println("[TCP][RoomScreen] ROOM_UPDATED message missing guestDisplayName");
                 }
+            } else {
+                System.err.println("[TCP][RoomScreen] ROOM_UPDATED message has null data");
             }
         });
     }
@@ -193,7 +202,10 @@ public class TCPMessageHandler {
                         // Show myself as guest
                         UserSummary currentUser = UserApi.getCurrentUser();
                         if (currentUser != null) {
-                            uiUpdater.updateGuestInfo(currentUser.displayName, currentUser.avatarUrl);
+                            // Use displayName for UI, but set username for game settings
+                            String myDisplayName = currentUser.displayName != null && !currentUser.displayName.isBlank() 
+                                ? currentUser.displayName : currentUser.username;
+                            uiUpdater.updateGuestInfo(myDisplayName, currentUser.avatarUrl);
                         }
                         
                         // I am guest, disable play button

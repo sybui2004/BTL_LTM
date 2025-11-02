@@ -1,3 +1,44 @@
+/* Main Screen Styles */
+AnchorPane {
+    -fx-background-color: linear-gradient(to bottom, #d9f3ff, #a1ddf6);
+}
+
+.main-title {
+    -fx-text-alignment: center;
+    -fx-font-size: 72px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2d6f99;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 10, 0, 0, 2);
+}
+
+.subtitle {
+    -fx-text-alignment: center;
+    -fx-font-size: 32px;
+    -fx-font-weight: normal;
+    -fx-text-fill: #4a90a4;
+    -fx-padding: 0 0 20 0;
+}
+
+.enter-room-button {
+    -fx-background-radius: 30px;
+    -fx-background-color: #2d6f99;
+    -fx-text-fill: white;
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.35), 8, 0, 2, 3);
+    -fx-cursor: hand;
+}
+
+.enter-room-button:hover {
+    -fx-background-color: #1f5073;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.45), 12, 0, 3, 4);
+}
+
+.enter-room-button:pressed {
+    -fx-background-color: #154258;
+}
+
+/* Existing styles */
 .node{
     -fx-background-color: #ffffff;
     -fx-alignment: center;

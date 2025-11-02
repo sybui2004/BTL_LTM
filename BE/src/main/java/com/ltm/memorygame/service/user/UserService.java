@@ -43,6 +43,8 @@ public class UserService {
         user.setUsername(request.getUsername());
         user.setPassword(passwordHasher.hashPassword(request.getPassword()));
         user.setEmail(request.getEmail());
+        // Initial rank score
+        user.setScore(100);
 
         user.setCreatedAt(new Date());
         user.setStatus(UserStatus.OFFLINE);

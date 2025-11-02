@@ -47,6 +47,7 @@ public class UserMapper {
                 .avatarUrl(user.getAvatarUrl())
                 .createdAt(user.getCreatedAt())
                 .status(user.getStatus())
+                .score(user.getScore())
                 .userSetting(toUserSettingDTO(user.getUserSetting()))
                 .build();
     }
@@ -61,6 +62,7 @@ public class UserMapper {
                 .displayName(user.getDisplayName())
                 .avatarUrl(user.getAvatarUrl())
                 .createdAt(user.getCreatedAt())
+                .score(user.getScore())
                 .matchHistory(matchHistoryDTO)
                 .build();
     }

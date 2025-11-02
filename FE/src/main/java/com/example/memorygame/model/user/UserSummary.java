@@ -6,6 +6,7 @@ public class UserSummary {
     public String displayName;
     public String status;
     public String avatarUrl;
+    public int score; // rank points
     public int totalScore;
     public int winCount;
 }

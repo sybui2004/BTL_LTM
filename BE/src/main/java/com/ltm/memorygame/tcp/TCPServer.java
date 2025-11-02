@@ -220,4 +220,17 @@ public class TCPServer implements Runnable {
             log.debug("[TCP] New host {} not online, skipping host promoted notification", newHostUsername);
         }
     }
+    
+    /**
+     * Get ClientHandler for a specific username
+     */
+    public ClientHandler getClientHandler(String username) {
+        ClientHandler handler = onlineClients.get(username);
+        if (handler == null) {
+            log.warn("[TCP] Handler not found for username: {}. Current online clients: {}", username, onlineClients.keySet());
+        } else {
+            log.debug("[TCP] Handler found for username: {}", username);
+        }
+        return handler;
+    }
 }

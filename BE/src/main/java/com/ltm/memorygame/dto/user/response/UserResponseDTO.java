@@ -24,6 +24,8 @@ public class UserResponseDTO {
 
     private UserStatus status;
 
+    private int score;
+
     private UserSettingDTO userSetting;
 
 }
