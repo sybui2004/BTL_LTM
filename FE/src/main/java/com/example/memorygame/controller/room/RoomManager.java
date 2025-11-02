@@ -18,10 +18,21 @@ import java.util.function.BiConsumer;
 public class RoomManager {
     private final RoomStateManager stateManager;
     private final BiConsumer<String, Alert.AlertType> alertHandler;
+    private Runnable onLoadGuestInfo;
     
     public RoomManager(RoomStateManager stateManager, BiConsumer<String, Alert.AlertType> alertHandler) {
         this.stateManager = stateManager;
         this.alertHandler = alertHandler;
+    }
+    
+    public void setOnLoadGuestInfo(Runnable callback) {
+        this.onLoadGuestInfo = callback;
+    }
+    
+    private Runnable onLoadHostInfo;
+    
+    public void setOnLoadHostInfo(Runnable callback) {
+        this.onLoadHostInfo = callback;
     }
     
     /**
@@ -36,12 +47,36 @@ public class RoomManager {
                     return;
                 }
                 
-                // Check if user already has a waiting room
+                // Check if user already has a waiting room (as host OR guest)
                 List<RoomResponseDTO> waitingRooms = RoomApi.getWaitingRooms();
                 for (RoomResponseDTO existingRoom : waitingRooms) {
-                    if (existingRoom.hostId != null && existingRoom.hostId.equals(currentUser.id)) {
+                    boolean isHost = existingRoom.hostId != null && existingRoom.hostId.equals(currentUser.id);
+                    boolean isGuest = existingRoom.guestId != null && existingRoom.guestId.equals(currentUser.id);
+                    
+                    if (isHost || isGuest) {
                         stateManager.setCurrentRoomId(existingRoom.id);
-                        System.out.println("[Room] Using existing room ID: " + existingRoom.id);
+                        stateManager.setHost(isHost);
+                        
+                        // Load opponent info
+                        if (isHost && existingRoom.guestId != null) {
+                            stateManager.setCurrentGuestId(existingRoom.guestId);
+                            System.out.println("[Room] Using existing room ID: " + existingRoom.id + " as host with guest: " + existingRoom.guestId);
+                            Platform.runLater(() -> {
+                                if (onLoadGuestInfo != null) {
+                                    onLoadGuestInfo.run();
+                                }
+                            });
+                        } else if (isGuest && existingRoom.hostId != null) {
+                            stateManager.setCurrentHostId(existingRoom.hostId);
+                            System.out.println("[Room] Using existing room ID: " + existingRoom.id + " as guest with host: " + existingRoom.hostId);
+                            Platform.runLater(() -> {
+                                if (onLoadHostInfo != null) {
+                                    onLoadHostInfo.run();
+                                }
+                            });
+                        } else {
+                            System.out.println("[Room] Using existing room ID: " + existingRoom.id);
+                        }
                         return;
                     }
                 }

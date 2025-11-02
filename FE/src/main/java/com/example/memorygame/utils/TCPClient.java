@@ -162,13 +162,24 @@ public class TCPClient {
     private void handleMessage(TCPMessage message) {
         String type = message.getType();
         System.out.println("[TCP] Received: " + type + " | Data: " + message.getData());
+        System.out.println("[TCP] Registered handlers: " + messageHandlers.keySet());
         
         Consumer<TCPMessage> handler = messageHandlers.get(type);
         if (handler != null) {
+            System.out.println("[TCP] ✓ Handler found for " + type + ", executing on JavaFX thread");
             // Execute handler on JavaFX Application Thread
-            Platform.runLater(() -> handler.accept(message));
+            Platform.runLater(() -> {
+                try {
+                    handler.accept(message);
+                    System.out.println("[TCP] ✓ Handler executed successfully for " + type);
+                } catch (Exception e) {
+                    System.err.println("[TCP] ✗ Error executing handler for " + type + ": " + e.getMessage());
+                    e.printStackTrace();
+                }
+            });
         } else {
-            System.out.println("[TCP] No handler registered for: " + type);
+            System.err.println("[TCP] ✗ No handler registered for: " + type);
+            System.err.println("[TCP] Available handlers: " + messageHandlers.keySet());
         }
     }
     

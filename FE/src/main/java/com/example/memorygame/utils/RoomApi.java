@@ -64,5 +64,23 @@ public class RoomApi {
             return java.util.Collections.emptyList();
         }
     }
+
+    /**
+     * Exit a room (host or guest).
+     * This is safe to call even if backend already processed exit via TCP.
+     */
+    public static boolean exitRoom(Long roomId, Long playerId) {
+        try {
+            Map<String, Object> request = new HashMap<>();
+            request.put("roomId", roomId);
+            request.put("playerId", playerId);
+            String json = MAPPER.writeValueAsString(request);
+            ApiClient.postJsonAuth("/api/rooms/exit", json);
+            return true;
+        } catch (Exception e) {
+            System.err.println("[RoomApi] Failed to exit room: " + e.getMessage());
+            return false;
+        }
+    }
 }
 

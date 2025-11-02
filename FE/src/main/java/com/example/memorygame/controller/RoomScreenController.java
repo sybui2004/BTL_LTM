@@ -131,6 +131,8 @@ public class RoomScreenController {
         
         // Room manager
         roomManager = new RoomManager(stateManager, this::showAlert);
+        roomManager.setOnLoadGuestInfo(this::loadExistingGuestInfo);
+        roomManager.setOnLoadHostInfo(this::loadExistingHostInfo);
         
         // Friend item builder
         FriendItemBuilder friendItemBuilder = new FriendItemBuilder(
@@ -295,6 +297,59 @@ public class RoomScreenController {
         alert.showAndWait();
     }
     
+    private void loadExistingGuestInfo() {
+        new Thread(() -> {
+            try {
+                Long guestId = stateManager.getCurrentGuestId();
+                if (guestId != null) {
+                    com.example.memorygame.model.user.UserSummary guest = com.example.memorygame.utils.UserApi.getUserById(guestId);
+                    if (guest != null) {
+                        String displayName = guest.displayName != null && !guest.displayName.isBlank() ? guest.displayName : guest.username;
+                        Platform.runLater(() -> {
+                            uiUpdater.updateGuestInfo(displayName, guest.avatarUrl);
+                            uiUpdater.setPlayButtonEnabled(stateManager.isHost() && stateManager.canStartGame());
+                        });
+                        System.out.println("[RoomScreen] Loaded guest info: " + displayName);
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("[RoomScreen] Failed to load guest info: " + e.getMessage());
+            }
+        }).start();
+    }
+    
+    private void loadExistingHostInfo() {
+        new Thread(() -> {
+            try {
+                Long hostId = stateManager.getCurrentHostId();
+                if (hostId != null) {
+                    com.example.memorygame.model.user.UserSummary host = com.example.memorygame.utils.UserApi.getUserById(hostId);
+                    if (host != null) {
+                        String displayName = host.displayName != null && !host.displayName.isBlank() ? host.displayName : host.username;
+                        Platform.runLater(() -> {
+                            uiUpdater.updateHostInfo(displayName, host.avatarUrl);
+                            uiUpdater.setPlayButtonEnabled(false); // Guest can't start game
+                            
+                            // Also show myself as guest
+                            com.example.memorygame.model.user.UserSummary currentUser = com.example.memorygame.utils.UserApi.getCurrentUser();
+                            if (currentUser != null) {
+                                String myDisplayName = currentUser.displayName != null && !currentUser.displayName.isBlank() 
+                                    ? currentUser.displayName : currentUser.username;
+                                uiUpdater.updateGuestInfo(myDisplayName, currentUser.avatarUrl);
+                            }
+                            
+                            // Update ComboBox states for guest (hide combo boxes)
+                            updateComboBoxStates();
+                        });
+                        System.out.println("[RoomScreen] Loaded host info: " + displayName);
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("[RoomScreen] Failed to load host info: " + e.getMessage());
+            }
+        }).start();
+    }
+    
     private Image loadUserAvatarOrFallback(String candidateUrl) {
         // Default avatar URL from server using ApiClient base URL
         String serverDefaultAvatarUrl = ApiClient.getBaseUrl() + "/static/avatars/default_avatar.png";
@@ -381,7 +436,7 @@ public class RoomScreenController {
     private void setupGameOptions() {
         // Setup Size ComboBox
         if (sizeComboBox != null) {
-            sizeComboBox.getItems().addAll("5x6", "6x7");
+            sizeComboBox.getItems().addAll("2x3", "5x6", "6x7");
             sizeComboBox.setValue("5x6"); // Default selection
         }
         
@@ -583,7 +638,11 @@ public class RoomScreenController {
     private String getCurrentUserName() {
         try {
             UserSummary currentUser = UserApi.getCurrentUser();
-            return currentUser != null ? currentUser.displayName : "Me";
+            // Use displayName for display, fall back to username if displayName is null
+            if (currentUser != null) {
+                return currentUser.displayName != null && !currentUser.displayName.isBlank() ? currentUser.displayName : currentUser.username;
+            }
+            return "Me";
         } catch (Exception e) {
             System.err.println("[RoomScreen] Failed to get current user name: " + e.getMessage());
             return "Me";
@@ -592,11 +651,20 @@ public class RoomScreenController {
     
     private String getOpponentName() {
         try {
-            // Get opponent from room state
-            Long opponentId = stateManager.getCurrentGuestId();
+            // Get opponent from room state - depends on whether we're host or guest
+            Long opponentId;
+            if (stateManager.isHost()) {
+                opponentId = stateManager.getCurrentGuestId(); // Host's opponent is the guest
+            } else {
+                opponentId = stateManager.getCurrentHostId(); // Guest's opponent is the host
+            }
+            
             if (opponentId != null) {
                 UserSummary opponent = UserApi.getUserById(opponentId);
-                return opponent != null ? opponent.displayName : "Opponent";
+                // Use displayName for display, fall back to username if displayName is null
+                if (opponent != null) {
+                    return opponent.displayName != null && !opponent.displayName.isBlank() ? opponent.displayName : opponent.username;
+                }
             }
             return "Opponent";
         } catch (Exception e) {

@@ -21,7 +21,13 @@ public class MemoryCard extends Button {
     public MemoryCard(CardDTO cardData, String cardBackPath) {
         this.cardData = cardData;
         this.cardBackPath = cardBackPath;
-        this.cardFrontPath = "http://localhost:8080" + cardData.getImagePath();
+        // Check if imagePath already contains full URL, if not, prepend base URL
+        String imagePath = cardData.getImagePath();
+        if (imagePath != null && (imagePath.startsWith("http://") || imagePath.startsWith("https://"))) {
+            this.cardFrontPath = imagePath;
+        } else {
+            this.cardFrontPath = "http://localhost:8080" + imagePath;
+        }
         
         setupCard();
     }
@@ -37,6 +43,7 @@ public class MemoryCard extends Button {
         cardImage.setFitWidth(80);
         cardImage.setFitHeight(100);
         cardImage.setPreserveRatio(true);
+        cardImage.setSmooth(true);
         
         // Load card back image
         loadCardBack();
@@ -47,8 +54,7 @@ public class MemoryCard extends Button {
         // Set button style
         getStyleClass().add("memory-card");
         
-        // Add click handler
-        setOnAction(e -> flipCard());
+        // Note: Click handler will be set by GameScreenController
     }
     
     private void loadCardBack() {

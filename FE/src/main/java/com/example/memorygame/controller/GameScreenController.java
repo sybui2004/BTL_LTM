@@ -17,6 +17,8 @@ import javafx.scene.image.Image;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Button;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 import javafx.animation.Timeline;
 import javafx.animation.KeyFrame;
 import javafx.util.Duration;
@@ -50,6 +52,7 @@ public class GameScreenController {
     private MemoryCard secondFlippedCard = null;
     private int flippedCardsCount = 0;
     private boolean isResolving = false; // Block input while waiting for result/animations
+    private Thread matchCheckTimeoutThread = null; // Thread to handle timeout if server doesn't respond
     
     // Timer
     private Timeline turnTimer;
@@ -74,6 +77,7 @@ public class GameScreenController {
     @FXML private Label timerLabel;
     
     private GameScreen screen;
+    private volatile boolean gameEndReceived = false;
     
     public GameScreenController() {
         this.gameSettings = staticGameSettings;
@@ -199,24 +203,64 @@ public class GameScreenController {
     }
     
     private void handleBack() {
-        try {
-            Stage stage = (Stage) backButton.getScene().getWindow();
-            
-            // Navigate back to RoomScreen
-            RoomScreenController roomController = new RoomScreenController();
-            Scene roomScene = new Scene(roomController.getScreen().getRoot());
-            roomScene.getStylesheets().add(getClass().getResource("/com/example/memorygame/RoomScreenStyle.css").toExternalForm());
-            
-            stage.setScene(roomScene);
-            stage.setTitle("Memory Game - Room");
-            stage.show();
-            
-            System.out.println("[GameScreen] Navigated back to room screen");
-            
-        } catch (Exception e) {
-            System.err.println("[GameScreen] Failed to navigate back: " + e.getMessage());
-            e.printStackTrace();
-        }
+        // Show confirmation dialog
+        Alert alert = new Alert(AlertType.CONFIRMATION);
+        alert.setTitle("Xác nhận thoát");
+        alert.setHeaderText("Bạn có chắc chắn muốn thoát khỏi trò chơi?");
+        alert.setContentText("Nếu thoát, bạn sẽ mất tiến trình hiện tại.");
+        
+        alert.showAndWait().ifPresent(response -> {
+            if (response == javafx.scene.control.ButtonType.OK) {
+                try {
+                    // Send a surrender message to backend
+                    // Backend will handle game exit and send GAME_END to opponent
+                    // We do NOT disconnect here - user is still online, just leaving the game
+                    try {
+                        TCPClient client = TCPClient.getInstance();
+                        Map<String, Object> data = new HashMap<>();
+                        data.put("roomId", gameSettings != null ? gameSettings.getRoomId() : null);
+                        TCPClient.TCPMessage surrenderMessage = new TCPClient.TCPMessage("PLAYER_SURRENDER", data, null, null);
+                        client.sendMessage(surrenderMessage);
+                        System.out.println("[GameScreen] Sent PLAYER_SURRENDER message - staying connected");
+                        // Additionally call REST exitRoom to persist room state immediately (defensive)
+                        new Thread(() -> {
+                            try {
+                                com.example.memorygame.model.user.UserSummary me = com.example.memorygame.utils.UserApi.getCurrentUser();
+                                if (me != null && gameSettings != null && gameSettings.getRoomId() != null) {
+                                    boolean ok = com.example.memorygame.utils.RoomApi.exitRoom(gameSettings.getRoomId(), me.id);
+                                    System.out.println("[GameScreen] Called REST exitRoom => " + ok);
+                                }
+                            } catch (Exception ignore) {}
+                        }).start();
+                    } catch (Exception e) {
+                        System.err.println("[GameScreen] Failed to send surrender message: " + e.getMessage());
+                        e.printStackTrace();
+                    }
+                    
+                    Stage stage = (Stage) backButton.getScene().getWindow();
+                    
+                    // Stop the timer if it's running
+                    if (turnTimer != null) {
+                        turnTimer.stop();
+                    }
+                    
+                    // Navigate back to MainScreen
+                    MainScreenController mainController = new MainScreenController();
+                    Scene mainScene = new Scene(mainController.getScreen().getRoot());
+                    mainScene.getStylesheets().add(getClass().getResource("/com/example/memorygame/MainScreenStyle.css").toExternalForm());
+                    
+                    stage.setScene(mainScene);
+                    stage.setTitle("Memory Matching Game");
+                    stage.show();
+                    
+                    System.out.println("[GameScreen] Navigated back to main screen");
+                    
+                } catch (Exception e) {
+                    System.err.println("[GameScreen] Failed to navigate back: " + e.getMessage());
+                    e.printStackTrace();
+                }
+            }
+        });
     }
     
     private void setupThemeBackground() {
@@ -507,18 +551,38 @@ public class GameScreenController {
                                       ", cardIndex1: " + cardIndex1 + ", cardIndex2: " + cardIndex2 +
                                       ", shouldSwitchTurn: " + shouldSwitchTurn);
                     
+                    // Cancel timeout since we received response
+                    if (matchCheckTimeoutThread != null && matchCheckTimeoutThread.isAlive()) {
+                        matchCheckTimeoutThread.interrupt();
+                    }
+                    
+                    // Save card references BEFORE Platform.runLater to avoid race conditions
+                    final MemoryCard savedCard1 = (cardIndex1 != null && cardIndex1 >= 0 && cardIndex1 < cards.size()) 
+                        ? cards.get(cardIndex1) 
+                        : firstFlippedCard;
+                    final MemoryCard savedCard2 = (cardIndex2 != null && cardIndex2 >= 0 && cardIndex2 < cards.size()) 
+                        ? cards.get(cardIndex2) 
+                        : secondFlippedCard;
+                    
+                    System.out.println("[GameScreen] Saved card references - card1: " + (savedCard1 != null ? savedCard1.getCardData().getId() : "null") +
+                                      ", card2: " + (savedCard2 != null ? savedCard2.getCardData().getId() : "null"));
+                    
                     Platform.runLater(() -> {
-                        if (isMatch != null && isMatch) {
+                        // Default to false if isMatch is null
+                        boolean cardsMatch = (isMatch != null && isMatch);
+                        
+                        if (cardsMatch) {
                             // Cards match - make them disappear after 1s delay
+                            System.out.println("[GameScreen] Cards match - will disappear after delay");
                             new Thread(() -> {
                                 try {
                                     Thread.sleep(1000); // wait 1s to let second card finish flip and be visible
                                     Platform.runLater(() -> {
-                                        if (cardIndex1 != null && cardIndex1 >= 0 && cardIndex1 < cards.size()) {
-                                            cards.get(cardIndex1).setVisible(false);
+                                        if (savedCard1 != null) {
+                                            savedCard1.setVisible(false);
                                         }
-                                        if (cardIndex2 != null && cardIndex2 >= 0 && cardIndex2 < cards.size()) {
-                                            cards.get(cardIndex2).setVisible(false);
+                                        if (savedCard2 != null) {
+                                            savedCard2.setVisible(false);
                                         }
                                         // Update scores
                                         if (player1Score != null) this.player1Score = player1Score;
@@ -535,20 +599,33 @@ public class GameScreenController {
                             }).start();
                             return; // Defer rest until disappearance completes
                         } else {
-                            // Cards don't match - flip them back after 1s delay
-                            System.out.println("[GameScreen] Cards don't match - starting flip back process");
+                            // Cards don't match (or isMatch is null) - flip them back after 1s delay
+                            System.out.println("[GameScreen] Cards don't match (isMatch=" + isMatch + ") - starting flip back process");
+                            System.out.println("[GameScreen] Card1 flipped state: " + (savedCard1 != null ? savedCard1.isFlipped() : "null") +
+                                              ", Card2 flipped state: " + (savedCard2 != null ? savedCard2.isFlipped() : "null"));
                             new Thread(() -> {
                                 try {
                                     Thread.sleep(1000); // Show cards briefly (1s)
                                     Platform.runLater(() -> {
-                                        System.out.println("[GameScreen] Flipping back cards - cardIndex1: " + cardIndex1 + ", cardIndex2: " + cardIndex2);
-                                        if (cardIndex1 != null && cardIndex1 >= 0 && cardIndex1 < cards.size()) {
-                                            cards.get(cardIndex1).flipToBack();
-                                            System.out.println("[GameScreen] Flipped back card " + cardIndex1);
+                                        System.out.println("[GameScreen] Flipping back cards after 1s delay");
+                                        
+                                        // Flip back both cards if they are flipped
+                                        if (savedCard1 != null && savedCard1.isFlipped()) {
+                                            System.out.println("[GameScreen] Flipping back card 1");
+                                            savedCard1.flipToBack();
+                                        } else if (savedCard1 != null) {
+                                            System.out.println("[GameScreen] Card 1 is not flipped, skipping");
+                                        } else {
+                                            System.out.println("[GameScreen] Card 1 is null, cannot flip back");
                                         }
-                                        if (cardIndex2 != null && cardIndex2 >= 0 && cardIndex2 < cards.size()) {
-                                            cards.get(cardIndex2).flipToBack();
-                                            System.out.println("[GameScreen] Flipped back card " + cardIndex2);
+                                        
+                                        if (savedCard2 != null && savedCard2.isFlipped()) {
+                                            System.out.println("[GameScreen] Flipping back card 2");
+                                            savedCard2.flipToBack();
+                                        } else if (savedCard2 != null) {
+                                            System.out.println("[GameScreen] Card 2 is not flipped, skipping");
+                                        } else {
+                                            System.out.println("[GameScreen] Card 2 is null, cannot flip back");
                                         }
                                         
                                         // Reset state AFTER flip-back completes
@@ -577,11 +654,287 @@ public class GameScreenController {
                 }
             });
             
+            client.onMessage("GAME_END", message -> {
+                System.out.println("[GameScreen] ✓✓✓ Received GAME_END message: " + message.getData());
+                System.out.println("[GameScreen] Message type: " + message.getType());
+                
+                // Prevent duplicate processing
+                if (gameEndReceived) {
+                    System.out.println("[GameScreen] GAME_END already processed, ignoring duplicate");
+                    return;
+                }
+                
+                // Set flag IMMEDIATELY to prevent race with GUEST_LEFT/HOST_PROMOTED
+                gameEndReceived = true;
+                System.out.println("[GameScreen] Set gameEndReceived=true immediately to prevent race conditions");
+                
+                Map<String, Object> data = message.getData();
+                if (data != null) {
+                    System.out.println("[GameScreen] Processing GAME_END data: " + data);
+                    // Run handleGameEnd in background thread to avoid blocking JavaFX thread
+                    new Thread(() -> {
+                        System.out.println("[GameScreen] Calling handleGameEnd in background thread");
+                        handleGameEnd(data);
+                    }).start();
+                } else {
+                    System.err.println("[GameScreen] ✗ GAME_END message has null data!");
+                }
+            });
+
+            // Also listen to fallback signals from Room service
+            client.onMessage("GUEST_LEFT", message -> {
+                System.out.println("[GameScreen] Received GUEST_LEFT while in game - scheduling fallback");
+                if (!gameEndReceived) {
+                    scheduleOpponentLeftFallback();
+                } else {
+                    System.out.println("[GameScreen] GUEST_LEFT received after game end, ignoring");
+                }
+            });
+
+            client.onMessage("HOST_PROMOTED", message -> {
+                System.out.println("[GameScreen] Received HOST_PROMOTED while in game - scheduling fallback");
+                if (!gameEndReceived) {
+                    scheduleOpponentLeftFallback();
+                } else {
+                    System.out.println("[GameScreen] HOST_PROMOTED received after game end, ignoring");
+                }
+            });
+            
             System.out.println("[GameScreen] TCP handlers setup completed");
         } catch (Exception e) {
             System.err.println("[GameScreen] Failed to setup TCP handlers: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+    
+    private void handleGameEnd(Map<String, Object> data) {
+        System.out.println("[GameScreen] handleGameEnd called with data: " + data);
+        
+        // Delay longer to ensure last match animation completes (1s delay in MATCH_RESULT + buffer)
+        try { Thread.sleep(2000); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
+        
+        // Update scores from server BEFORE showing dialog
+        Integer player1ScoreFromServer = convertToInteger(data.get("player1Score"));
+        Integer player2ScoreFromServer = convertToInteger(data.get("player2Score"));
+        
+        if (player1ScoreFromServer != null) this.player1Score = player1ScoreFromServer;
+        if (player2ScoreFromServer != null) this.player2Score = player2ScoreFromServer;
+        
+        // Update score labels on UI and hide any remaining visible cards
+        Platform.runLater(() -> {
+            updateScoreLabels();
+            System.out.println("[GameScreen] Updated scores - P1: " + this.player1Score + ", P2: " + this.player2Score);
+            
+            // Hide any cards that are still visible (in case last match animation)
+            for (MemoryCard card : cards) {
+                if (card != null && card.isVisible() && !card.isMatched()) {
+                    card.setVisible(false);
+                    System.out.println("[GameScreen] Hiding remaining visible card");
+                }
+            }
+        });
+        
+        // Wait a bit more for UI update
+        try { Thread.sleep(300); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
+        
+        // Get game end data
+        String winnerUsername = (String) data.get("winnerUsername");
+        Object winnerIdObj = data.get("winnerId");
+        Boolean isSurrender = (Boolean) data.get("isSurrender");
+        Integer winnerRankPoints = convertToInteger(data.get("winnerRankPoints"));
+        Integer loserRankPoints = convertToInteger(data.get("loserRankPoints"));
+        
+        // Determine if I won - prefer comparing winnerId to my id (robust), fallback to username
+        boolean iWon = false;
+        try {
+            com.example.memorygame.model.user.UserSummary currentUser = com.example.memorygame.utils.UserApi.getCurrentUser();
+            if (currentUser != null) {
+                if (winnerIdObj != null) {
+                    Long myIdBoxed = currentUser.id;
+                    long myId = (myIdBoxed != null) ? myIdBoxed.longValue() : -1L;
+                    long winnerIdParsed;
+                    try {
+                        winnerIdParsed = (long) Math.round(Double.parseDouble(winnerIdObj.toString()));
+                    } catch (NumberFormatException nfe) {
+                        winnerIdParsed = -2L;
+                    }
+                    iWon = (myId != -1L && winnerIdParsed != -2L && winnerIdParsed == myId);
+                }
+                if (!iWon && winnerUsername != null && currentUser.username != null) {
+                    iWon = winnerUsername.equals(currentUser.username);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("[GameScreen] Failed to get current user for winner check: " + e.getMessage());
+        }
+        
+        System.out.println("[GameScreen] Game End Debug - currentUsername: " + 
+            (com.example.memorygame.utils.UserApi.getCurrentUser() != null ? com.example.memorygame.utils.UserApi.getCurrentUser().username : "null") + 
+            ", winnerUsername: " + winnerUsername + ", winnerId: " + winnerIdObj + ", iWon: " + iWon);
+        System.out.println("[GameScreen] Scores - P1: " + this.player1Score + ", P2: " + this.player2Score + ", Winner: +" + winnerRankPoints + ", Loser: -" + loserRankPoints);
+        
+        // Build dialog message
+        String message;
+        if (isSurrender != null && isSurrender) {
+            message = String.format("Đối thủ đã thoát!\n\n");
+        } else {
+            message = String.format("Tất cả các lá bài đã được mở!\n\n");
+        }
+        
+        // Get display names for winner (use displayName from GameSettings for display)
+        String winnerDisplayName = "Unknown";
+        if (gameSettings != null) {
+            if (iWon) {
+                // I won - use my displayName from GameSettings
+                winnerDisplayName = gameSettings.isHost() ? gameSettings.getPlayer1Name() : gameSettings.getPlayer2Name();
+                System.out.println("[GameScreen] I won - winnerDisplayName: " + winnerDisplayName);
+            } else {
+                // Opponent won - use opponent's displayName from GameSettings
+                winnerDisplayName = gameSettings.isHost() ? gameSettings.getPlayer2Name() : gameSettings.getPlayer1Name();
+                System.out.println("[GameScreen] I lost - winnerDisplayName: " + winnerDisplayName);
+            }
+        } else {
+            System.err.println("[GameScreen] gameSettings is null, cannot determine winnerDisplayName");
+        }
+        
+        // Build final message with score info
+        String finalMessage;
+        if (iWon) {
+            finalMessage = message + String.format("Điểm của bạn: %d cặp\nĐiểm đối thủ: %d cặp\n\n" +
+                               "Bạn được cộng: +%d điểm rank",
+                               gameSettings != null && gameSettings.isHost() ? this.player1Score : this.player2Score,
+                               gameSettings != null && gameSettings.isHost() ? this.player2Score : this.player1Score,
+                               winnerRankPoints != null ? winnerRankPoints : 0);
+        } else {
+            finalMessage = message + String.format("Điểm của bạn: %d cặp\nĐiểm đối thủ: %d cặp\n\n" +
+                               "Người thắng: %s\n" +
+                               "Bạn bị trừ: -%d điểm rank",
+                               gameSettings != null && gameSettings.isHost() ? this.player1Score : this.player2Score,
+                               gameSettings != null && gameSettings.isHost() ? this.player2Score : this.player1Score,
+                               winnerDisplayName,
+                               loserRankPoints != null ? loserRankPoints : 0);
+        }
+        
+        String finalWinnerDisplayName = winnerDisplayName;
+        boolean finalIWon = iWon;
+        
+        // Show end game dialog on JavaFX thread
+        Platform.runLater(() -> {
+            // Stop timer
+            if (turnTimer != null) {
+                turnTimer.stop();
+                System.out.println("[GameScreen] Timer stopped");
+            }
+            
+            // Show end game dialog
+            Alert alert = new Alert(AlertType.INFORMATION);
+            alert.setTitle("Game Over");
+            
+            if (finalIWon) {
+                alert.setHeaderText("Chúc mừng! Bạn đã chiến thắng!");
+            } else {
+                alert.setHeaderText("Game Over");
+            }
+            
+            alert.setContentText(finalMessage);
+            
+            // Buttons: Leave room (back to Main) or Rematch (go to Room waiting screen)
+            javafx.scene.control.ButtonType leaveBtn = new javafx.scene.control.ButtonType("Rời phòng", javafx.scene.control.ButtonBar.ButtonData.LEFT);
+            javafx.scene.control.ButtonType rematchBtn = new javafx.scene.control.ButtonType("Đấu lại", javafx.scene.control.ButtonBar.ButtonData.RIGHT);
+            alert.getButtonTypes().setAll(leaveBtn, rematchBtn);
+            
+            System.out.println("[GameScreen] Showing GAME_END dialog with options");
+            
+            java.util.Optional<javafx.scene.control.ButtonType> chosen = alert.showAndWait();
+            if (chosen.isPresent() && chosen.get() == rematchBtn) {
+                // Navigate to RoomScreen (waiting lobby)
+                try {
+                    Stage stage = (Stage) gameContainer.getScene().getWindow();
+                    
+                    RoomScreenController roomController = new RoomScreenController();
+                    Scene roomScene = new Scene(roomController.getScreen().getRoot());
+                    roomScene.getStylesheets().add(getClass().getResource("/com/example/memorygame/RoomScreenStyle.css").toExternalForm());
+                    
+                    stage.setScene(roomScene);
+                    stage.setTitle("Memory Game - Room");
+                    stage.setResizable(true);
+                    stage.show();
+                    System.out.println("[GameScreen] Navigated back to room waiting screen (rematch)");
+                } catch (Exception ex) {
+                    System.err.println("[GameScreen] Failed to navigate to room screen: " + ex.getMessage());
+                    ex.printStackTrace();
+                }
+            } else {
+                // Leave room: call REST to exit (defensive) then go to MainScreen
+                try {
+                    com.example.memorygame.model.user.UserSummary me = com.example.memorygame.utils.UserApi.getCurrentUser();
+                    if (me != null && gameSettings != null && gameSettings.getRoomId() != null) {
+                        boolean ok = com.example.memorygame.utils.RoomApi.exitRoom(gameSettings.getRoomId(), me.id);
+                        System.out.println("[GameScreen] Leave room via REST => " + ok);
+                    }
+                } catch (Exception ignore) {}
+                
+                try {
+                    Stage stage = (Stage) gameContainer.getScene().getWindow();
+                    
+                    MainScreenController mainController = new MainScreenController();
+                    Scene mainScene = new Scene(mainController.getScreen().getRoot());
+                    mainScene.getStylesheets().add(getClass().getResource("/com/example/memorygame/MainScreenStyle.css").toExternalForm());
+                    
+                    stage.setScene(mainScene);
+                    stage.setTitle("Memory Matching Game");
+                    stage.show();
+                    System.out.println("[GameScreen] Navigated back to main screen after game end");
+                } catch (Exception ex) {
+                    System.err.println("[GameScreen] Failed to navigate back: " + ex.getMessage());
+                    ex.printStackTrace();
+                }
+            }
+        });
+    }
+
+    private void scheduleOpponentLeftFallback() {
+        // If GAME_END does not arrive shortly, synthesize an end dialog
+        new Thread(() -> {
+            try {
+                Thread.sleep(800);
+            } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
+            if (!gameEndReceived) {
+                gameEndReceived = true; // Set flag to prevent duplicate processing
+                System.out.println("[GameScreen] Fallback GAME_END due to opponent left signal");
+                Map<String, Object> fake = new java.util.HashMap<>();
+                fake.put("player1Score", player1Score);
+                fake.put("player2Score", player2Score);
+                // Prefer winnerId to avoid username/displayName mismatch
+                try {
+                    com.example.memorygame.model.user.UserSummary me = com.example.memorygame.utils.UserApi.getCurrentUser();
+                    if (me != null) {
+                        fake.put("winnerId", me.id);
+                    } else {
+                        fake.put("winnerId", null);
+                    }
+                } catch (Exception ignore) { fake.put("winnerId", null); }
+                String myName = gameSettings != null ? (gameSettings.isHost() ? gameSettings.getPlayer1Name() : gameSettings.getPlayer2Name()) : "Me";
+                fake.put("winnerUsername", myName); // I am winner by surrender
+                fake.put("loserId", null);
+                fake.put("isSurrender", true);
+                // Compute rank points locally for display consistency
+                int myPairs = (gameSettings != null && gameSettings.isHost()) ? player1Score : player2Score;
+                int oppPairs = (gameSettings != null && gameSettings.isHost()) ? player2Score : player1Score;
+                fake.put("winnerRankPoints", computeWinnerRankPointsLocal(myPairs, oppPairs));
+                fake.put("loserRankPoints", 100);
+                Platform.runLater(() -> handleGameEnd(fake));
+            } else {
+                System.out.println("[GameScreen] GAME_END already received, skipping fallback");
+            }
+        }).start();
+    }
+
+    private int computeWinnerRankPointsLocal(int winnerPairs, int loserPairs) {
+        if (loserPairs < 0) loserPairs = 0;
+        if (winnerPairs < 0) winnerPairs = 0;
+        double ratio = ((double) (winnerPairs + 2)) / (loserPairs + 1);
+        return (int) Math.floor(ratio * 10.0);
     }
     
     private void sendCardFlippedMessage(int cardIndex, int row, int col) {
@@ -620,10 +973,59 @@ public class GameScreenController {
             TCPClient.TCPMessage message = new TCPClient.TCPMessage("CARDS_FOR_MATCH_CHECK", data, null, null);
             client.sendMessage(message);
             System.out.println("[GameScreen] Sent cards for match check - indices: " + cardIndex1 + ", " + cardIndex2);
+            
+            // Start timeout thread - if server doesn't respond in 3 seconds, flip back automatically
+            startMatchCheckTimeout();
         } catch (Exception e) {
             System.err.println("[GameScreen] Failed to send cards for match check: " + e.getMessage());
             isResolving = false;
         }
+    }
+    
+    private void startMatchCheckTimeout() {
+        // Cancel previous timeout if exists
+        if (matchCheckTimeoutThread != null && matchCheckTimeoutThread.isAlive()) {
+            matchCheckTimeoutThread.interrupt();
+        }
+        
+        matchCheckTimeoutThread = new Thread(() -> {
+            try {
+                Thread.sleep(3000); // Wait 3 seconds for server response
+                // If we reach here, server didn't respond - flip back the cards
+                Platform.runLater(() -> {
+                    if (isResolving && flippedCardsCount >= 2) {
+                        System.out.println("[GameScreen] Match check timeout - server didn't respond, flipping back cards");
+                        handleMatchTimeout();
+                    }
+                });
+            } catch (InterruptedException e) {
+                // Timeout was cancelled - server responded, do nothing
+                Thread.currentThread().interrupt();
+            }
+        });
+        matchCheckTimeoutThread.start();
+    }
+    
+    private void handleMatchTimeout() {
+        // Server didn't respond - flip back the cards as they don't match
+        System.out.println("[GameScreen] Handling match timeout - flipping back cards");
+        
+        if (firstFlippedCard != null && firstFlippedCard.isFlipped()) {
+            firstFlippedCard.flipToBack();
+            System.out.println("[GameScreen] Flipped back first card due to timeout");
+        }
+        if (secondFlippedCard != null && secondFlippedCard.isFlipped()) {
+            secondFlippedCard.flipToBack();
+            System.out.println("[GameScreen] Flipped back second card due to timeout");
+        }
+        
+        resetFlippedCards();
+        isResolving = false;
+        
+        // Switch turn since cards don't match
+        isMyTurn = !isMyTurn;
+        resetTurnTimer();
+        System.out.println("[GameScreen] Match timeout - flipped back and switched turn");
     }
     
     private void flipCardAtPosition(int cardIndex, int row, int col) {
@@ -640,6 +1042,10 @@ public class GameScreenController {
         firstFlippedCard = null;
         secondFlippedCard = null;
         flippedCardsCount = 0;
+        // Cancel timeout thread if exists
+        if (matchCheckTimeoutThread != null && matchCheckTimeoutThread.isAlive()) {
+            matchCheckTimeoutThread.interrupt();
+        }
         System.out.println("[GameScreen] Reset flipped cards state");
     }
     
@@ -710,8 +1116,24 @@ public class GameScreenController {
         
         if (isMyTurn) {
             // Time's up for current player - switch turn
-            isMyTurn = false;
             System.out.println("[GameScreen] Timer ended - switching turn");
+            
+            // Reset any flipped cards if timer ended during a flip
+            if (flippedCardsCount > 0) {
+                System.out.println("[GameScreen] Timer ended with cards flipped - flipping back");
+                // Flip back any flipped cards
+                if (firstFlippedCard != null && firstFlippedCard.isFlipped()) {
+                    firstFlippedCard.flipToBack();
+                }
+                if (secondFlippedCard != null && secondFlippedCard.isFlipped()) {
+                    secondFlippedCard.flipToBack();
+                }
+                resetFlippedCards();
+                isResolving = false;
+            }
+            
+            // Switch turn
+            isMyTurn = false;
             
             // Send turn switch message to opponent
             try {
@@ -726,6 +1148,7 @@ public class GameScreenController {
             }
         }
         
+        // Reset timer for the new turn (will start counting down for opponent)
         resetTurnTimer();
     }
     
