@@ -19,6 +19,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.Button;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
+import javafx.fxml.FXMLLoader;
 import javafx.animation.Timeline;
 import javafx.animation.KeyFrame;
 import javafx.util.Duration;
@@ -841,71 +842,277 @@ public class GameScreenController {
                 System.out.println("[GameScreen] Timer stopped");
             }
             
-            // Show end game dialog
-            Alert alert = new Alert(AlertType.INFORMATION);
-            alert.setTitle("Game Over");
+            // Show custom result popup
+            // Calculate my score and opponent score
+            int myScore = gameSettings != null && gameSettings.isHost() ? this.player1Score : this.player2Score;
+            int opponentScore = gameSettings != null && gameSettings.isHost() ? this.player2Score : this.player1Score;
             
+            // Rank points: winnerRankPoints is positive for winner, loserRankPoints is positive for loser (but displayed as negative)
+            int myRankPoints, opponentRankPoints;
             if (finalIWon) {
-                alert.setHeaderText("Chúc mừng! Bạn đã chiến thắng!");
+                myRankPoints = winnerRankPoints != null ? winnerRankPoints : 0;
+                opponentRankPoints = loserRankPoints != null ? loserRankPoints : 0;
             } else {
-                alert.setHeaderText("Game Over");
+                myRankPoints = loserRankPoints != null ? loserRankPoints : 0; // This will be displayed as negative
+                opponentRankPoints = winnerRankPoints != null ? winnerRankPoints : 0;
             }
             
-            alert.setContentText(finalMessage);
-            
-            // Buttons: Leave room (back to Main) or Rematch (go to Room waiting screen)
-            javafx.scene.control.ButtonType leaveBtn = new javafx.scene.control.ButtonType("Rời phòng", javafx.scene.control.ButtonBar.ButtonData.LEFT);
-            javafx.scene.control.ButtonType rematchBtn = new javafx.scene.control.ButtonType("Đấu lại", javafx.scene.control.ButtonBar.ButtonData.RIGHT);
-            alert.getButtonTypes().setAll(leaveBtn, rematchBtn);
-            
-            System.out.println("[GameScreen] Showing GAME_END dialog with options");
-            
-            java.util.Optional<javafx.scene.control.ButtonType> chosen = alert.showAndWait();
-            if (chosen.isPresent() && chosen.get() == rematchBtn) {
-                // Navigate to RoomScreen (waiting lobby)
-                try {
-                    Stage stage = (Stage) gameContainer.getScene().getWindow();
-                    
-                    RoomScreenController roomController = new RoomScreenController();
-                    Scene roomScene = new Scene(roomController.getScreen().getRoot());
-                    roomScene.getStylesheets().add(getClass().getResource("/com/example/memorygame/RoomScreenStyle.css").toExternalForm());
-                    
-                    stage.setScene(roomScene);
-                    stage.setTitle("Memory Game - Room");
-                    stage.setResizable(true);
-                    stage.show();
-                    System.out.println("[GameScreen] Navigated back to room waiting screen (rematch)");
-                } catch (Exception ex) {
-                    System.err.println("[GameScreen] Failed to navigate to room screen: " + ex.getMessage());
-                    ex.printStackTrace();
-                }
-            } else {
-                // Leave room: call REST to exit (defensive) then go to MainScreen
-                try {
-                    com.example.memorygame.model.user.UserSummary me = com.example.memorygame.utils.UserApi.getCurrentUser();
-                    if (me != null && gameSettings != null && gameSettings.getRoomId() != null) {
-                        boolean ok = com.example.memorygame.utils.RoomApi.exitRoom(gameSettings.getRoomId(), me.id);
-                        System.out.println("[GameScreen] Leave room via REST => " + ok);
-                    }
-                } catch (Exception ignore) {}
-                
-                try {
-                    Stage stage = (Stage) gameContainer.getScene().getWindow();
-                    
-                    MainScreenController mainController = new MainScreenController();
-                    Scene mainScene = new Scene(mainController.getScreen().getRoot());
-                    mainScene.getStylesheets().add(getClass().getResource("/com/example/memorygame/MainScreenStyle.css").toExternalForm());
-                    
-                    stage.setScene(mainScene);
-                    stage.setTitle("Memory Matching Game");
-                    stage.show();
-                    System.out.println("[GameScreen] Navigated back to main screen after game end");
-                } catch (Exception ex) {
-                    System.err.println("[GameScreen] Failed to navigate back: " + ex.getMessage());
-                    ex.printStackTrace();
-                }
+            try {
+                showGameResultPopup(finalIWon, finalWinnerDisplayName, 
+                                   myScore, opponentScore,
+                                   myRankPoints, opponentRankPoints);
+            } catch (Exception e) {
+                System.err.println("[GameScreen] Failed to show custom popup: " + e.getMessage());
+                e.printStackTrace();
+                // Fallback to Alert
+                showGameEndAlert(finalIWon, finalMessage);
             }
         });
+    }
+
+    private void showGameResultPopup(boolean iWon, String opponentName, int myScore, int opponentScore, 
+                                     int myRankPoints, int opponentRankPoints) throws Exception {
+        // Load FXML
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/example/memorygame/GameResultPopup.fxml"));
+        StackPane popupRoot = loader.load();
+        
+        // Get current scene root to add CSS
+        popupRoot.getStylesheets().add(getClass().getResource("/com/example/memorygame/GameResultPopupStyle.css").toExternalForm());
+        
+        // Get components
+        Label titleLabel = (Label) popupRoot.lookup("#titleLabel");
+        ImageView player1Avatar = (ImageView) popupRoot.lookup("#player1Avatar");
+        ImageView player2Avatar = (ImageView) popupRoot.lookup("#player2Avatar");
+        Label player1Score = (Label) popupRoot.lookup("#player1Score");
+        Label player2Score = (Label) popupRoot.lookup("#player2Score");
+        Label player1Name = (Label) popupRoot.lookup("#player1Name");
+        Label player2Name = (Label) popupRoot.lookup("#player2Name");
+        Label player1RankPoints = (Label) popupRoot.lookup("#player1RankPoints");
+        Label player2RankPoints = (Label) popupRoot.lookup("#player2RankPoints");
+        Button leaveButton = (Button) popupRoot.lookup("#leaveButton");
+        Button rematchButton = (Button) popupRoot.lookup("#rematchButton");
+        ImageView swordIcon = (ImageView) popupRoot.lookup("#swordIcon");
+        
+        // Set title and style
+        if (iWon) {
+            titleLabel.setText("You Win!");
+            titleLabel.getStyleClass().removeAll("win", "lose");
+            titleLabel.getStyleClass().add("win");
+        } else {
+            titleLabel.setText("You Lose!");
+            titleLabel.getStyleClass().removeAll("win", "lose");
+            titleLabel.getStyleClass().add("lose");
+        }
+        
+        // Get user info
+        com.example.memorygame.model.user.UserSummary currentUser = com.example.memorygame.utils.UserApi.getCurrentUser();
+        String myName = currentUser != null && currentUser.displayName != null ? currentUser.displayName : 
+                       (currentUser != null ? currentUser.username : "Player 1");
+        String myAvatarUrl = currentUser != null && currentUser.avatarUrl != null ? currentUser.avatarUrl : 
+                            "http://localhost:8080/static/avatars/default_avatar.png";
+        
+        String opponentDisplayName = opponentName != null ? opponentName : "Player 2";
+        String opponentAvatarUrl = "http://localhost:8080/static/avatars/default_avatar.png";
+        
+        // Player 1 is always "me", Player 2 is opponent
+        // But layout: if I won, I'm on left; if I lost, opponent is on left
+        // Actually, based on image: left player is winner, right is loser
+        String winnerName, loserName;
+        int winnerScore, loserScore;
+        int winnerRankPoints, loserRankPoints;
+        String winnerAvatarUrl, loserAvatarUrl;
+        
+        if (iWon) {
+            // I won: I'm left (player1), opponent is right (player2)
+            winnerName = myName;
+            loserName = opponentDisplayName;
+            winnerScore = myScore;
+            loserScore = opponentScore;
+            winnerRankPoints = myRankPoints;
+            loserRankPoints = opponentRankPoints;
+            winnerAvatarUrl = myAvatarUrl;
+            loserAvatarUrl = opponentAvatarUrl;
+        } else {
+            // I lost: opponent is left (player1), I'm right (player2)
+            winnerName = opponentDisplayName;
+            loserName = myName;
+            winnerScore = opponentScore;
+            loserScore = myScore;
+            winnerRankPoints = opponentRankPoints; // This should be positive for winner
+            loserRankPoints = myRankPoints; // This should be negative for loser
+            winnerAvatarUrl = opponentAvatarUrl;
+            loserAvatarUrl = myAvatarUrl;
+        }
+        
+        // Set player 1 (left/winner) data
+        player1Name.setText(winnerName);
+        player1Score.setText(String.valueOf(winnerScore));
+        try {
+            player1Avatar.setImage(new Image(winnerAvatarUrl, true));
+        } catch (Exception e) {
+            System.err.println("[GameScreen] Failed to load winner avatar: " + e.getMessage());
+            player1Avatar.setImage(new Image("http://localhost:8080/static/avatars/default_avatar.png", true));
+        }
+        
+        // Set rank points for player 1 (winner - positive, green)
+        // winnerRankPoints is already positive from server
+        String rankPoints1Text = "+" + winnerRankPoints;
+        player1RankPoints.setText(rankPoints1Text);
+        player1RankPoints.getStyleClass().removeAll("positive", "negative");
+        player1RankPoints.getStyleClass().add("positive");
+        // Force style to ensure override (size, weight, color)
+        player1RankPoints.setStyle("-fx-text-fill: #00CC00; -fx-font-size: 32px; -fx-font-weight: bold;");
+        
+        // Set player 2 (right/loser) data
+        player2Name.setText(loserName);
+        player2Score.setText(String.valueOf(loserScore));
+        try {
+            player2Avatar.setImage(new Image(loserAvatarUrl, true));
+        } catch (Exception e) {
+            System.err.println("[GameScreen] Failed to load loser avatar: " + e.getMessage());
+            player2Avatar.setImage(new Image("http://localhost:8080/static/avatars/default_avatar.png", true));
+        }
+        
+        // Set rank points for player 2 (loser - negative, red)
+        // loserRankPoints from server is positive, but displayed as negative
+        String rankPoints2Text = "-" + loserRankPoints;
+        player2RankPoints.setText(rankPoints2Text);
+        player2RankPoints.getStyleClass().removeAll("positive", "negative");
+        player2RankPoints.getStyleClass().add("negative");
+        // Force style to ensure override (size, weight, color)
+        player2RankPoints.setStyle("-fx-text-fill: #FF0000; -fx-font-size: 32px; -fx-font-weight: bold;");
+        
+        // Load sword icon
+        try {
+            swordIcon.setImage(new Image(getClass().getResourceAsStream("/com/example/memorygame/assets/images/icon/sword.png")));
+        } catch (Exception e) {
+            System.err.println("[GameScreen] Failed to load sword icon: " + e.getMessage());
+        }
+        
+        // Button handlers
+        rematchButton.setOnAction(e -> {
+            // Remove popup
+            gameContainer.getChildren().remove(popupRoot);
+            
+            // Navigate to RoomScreen (waiting lobby)
+            try {
+                Stage stage = (Stage) gameContainer.getScene().getWindow();
+                
+                RoomScreenController roomController = new RoomScreenController();
+                Scene roomScene = new Scene(roomController.getScreen().getRoot());
+                roomScene.getStylesheets().add(getClass().getResource("/com/example/memorygame/RoomScreenStyle.css").toExternalForm());
+                
+                stage.setScene(roomScene);
+                stage.setTitle("Memory Game - Room");
+                stage.setResizable(true);
+                stage.show();
+                System.out.println("[GameScreen] Navigated back to room waiting screen (rematch)");
+            } catch (Exception ex) {
+                System.err.println("[GameScreen] Failed to navigate to room screen: " + ex.getMessage());
+                ex.printStackTrace();
+            }
+        });
+        
+        leaveButton.setOnAction(e -> {
+            // Remove popup
+            gameContainer.getChildren().remove(popupRoot);
+            
+            // Leave room: call REST to exit (defensive) then go to MainScreen
+            try {
+                com.example.memorygame.model.user.UserSummary me = com.example.memorygame.utils.UserApi.getCurrentUser();
+                if (me != null && gameSettings != null && gameSettings.getRoomId() != null) {
+                    boolean ok = com.example.memorygame.utils.RoomApi.exitRoom(gameSettings.getRoomId(), me.id);
+                    System.out.println("[GameScreen] Leave room via REST => " + ok);
+                }
+            } catch (Exception ignore) {}
+            
+            try {
+                Stage stage = (Stage) gameContainer.getScene().getWindow();
+                
+                MainScreenController mainController = new MainScreenController();
+                Scene mainScene = new Scene(mainController.getScreen().getRoot());
+                mainScene.getStylesheets().add(getClass().getResource("/com/example/memorygame/MainScreenStyle.css").toExternalForm());
+                
+                stage.setScene(mainScene);
+                stage.setTitle("Memory Matching Game");
+                stage.show();
+                System.out.println("[GameScreen] Navigated back to main screen after game end");
+            } catch (Exception ex) {
+                System.err.println("[GameScreen] Failed to navigate back: " + ex.getMessage());
+                ex.printStackTrace();
+            }
+        });
+        
+        // Add popup to gameContainer (on top)
+        gameContainer.getChildren().add(popupRoot);
+        System.out.println("[GameScreen] Custom game result popup shown");
+    }
+    
+    private void showGameEndAlert(boolean iWon, String message) {
+        // Fallback: Show end game dialog (old Alert method)
+        Alert alert = new Alert(AlertType.INFORMATION);
+        alert.setTitle("Game Over");
+        
+        if (iWon) {
+            alert.setHeaderText("Chúc mừng! Bạn đã chiến thắng!");
+        } else {
+            alert.setHeaderText("Game Over");
+        }
+        
+        alert.setContentText(message);
+        
+        // Buttons: Leave room (back to Main) or Rematch (go to Room waiting screen)
+        javafx.scene.control.ButtonType leaveBtn = new javafx.scene.control.ButtonType("Rời phòng", javafx.scene.control.ButtonBar.ButtonData.LEFT);
+        javafx.scene.control.ButtonType rematchBtn = new javafx.scene.control.ButtonType("Đấu lại", javafx.scene.control.ButtonBar.ButtonData.RIGHT);
+        alert.getButtonTypes().setAll(leaveBtn, rematchBtn);
+        
+        System.out.println("[GameScreen] Showing GAME_END dialog with options");
+        
+        java.util.Optional<javafx.scene.control.ButtonType> chosen = alert.showAndWait();
+        if (chosen.isPresent() && chosen.get() == rematchBtn) {
+            // Navigate to RoomScreen (waiting lobby)
+            try {
+                Stage stage = (Stage) gameContainer.getScene().getWindow();
+                
+                RoomScreenController roomController = new RoomScreenController();
+                Scene roomScene = new Scene(roomController.getScreen().getRoot());
+                roomScene.getStylesheets().add(getClass().getResource("/com/example/memorygame/RoomScreenStyle.css").toExternalForm());
+                
+                stage.setScene(roomScene);
+                stage.setTitle("Memory Game - Room");
+                stage.setResizable(true);
+                stage.show();
+                System.out.println("[GameScreen] Navigated back to room waiting screen (rematch)");
+            } catch (Exception ex) {
+                System.err.println("[GameScreen] Failed to navigate to room screen: " + ex.getMessage());
+                ex.printStackTrace();
+            }
+        } else {
+            // Leave room: call REST to exit (defensive) then go to MainScreen
+            try {
+                com.example.memorygame.model.user.UserSummary me = com.example.memorygame.utils.UserApi.getCurrentUser();
+                if (me != null && gameSettings != null && gameSettings.getRoomId() != null) {
+                    boolean ok = com.example.memorygame.utils.RoomApi.exitRoom(gameSettings.getRoomId(), me.id);
+                    System.out.println("[GameScreen] Leave room via REST => " + ok);
+                }
+            } catch (Exception ignore) {}
+            
+            try {
+                Stage stage = (Stage) gameContainer.getScene().getWindow();
+                
+                MainScreenController mainController = new MainScreenController();
+                Scene mainScene = new Scene(mainController.getScreen().getRoot());
+                mainScene.getStylesheets().add(getClass().getResource("/com/example/memorygame/MainScreenStyle.css").toExternalForm());
+                
+                stage.setScene(mainScene);
+                stage.setTitle("Memory Matching Game");
+                stage.show();
+                System.out.println("[GameScreen] Navigated back to main screen after game end");
+            } catch (Exception ex) {
+                System.err.println("[GameScreen] Failed to navigate back: " + ex.getMessage());
+                ex.printStackTrace();
+            }
+        }
     }
 
     private void scheduleOpponentLeftFallback() {

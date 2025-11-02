@@ -1,0 +1,138 @@
+/* Game Result Popup Styles */
+
+/* Root with overlay */
+.result-popup-root {
+  -fx-background-color: transparent;
+  -fx-padding: 50px;
+}
+
+.overlay-region {
+  -fx-background-color: rgba(0, 0, 0, 0.5);
+  -fx-min-width: 9999px;
+  -fx-min-height: 9999px;
+}
+
+/* Main dialog box */
+.dialog-box {
+  -fx-background-color: #b8e6ff;
+  -fx-background-radius: 20;
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.3), 15, 0, 0, 5);
+  -fx-pref-width: 700px;
+  -fx-max-width: 700px;
+  -fx-pref-height: 420px;
+  -fx-max-height: 420px;
+  -fx-padding: 24px 36px 24px 36px;
+}
+
+/* Title */
+.title-text {
+  -fx-font-family: "Playwrite DESAS", cursive;
+  -fx-font-size: 48px;
+  -fx-font-weight: bold;
+  -fx-effect: dropshadow(gaussian, rgba(255, 255, 255, 0.8), 3, 0, 0, 1);
+  -fx-alignment: center;
+  -fx-text-alignment: center;
+}
+
+.title-text.win {
+  -fx-text-fill: #0066cc; /* Blue for win */
+}
+
+.title-text.lose {
+  -fx-text-fill: #ff0000; /* Red for lose */
+}
+
+.title-container {
+  -fx-alignment: center;
+  -fx-halignment: center;
+}
+
+.emoji-label {
+  -fx-font-size: 48px;
+}
+
+/* Players container */
+.players-container {
+  -fx-alignment: center;
+  -fx-spacing: 40px;
+}
+
+/* Player section */
+.player-section {
+  -fx-alignment: center;
+  -fx-spacing: 10px;
+}
+
+/* Avatar images */
+.avatar-image {
+  -fx-border-radius: 10px;
+  -fx-background-radius: 10px;
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 5, 0, 0, 2);
+}
+
+/* Score label (large black number) */
+.score-label {
+  -fx-font-family: "Be Vietnam Pro", sans-serif;
+  -fx-font-size: 64px;
+  -fx-font-weight: bold;
+  -fx-text-fill: #000000; /* Black instead of red */
+}
+
+/* Player name */
+.player-name {
+  -fx-font-family: "Be Vietnam Pro", sans-serif;
+  -fx-font-size: 16px;
+  -fx-text-fill: #000000;
+  -fx-text-alignment: center;
+}
+
+/* Rank points */
+.rank-points {
+  -fx-font-family: "Be Vietnam Pro", sans-serif;
+  -fx-font-size: 32px; /* bigger rank points */
+  -fx-font-weight: bold;
+  -fx-text-alignment: center;
+}
+
+.rank-points.positive {
+  -fx-text-fill: #00cc00; /* Green (xanh lá) for positive/cộng */
+}
+
+.rank-points.negative {
+  -fx-text-fill: #ff0000; /* Red (đỏ) for negative/trừ */
+}
+
+/* Sword icon */
+.sword-icon {
+  -fx-opacity: 0.8;
+}
+
+/* Buttons container */
+.buttons-container {
+  -fx-alignment: center;
+  -fx-spacing: 20px;
+}
+
+/* Action buttons */
+.action-button {
+  -fx-background-color: #ffd700;
+  -fx-text-fill: #000000;
+  -fx-font-family: "Be Vietnam Pro", sans-serif;
+  -fx-font-size: 16px;
+  -fx-font-weight: bold;
+  -fx-padding: 12px 30px;
+  -fx-background-radius: 10px;
+  -fx-border-radius: 10px;
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 5, 0, 0, 2);
+  -fx-cursor: hand;
+}
+
+.action-button:hover {
+  -fx-background-color: #ffc700;
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.3), 8, 0, 0, 3);
+}
+
+.action-button:pressed {
+  -fx-background-color: #ffb700;
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 3, 0, 0, 1);
+}

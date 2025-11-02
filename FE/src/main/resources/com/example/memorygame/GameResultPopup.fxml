@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Font?>
+
+<StackPane fx:id="rootPane" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" 
+           styleClass="result-popup-root">
+   <children>
+      <!-- Semi-transparent overlay -->
+      <Region styleClass="overlay-region" />
+      
+      <!-- Main dialog -->
+      <VBox alignment="CENTER" spacing="25" styleClass="dialog-box">
+         <padding>
+            <Insets top="30" right="40" bottom="30" left="40"/>
+         </padding>
+         
+        <!-- Header: Title centered (no emoji) -->
+        <HBox alignment="CENTER" spacing="10" styleClass="title-container">
+            <Label fx:id="titleLabel" text="You Win!" styleClass="title-text" />
+        </HBox>
+         
+         <!-- Players section -->
+         <HBox alignment="CENTER" spacing="40" styleClass="players-container">
+            <!-- Player 1 (Left/Winner) -->
+            <VBox alignment="CENTER" spacing="10" styleClass="player-section">
+               <HBox alignment="CENTER" spacing="15">
+                  <!-- Avatar + Name stacked to keep name centered under avatar -->
+                  <VBox alignment="CENTER" spacing="6">
+                     <ImageView fx:id="player1Avatar" fitWidth="100" fitHeight="100" preserveRatio="true" 
+                                styleClass="avatar-image" />
+                     <Label fx:id="player1Name" text="Player 1" styleClass="player-name" />
+                  </VBox>
+                  <!-- Big score -->
+                  <Label fx:id="player1Score" text="5" styleClass="score-label" />
+               </HBox>
+               <!-- Rank points under the name -->
+               <Label fx:id="player1RankPoints" text="+50" styleClass="rank-points positive" />
+            </VBox>
+
+            <!-- Separator (sword icon) -->
+            <ImageView fx:id="swordIcon" fitWidth="40" fitHeight="40" preserveRatio="true" 
+                       styleClass="sword-icon" />
+
+            <!-- Player 2 (Right/Loser) -->
+            <VBox alignment="CENTER" spacing="10" styleClass="player-section">
+               <HBox alignment="CENTER" spacing="15">
+                  <!-- Big score on the left for right player -->
+                  <Label fx:id="player2Score" text="3" styleClass="score-label" />
+                  <!-- Avatar + Name stacked -->
+                  <VBox alignment="CENTER" spacing="6">
+                     <ImageView fx:id="player2Avatar" fitWidth="100" fitHeight="100" preserveRatio="true" 
+                                styleClass="avatar-image" />
+                     <Label fx:id="player2Name" text="Player 2" styleClass="player-name" />
+                  </VBox>
+               </HBox>
+               <!-- Rank points under the name -->
+               <Label fx:id="player2RankPoints" text="-30" styleClass="rank-points negative" />
+            </VBox>
+         </HBox>
+         
+         <!-- Buttons -->
+         <HBox alignment="CENTER" spacing="20" styleClass="buttons-container">
+            <Button fx:id="leaveButton" text="Rời phòng" styleClass="action-button" />
+            <Button fx:id="rematchButton" text="Đấu lại" styleClass="action-button" />
+         </HBox>
+      </VBox>
+   </children>
+</StackPane>
+
