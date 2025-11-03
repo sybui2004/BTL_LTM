@@ -4,6 +4,7 @@ import com.example.memorygame.model.user.FriendDTO;
 import com.example.memorygame.model.user.FriendListDTO;
 import com.example.memorygame.model.user.UserSummary;
 import com.example.memorygame.utils.FriendApi;
+import com.example.memorygame.utils.SoundManager;
 import com.example.memorygame.utils.UserApi;
 import javafx.application.Platform;
 import javafx.scene.control.Label;
@@ -51,6 +52,8 @@ public class FriendListManager {
         tabRecent.setToggleGroup(tabsGroup);
         tabsGroup.selectedToggleProperty().addListener((obs, oldT, newT) -> {
             if (newT == null) return;
+            // Play button sound when switching tabs
+            SoundManager.playSound("button.wav");
             if (newT == tabFriends) switchTab(Tab.FRIENDS);
             else if (newT == tabStrangers) switchTab(Tab.STRANGERS);
             else switchTab(Tab.RECENT);
@@ -89,6 +92,9 @@ public class FriendListManager {
                 } else {
                     Platform.runLater(() -> listContainer.getChildren().clear());
                 }
+            } else if (tab == Tab.RECENT) {
+                List<UserSummary> users = UserApi.getRecentPlayers();
+                Platform.runLater(() -> populateList(users, currentUserId));
             } else {
                 List<UserSummary> users = UserApi.getAllUsers();
                 Platform.runLater(() -> populateList(users, currentUserId));

@@ -100,6 +100,33 @@ public class ApiClient {
             throw new RuntimeException("POST (auth) request failed: " + path, e);
         }
     }
+
+    public static String putJsonAuth(String path, String jsonBody) {
+        try {
+            String token = TokenManager.getInstance().getToken();
+            if (token == null || token.isBlank()) {
+                throw new IllegalStateException("Missing auth token");
+            }
+            System.out.println("[ApiClient] PUT " + path + " with auth");
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(baseUrl + path))
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", "Bearer " + token)
+                    .PUT(HttpRequest.BodyPublishers.ofString(jsonBody))
+                    .build();
+			HttpResponse<String> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+			int status = response.statusCode();
+			if (status >= 200 && status < 300) {
+				return response.body();
+			}
+			System.err.println("[ApiClient] PUT failed - Status: " + status + ", Body: " + response.body());
+			throw new RuntimeException("PUT (auth) failed (" + status + ") for " + path + ": " + response.body());
+        } catch (Exception e) {
+            System.err.println("[ApiClient] Exception: " + e.getClass().getName() + " - " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("PUT (auth) request failed: " + path, e);
+        }
+    }
 }
 
 

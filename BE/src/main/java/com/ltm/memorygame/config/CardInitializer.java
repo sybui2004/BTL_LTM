@@ -33,7 +33,8 @@ public class CardInitializer implements CommandLineRunner {
         // Validate per-theme correctness (count and filename pattern)
         for (Theme theme : themes) {
             List<Card> existing = cardRepository.findByTheme(theme);
-            if (existing.size() != 25) {
+            int expectedCount = getExpectedCardCount(theme.getName());
+            if (existing.size() != expectedCount) {
                 needsRecreateAll = true; break;
             }
             // Both themes use "card_XX.png" files (as per assets)
@@ -64,7 +65,22 @@ public class CardInitializer implements CommandLineRunner {
             createChristmasCards(theme, assetPath);
         } else if ("Mid-Autumn Festival".equals(themeName)) {
             createMidAutumnCards(theme, assetPath);
+        } else if ("Navy".equals(themeName)) {
+            createNavyCards(theme, assetPath);
+        } else if ("Pirate".equals(themeName)) {
+            createPirateCards(theme, assetPath);
         }
+    }
+    
+    private int getExpectedCardCount(String themeName) {
+        if ("Christmas".equals(themeName) || "Mid-Autumn Festival".equals(themeName)) {
+            return 25;
+        } else if ("Navy".equals(themeName)) {
+            return 21;
+        } else if ("Pirate".equals(themeName)) {
+            return 22;
+        }
+        return 25; // Default fallback
     }
     
     private void createChristmasCards(Theme theme, String assetPath) {
@@ -87,5 +103,27 @@ public class CardInitializer implements CommandLineRunner {
             cardRepository.save(card);
         }
         System.out.println("[CardInitializer] Created 25 Mid-Autumn Festival cards");
+    }
+    
+    private void createNavyCards(Theme theme, String assetPath) {
+        // Create 21 unique cards for Navy theme (card_01.png to card_21.png)
+        for (int i = 1; i <= 21; i++) {
+            Card card = new Card();
+            card.setTheme(theme);
+            card.setCardPath(assetPath + "/card_" + String.format("%02d", i) + ".png");
+            cardRepository.save(card);
+        }
+        System.out.println("[CardInitializer] Created 21 Navy cards");
+    }
+    
+    private void createPirateCards(Theme theme, String assetPath) {
+        // Create 22 unique cards for Pirate theme (card_01.png to card_22.png)
+        for (int i = 1; i <= 22; i++) {
+            Card card = new Card();
+            card.setTheme(theme);
+            card.setCardPath(assetPath + "/card_" + String.format("%02d", i) + ".png");
+            cardRepository.save(card);
+        }
+        System.out.println("[CardInitializer] Created 22 Pirate cards");
     }
 }

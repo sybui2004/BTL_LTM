@@ -13,6 +13,7 @@ import com.example.memorygame.utils.ApiClient;
 import com.example.memorygame.model.game.GameSettings;
 import com.example.memorygame.model.game.ThemeDTO;
 import com.example.memorygame.utils.TCPClient;
+import com.example.memorygame.utils.SoundManager;
 import com.example.memorygame.utils.ThemeApi;
 import com.example.memorygame.utils.UserApi;
 import com.example.memorygame.view.RoomScreen;
@@ -66,6 +67,7 @@ public class RoomScreenController {
     @FXML private StackPane playButton;
     @FXML private StackPane questionButton;
     @FXML private StackPane popupOverlay;
+    @FXML private StackPane backButton;
     @FXML private Button closePopupButton;
     @FXML private VBox inviteListContainer;
     @FXML private VBox inviteList;
@@ -96,6 +98,11 @@ public class RoomScreenController {
         setupFont();
         initializeHelpers();
         setupUI();
+        
+        // Start background music after UI is loaded to avoid module access issues during FXML loading
+        Platform.runLater(() -> {
+            SoundManager.playBackgroundMusic("game_music_loop.wav");
+        });
         
         // Start room operations
         roomManager.createRoom();
@@ -171,12 +178,33 @@ public class RoomScreenController {
     private void setupUI() {
         friendListManager.setupTabs();
         
-        if (btnSearch != null) btnSearch.setOnAction(e -> friendListManager.handleSearch());
-        if (txtSearch != null) txtSearch.setOnAction(e -> friendListManager.handleSearch());
+        if (btnSearch != null) {
+            btnSearch.setOnAction(e -> {
+                SoundManager.playSound("button.wav");
+                friendListManager.handleSearch();
+            });
+        }
+        if (txtSearch != null) {
+            txtSearch.setOnAction(e -> {
+                SoundManager.playSound("button.wav");
+                friendListManager.handleSearch();
+            });
+        }
         
         // Setup play button
         if (playButton != null) {
-            playButton.setOnMouseClicked(e -> handlePlayButton());
+            playButton.setOnMouseClicked(e -> {
+                SoundManager.playSound("button.wav");
+                handlePlayButton();
+            });
+        }
+        
+        // Setup back button
+        if (backButton != null) {
+            backButton.setOnMouseClicked(e -> {
+                SoundManager.playSound("button.wav");
+                handleBack();
+            });
         }
         
         setupRoomAvatars();
@@ -239,10 +267,16 @@ public class RoomScreenController {
     
     private void setupPopup() {
         if (questionButton != null) {
-            questionButton.setOnMouseClicked(e -> showPopup());
+            questionButton.setOnMouseClicked(e -> {
+                SoundManager.playSound("button.wav");
+                showPopup();
+            });
         }
         if (closePopupButton != null) {
-            closePopupButton.setOnAction(e -> hidePopup());
+            closePopupButton.setOnAction(e -> {
+                SoundManager.playSound("button.wav");
+                hidePopup();
+            });
         }
         if (popupOverlay != null) {
             popupOverlay.setOnMouseClicked(e -> {
@@ -741,6 +775,64 @@ public class RoomScreenController {
         
         // Navigate to game screen
         navigateToGameScreen(gameSettings);
+    }
+    
+    private void handleBack() {
+        System.out.println("[RoomScreen] Back button clicked - exiting room");
+        
+        new Thread(() -> {
+            try {
+                // Get current user and room ID
+                com.example.memorygame.model.user.UserSummary currentUser = com.example.memorygame.utils.UserApi.getCurrentUser();
+                Long roomId = stateManager.getCurrentRoomId();
+                
+                if (currentUser != null && roomId != null) {
+                    // Exit the room
+                    boolean exitSuccess = com.example.memorygame.utils.RoomApi.exitRoom(roomId, currentUser.id);
+                    System.out.println("[RoomScreen] Exit room result: " + exitSuccess);
+                }
+                
+                // Navigate to main screen on JavaFX Application Thread
+                Platform.runLater(() -> {
+                    try {
+                        Stage stage = (Stage) backButton.getScene().getWindow();
+                        
+                        // Navigate back to MainScreen
+                        MainScreenController mainController = new MainScreenController();
+                        Scene mainScene = new Scene(mainController.getScreen().getRoot());
+                        mainScene.getStylesheets().add(getClass().getResource("/com/example/memorygame/MainScreenStyle.css").toExternalForm());
+                        
+                        stage.setScene(mainScene);
+                        stage.setTitle("Memory Matching Game");
+                        stage.show();
+                        
+                        System.out.println("[RoomScreen] Navigated back to main screen");
+                        
+                    } catch (Exception e) {
+                        System.err.println("[RoomScreen] Failed to navigate back: " + e.getMessage());
+                        e.printStackTrace();
+                    }
+                });
+                
+            } catch (Exception e) {
+                System.err.println("[RoomScreen] Error handling back button: " + e.getMessage());
+                e.printStackTrace();
+                // Still try to navigate even if exit fails
+                Platform.runLater(() -> {
+                    try {
+                        Stage stage = (Stage) backButton.getScene().getWindow();
+                        MainScreenController mainController = new MainScreenController();
+                        Scene mainScene = new Scene(mainController.getScreen().getRoot());
+                        mainScene.getStylesheets().add(getClass().getResource("/com/example/memorygame/MainScreenStyle.css").toExternalForm());
+                        stage.setScene(mainScene);
+                        stage.setTitle("Memory Matching Game");
+                        stage.show();
+                    } catch (Exception ex) {
+                        System.err.println("[RoomScreen] Failed to navigate: " + ex.getMessage());
+                    }
+                });
+            }
+        }).start();
     }
     
     private ThemeDTO findThemeByName(String themeName) {

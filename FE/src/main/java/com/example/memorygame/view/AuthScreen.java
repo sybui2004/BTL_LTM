@@ -1,7 +1,7 @@
 package com.example.memorygame.view;
 
 import com.example.memorygame.controller.AuthScreenController;
-import com.example.memorygame.controller.RoomScreenController;
+import com.example.memorygame.controller.MainScreenController;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
@@ -106,10 +106,12 @@ public class AuthScreen {
     public void showMainScreen() {
         try {
             Stage stage = (Stage) ((Node) this.getRoot()).getScene().getWindow();
-            RoomScreenController controller = new RoomScreenController();
+            MainScreenController controller = new MainScreenController();
             Parent root = controller.getScreen().getRoot();
 
             Scene scene = root.getScene() == null ? new Scene(root) : root.getScene();
+            // Add MainScreen CSS stylesheet
+            scene.getStylesheets().add(getClass().getResource("/com/example/memorygame/MainScreenStyle.css").toExternalForm());
             stage.setResizable(true);
             stage.setTitle("Memory Matching Game");
             stage.setScene(scene);

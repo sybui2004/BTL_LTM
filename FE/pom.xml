@@ -39,10 +39,22 @@
       <artifactId>javafx-media</artifactId>
       <version>17.0.14</version>
     </dependency>
+    <!-- Force javafx-base version to match other JavaFX modules -->
+    <dependency>
+      <groupId>org.openjfx</groupId>
+      <artifactId>javafx-base</artifactId>
+      <version>17.0.14</version>
+    </dependency>
       <dependency>
       <groupId>org.controlsfx</groupId>
       <artifactId>controlsfx</artifactId>
       <version>11.2.1</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.openjfx</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
       <dependency>
       <groupId>com.dlsc.formsfx</groupId>
@@ -77,20 +89,15 @@
       <version>0.4.0</version>
     </dependency>
       <dependency>
-      <groupId>eu.hansolo</groupId>
-      <artifactId>tilesfx</artifactId>
-      <version>21.0.9</version>
-      <exclusions>
-        <exclusion>
-          <groupId>org.openjfx</groupId>
-          <artifactId>*</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-      <dependency>
           <groupId>eu.hansolo</groupId>
           <artifactId>tilesfx</artifactId>
           <version>11.48</version>
+          <exclusions>
+            <exclusion>
+              <groupId>org.openjfx</groupId>
+              <artifactId>*</artifactId>
+            </exclusion>
+          </exclusions>
       </dependency>
       <dependency>
       <groupId>com.github.almasb</groupId>
@@ -137,13 +144,24 @@
             <!-- Default configuration for running with: mvn clean javafx:run -->
             <id>default-cli</id>
             <configuration>
-              <mainClass>com.example.fe/com.example.memorygame.FXMain</mainClass>
+              <mainClass>com.example.memorygame/com.example.memorygame.FXMain</mainClass>
               <launcher>app</launcher>
               <jlinkZipName>app</jlinkZipName>
               <jlinkImageName>app</jlinkImageName>
               <noManPages>true</noManPages>
               <stripDebug>true</stripDebug>
               <noHeaderFiles>true</noHeaderFiles>
+              <options>
+                  <option>--add-modules</option>
+                  <option>javafx.controls,javafx.fxml,javafx.media</option>
+                  <!-- Fix IllegalAccessError: export internal APIs used by javafx.media -->
+                  <option>--add-exports</option>
+                  <option>javafx.base/com.sun.javafx=javafx.media</option>
+                  <option>--add-exports</option>
+                  <option>javafx.graphics/com.sun.javafx.application=javafx.media</option>
+                  <option>--add-exports</option>
+                  <option>javafx.graphics/com.sun.javafx.tk=javafx.media</option>
+              </options>
             </configuration>
           </execution>
         </executions>

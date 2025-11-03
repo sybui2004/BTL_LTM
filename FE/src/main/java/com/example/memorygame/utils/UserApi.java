@@ -30,6 +30,15 @@ public class UserApi {
         }
     }
 
+    public static List<UserSummary> getRecentPlayers() {
+        try {
+            String json = ApiClient.getAuth("/api/users/recent");
+            return MAPPER.readValue(json, new TypeReference<List<UserSummary>>(){});
+        } catch (Exception e) {
+            return Collections.emptyList();
+        }
+    }
+
     public static UserSummary getUserById(long id) {
         try {
             String json = ApiClient.getAuth("/api/users/" + id);

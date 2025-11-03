@@ -57,4 +57,13 @@ public class UserController {
         Long excludeId = AuthUtils.getAuthenticatedUserId();
         return ResponseEntity.ok(userService.searchUsersExcluding(q, excludeId));
     }
+
+    @GetMapping("/recent")
+    public ResponseEntity<List<UserResponseDTO>> getRecentPlayers() {
+        Long userId = AuthUtils.getAuthenticatedUserId();
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        return ResponseEntity.ok(userService.getRecentPlayers(userId));
+    }
 }

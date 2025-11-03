@@ -2,6 +2,7 @@ package com.example.memorygame.controller.room;
 
 import com.example.memorygame.model.game.InviteDTO;
 import com.example.memorygame.model.user.UserSummary;
+import com.example.memorygame.utils.SoundManager;
 import com.example.memorygame.utils.UserApi;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -79,13 +80,19 @@ public class InviteItemBuilder {
         // Accept button
         Button acceptBtn = new Button("✓");
         acceptBtn.getStyleClass().addAll("invite-btn", "invite-accept-btn");
-        acceptBtn.setOnAction(e -> onAcceptInvite.accept(invite));
+        acceptBtn.setOnAction(e -> {
+            SoundManager.playSound("button.wav");
+            onAcceptInvite.accept(invite);
+        });
         setButtonSize(acceptBtn);
         
         // Reject button
         Button rejectBtn = new Button("✕");
         rejectBtn.getStyleClass().addAll("invite-btn", "invite-reject-btn");
-        rejectBtn.setOnAction(e -> onRejectInvite.accept(invite));
+        rejectBtn.setOnAction(e -> {
+            SoundManager.playSound("button.wav");
+            onRejectInvite.accept(invite);
+        });
         setButtonSize(rejectBtn);
         
         buttonsBox.getChildren().addAll(acceptBtn, rejectBtn);

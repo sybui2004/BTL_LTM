@@ -70,6 +70,22 @@ public class ThemeService {
         themeRepository.save(midAutumnTheme);
         System.out.println("[ThemeService] Created Mid-Autumn Festival theme");
 
+        // Navy Theme
+        Theme navyTheme = new Theme();
+        navyTheme.setName("Navy");
+        navyTheme.setSouthPath("/static/themes/Navy");
+        navyTheme.setAssetPath("/static/themes/Navy");
+        themeRepository.save(navyTheme);
+        System.out.println("[ThemeService] Created Navy theme");
+
+        // Pirate Theme
+        Theme pirateTheme = new Theme();
+        pirateTheme.setName("Pirate");
+        pirateTheme.setSouthPath("/static/themes/Pirate");
+        pirateTheme.setAssetPath("/static/themes/Pirate");
+        themeRepository.save(pirateTheme);
+        System.out.println("[ThemeService] Created Pirate theme");
+
         System.out.println("[ThemeService] Default themes initialized successfully");
     }
 }

@@ -1,8 +1,11 @@
 package com.ltm.memorygame.service.game;
 
 import com.ltm.memorygame.dao.game.RoomRepository;
+import com.ltm.memorygame.dao.game.MatchRepository;
 import com.ltm.memorygame.dao.user.UserRepository;
+import com.ltm.memorygame.model.enums.MatchStatus;
 import com.ltm.memorygame.dto.game.response.CardResponseDTO;
+import com.ltm.memorygame.dto.game.request.FinishedMatchRequest;
 import com.ltm.memorygame.model.user.User;
 import com.ltm.memorygame.tcp.TCPServer;
 import com.ltm.memorygame.tcp.TCPMessage;
@@ -23,6 +26,8 @@ public class GameSessionService {
     private final ApplicationContext applicationContext;
     private final UserRepository userRepository;
     private final RoomRepository roomRepository;
+    private final MatchRepository matchRepository;
+    private final MatchService matchService;
     
     // Store game sessions by room ID
     private final Map<Long, GameSession> gameSessions = new ConcurrentHashMap<>();
@@ -241,6 +246,14 @@ public class GameSessionService {
         endData.put("winnerRankPoints", winnerRankPoints);
         endData.put("loserRankPoints", loserRankPoints);
         
+        // Get match ID from room
+        try {
+            matchRepository.findByRoomAndStatus(room, MatchStatus.PLAYING)
+                    .ifPresent(match -> endData.put("matchId", match.getId()));
+        } catch (Exception e) {
+            System.err.println("[GameSessionService] Failed to get matchId: " + e.getMessage());
+        }
+        
         // After normal end, set room back to READY so players can rematch
         try {
             room.setStatus(com.ltm.memorygame.model.enums.RoomStatus.READY);
@@ -337,6 +350,42 @@ public class GameSessionService {
         endData.put("isSurrender", true);
         endData.put("winnerRankPoints", winnerRankPoints);
         endData.put("loserRankPoints", loserRankPoints);
+        
+        // Get match ID and finish the match
+        Long matchId = null;
+        try {
+            var matchOpt = matchRepository.findByRoomAndStatus(room, MatchStatus.PLAYING);
+            if (matchOpt.isPresent()) {
+                var match = matchOpt.get();
+                matchId = match.getId();
+                
+                // Finish the match with current scores
+                FinishedMatchRequest finishRequest = new FinishedMatchRequest();
+                finishRequest.setPlayer1Score(exitedIsHost ? exitedPairs : remainingPairs);
+                finishRequest.setPlayer2Score(exitedIsHost ? remainingPairs : exitedPairs);
+                
+                try {
+                    matchService.finishMatch(match.getId(), finishRequest);
+                    System.out.println("[GameSessionService] ✓ Finished match " + match.getId() + " due to player exit - Scores: P1=" + 
+                                     finishRequest.getPlayer1Score() + ", P2=" + finishRequest.getPlayer2Score());
+                } catch (Exception e) {
+                    System.err.println("[GameSessionService] ✗ Failed to finish match " + match.getId() + ": " + e.getMessage());
+                    e.printStackTrace();
+                }
+            } else {
+                // Match not found - this can happen if player disconnects before host starts the game
+                System.out.println("[GameSessionService] No match found for room " + roomId + " (status: " + room.getStatus() + 
+                                 "). This may happen if player disconnected before game started. Skipping match finish.");
+            }
+        } catch (Exception e) {
+            System.err.println("[GameSessionService] Exception while getting matchId for room " + roomId + ": " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        // Add matchId to GAME_END message
+        if (matchId != null) {
+            endData.put("matchId", matchId);
+        }
         
         System.out.println("[GameSessionService] Preparing GAME_END message for remaining player: " + remainingUsername);
         System.out.println("[GameSessionService] End data: " + endData);
