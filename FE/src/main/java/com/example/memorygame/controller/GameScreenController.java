@@ -744,40 +744,45 @@ public class GameScreenController {
         if (player1ScoreFromServer != null) this.player1Score = player1ScoreFromServer;
         if (player2ScoreFromServer != null) this.player2Score = player2ScoreFromServer;
         
-        // Get matchId and call finishMatch API
+        // Get matchId and call finishMatch API (fallback to settings.matchId if message misses it)
         Object matchIdObj = data.get("matchId");
-        if (matchIdObj != null && player1ScoreFromServer != null && player2ScoreFromServer != null) {
+        Long matchId = null;
+        if (matchIdObj != null) {
             try {
-                Long matchId;
-                if (matchIdObj instanceof Number) {
-                    matchId = ((Number) matchIdObj).longValue();
-                } else {
-                    matchId = Long.parseLong(matchIdObj.toString());
-                }
-                
-                // Call finishMatch API in background thread
-                new Thread(() -> {
-                    try {
-                        boolean success = com.example.memorygame.utils.MatchApi.finishMatch(
-                            matchId, 
-                            player1ScoreFromServer, 
-                            player2ScoreFromServer
-                        );
-                        if (success) {
-                            System.out.println("[GameScreen] Successfully finished match " + matchId);
-                        } else {
-                            System.err.println("[GameScreen] Failed to finish match " + matchId);
-                        }
-                    } catch (Exception e) {
-                        System.err.println("[GameScreen] Error calling finishMatch API: " + e.getMessage());
-                        e.printStackTrace();
-                    }
-                }).start();
+                matchId = (matchIdObj instanceof Number)
+                    ? ((Number) matchIdObj).longValue()
+                    : Long.parseLong(matchIdObj.toString());
             } catch (Exception e) {
-                System.err.println("[GameScreen] Failed to parse matchId: " + e.getMessage());
+                System.err.println("[GameScreen] Failed to parse matchId from message: " + e.getMessage());
             }
+        }
+        if (matchId == null && gameSettings != null && gameSettings.getMatchId() != null) {
+            matchId = gameSettings.getMatchId();
+            System.out.println("[GameScreen] Using matchId from GameSettings as fallback: " + matchId);
+        }
+        
+        if (matchId != null && player1ScoreFromServer != null && player2ScoreFromServer != null) {
+            Long finalMatchId = matchId;
+            new Thread(() -> {
+                try {
+                    boolean success = com.example.memorygame.utils.MatchApi.finishMatch(
+                        finalMatchId,
+                        player1ScoreFromServer,
+                        player2ScoreFromServer
+                    );
+                    if (success) {
+                        System.out.println("[GameScreen] Successfully finished match " + finalMatchId);
+                    } else {
+                        System.err.println("[GameScreen] Failed to finish match " + finalMatchId);
+                    }
+                } catch (Exception e) {
+                    System.err.println("[GameScreen] Error calling finishMatch API: " + e.getMessage());
+                    e.printStackTrace();
+                }
+            }).start();
         } else {
-            System.out.println("[GameScreen] No matchId in GAME_END message, skipping finishMatch API call");
+            System.out.println("[GameScreen] Missing matchId or scores; cannot call finishMatch. matchId=" + matchId +
+                ", p1=" + player1ScoreFromServer + ", p2=" + player2ScoreFromServer);
         }
         
         // Update score labels on UI and hide any remaining visible cards
