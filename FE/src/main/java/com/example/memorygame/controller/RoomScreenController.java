@@ -613,6 +613,44 @@ public class RoomScreenController {
             return;
         }
         
+        // Host creates the match via REST API and keeps matchId for finishing later
+        if (stateManager.isHost()) {
+            Long roomId = stateManager.getCurrentRoomId();
+            // player1Id MUST be the authenticated user's id (host)
+            Long player1Id = stateManager.getCurrentHostId();
+            if (player1Id == null) {
+                try {
+                    com.example.memorygame.model.user.UserSummary me = UserApi.getCurrentUser();
+                    player1Id = (me != null) ? me.id : null;
+                    if (player1Id != null) stateManager.setCurrentHostId(player1Id);
+                } catch (Exception ignored) {}
+            }
+            Long player2Id = stateManager.getCurrentGuestId();
+            Long themeId = (gameSettings.getTheme() != null) ? gameSettings.getTheme().id : null;
+            if (themeId == null && gameSettings.getTheme() != null) {
+                themeId = tryFindThemeIdByName(gameSettings.getTheme().name);
+            }
+            int timePerMove = parseTimeSeconds(gameSettings.getTime());
+            System.out.println("[RoomScreen] Creating match via API - roomId=" + roomId + 
+                ", p1=" + player1Id + ", p2=" + player2Id + ", themeId=" + themeId +
+                ", boardSize=" + gameSettings.getSize() + ", timePerMove=" + timePerMove);
+
+            Long matchId = com.example.memorygame.utils.MatchApi.createMatch(
+                roomId,
+                player1Id,
+                player2Id,
+                themeId,
+                gameSettings.getSize(),
+                timePerMove
+            );
+            if (matchId != null) {
+                System.out.println("[RoomScreen] ✓ Match created: id=" + matchId);
+                gameSettings.setMatchId(matchId);
+            } else {
+                System.err.println("[RoomScreen] ✗ Failed to create match - continuing without matchId");
+            }
+        }
+        
         System.out.println("[RoomScreen] Starting game with settings: " + gameSettings);
         
         // Send TCP message to notify guest about game start
@@ -779,6 +817,9 @@ public class RoomScreenController {
             data.put("time", gameSettings.getTime());
             data.put("player1Name", gameSettings.getPlayer1Name());
             data.put("player2Name", gameSettings.getPlayer2Name());
+            if (gameSettings.getMatchId() != null) {
+                data.put("matchId", gameSettings.getMatchId());
+            }
             
             TCPClient.TCPMessage message = new TCPClient.TCPMessage("GAME_STARTED", data, null, null);
             System.out.println("[DEBUG] Creating GAME_STARTED message: " + message.getType() + " with data: " + data);
@@ -790,7 +831,7 @@ public class RoomScreenController {
         }
     }
     
-    private void handleGameStart(String theme, String size, String time, String player1Name, String player2Name) {
+    private void handleGameStart(String theme, String size, String time, String player1Name, String player2Name, Long matchId) {
         System.out.println("[RoomScreen] Received game start from host - Theme: " + theme + ", Size: " + size + ", Time: " + time);
         System.out.println("[RoomScreen] Player names - Player1: " + player1Name + ", Player2: " + player2Name);
         
@@ -804,9 +845,34 @@ public class RoomScreenController {
         gameSettings.setPlayer2Name(player2Name);
         gameSettings.setHost(false); // Guest is not host
         gameSettings.setRoomId(stateManager.getCurrentRoomId()); // Set room ID for synchronization
+        if (matchId != null) {
+            gameSettings.setMatchId(matchId);
+            System.out.println("[RoomScreen] Guest received matchId from host: " + matchId);
+        }
         
         // Navigate to coin flip screen first (same as host)
         navigateToCoinFlipScreen(gameSettings);
+    }
+
+    private int parseTimeSeconds(String time) {
+        if (time == null) return 30;
+        try {
+            String digits = time.replaceAll("[^0-9]", "");
+            return Integer.parseInt(digits);
+        } catch (Exception e) { return 30; }
+    }
+
+    private Long tryFindThemeIdByName(String name) {
+        try {
+            if (name == null) return null;
+            java.util.List<com.example.memorygame.model.game.ThemeDTO> themes = com.example.memorygame.utils.ThemeApi.getAllThemes();
+            for (com.example.memorygame.model.game.ThemeDTO t : themes) {
+                if (t != null && name.equals(t.name)) {
+                    return t.id;
+                }
+            }
+        } catch (Exception ignored) {}
+        return null;
     }
     
     private void handleBack() {

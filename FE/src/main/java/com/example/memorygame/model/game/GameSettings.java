@@ -14,6 +14,7 @@ public class GameSettings {
     private String player2Name;
     private boolean isHost;
     private boolean hostFirstTurn; // true if host goes first, false if guest goes first
+    private Long matchId; // Created match ID (for finishMatch)
     
     // Constructors
     public GameSettings() {}
@@ -89,6 +90,14 @@ public class GameSettings {
         this.hostFirstTurn = hostFirstTurn;
     }
     
+    public Long getMatchId() {
+        return matchId;
+    }
+    
+    public void setMatchId(Long matchId) {
+        this.matchId = matchId;
+    }
+    
     @Override
     public String toString() {
         return "GameSettings{" +
@@ -100,6 +109,7 @@ public class GameSettings {
                 ", player2Name='" + player2Name + '\'' +
                 ", isHost=" + isHost +
                 ", hostFirstTurn=" + hostFirstTurn +
+                ", matchId=" + matchId +
                 '}';
     }
 }

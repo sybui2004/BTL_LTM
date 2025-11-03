@@ -11,6 +11,44 @@ public class MatchApi {
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     /**
+     * Create a match (host only) and return the new match ID
+     */
+    public static Long createMatch(Long roomId,
+                                   Long player1Id,
+                                   Long player2Id,
+                                   Long themeId,
+                                   String boardSize,
+                                   int timePerMove) {
+        try {
+            Map<String, Object> request = new HashMap<>();
+            request.put("roomId", roomId);
+            request.put("player1Id", player1Id);
+            request.put("player2Id", player2Id);
+            request.put("themeId", themeId);
+            request.put("boardSize", boardSize);
+            request.put("timePerMove", timePerMove);
+
+            String json = MAPPER.writeValueAsString(request);
+            String response = ApiClient.postJsonAuth("/api/rooms/start", json);
+
+            // Response is MatchResponseDTO; we only need the id
+            Map<?, ?> resp = MAPPER.readValue(response, Map.class);
+            Object idObj = resp.get("id");
+            if (idObj instanceof Number) {
+                return ((Number) idObj).longValue();
+            }
+            if (idObj != null) {
+                try { return Long.parseLong(idObj.toString()); } catch (NumberFormatException ignored) {}
+            }
+            return null;
+        } catch (Exception e) {
+            System.err.println("[MatchApi] Failed to create match: " + e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    /**
      * Finish a match with final scores
      * @param matchId The match ID
      * @param player1Score Player 1's final score
