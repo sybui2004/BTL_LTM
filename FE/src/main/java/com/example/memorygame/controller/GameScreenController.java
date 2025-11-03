@@ -357,6 +357,14 @@ public class GameScreenController {
             if (fetchedCards != null && !fetchedCards.isEmpty()) {
                 System.out.println("[GameScreen] Successfully loaded " + fetchedCards.size() + " cards from server");
                 cardData = fetchedCards;
+                
+                // Verify card count matches expected grid size
+                int expectedCards = rows * cols;
+                if (fetchedCards.size() != expectedCards) {
+                    System.out.println("[GameScreen] Warning: Card count mismatch. Expected: " + expectedCards + 
+                                     ", Got: " + fetchedCards.size() + ". Server may have adjusted due to insufficient theme cards.");
+                }
+                
                 createMemoryCards(rows, cols);
             } else {
                 System.err.println("[GameScreen] No cards returned from server, using mock cards");
@@ -719,6 +727,42 @@ public class GameScreenController {
         
         if (player1ScoreFromServer != null) this.player1Score = player1ScoreFromServer;
         if (player2ScoreFromServer != null) this.player2Score = player2ScoreFromServer;
+        
+        // Get matchId and call finishMatch API
+        Object matchIdObj = data.get("matchId");
+        if (matchIdObj != null && player1ScoreFromServer != null && player2ScoreFromServer != null) {
+            try {
+                Long matchId;
+                if (matchIdObj instanceof Number) {
+                    matchId = ((Number) matchIdObj).longValue();
+                } else {
+                    matchId = Long.parseLong(matchIdObj.toString());
+                }
+                
+                // Call finishMatch API in background thread
+                new Thread(() -> {
+                    try {
+                        boolean success = com.example.memorygame.utils.MatchApi.finishMatch(
+                            matchId, 
+                            player1ScoreFromServer, 
+                            player2ScoreFromServer
+                        );
+                        if (success) {
+                            System.out.println("[GameScreen] Successfully finished match " + matchId);
+                        } else {
+                            System.err.println("[GameScreen] Failed to finish match " + matchId);
+                        }
+                    } catch (Exception e) {
+                        System.err.println("[GameScreen] Error calling finishMatch API: " + e.getMessage());
+                        e.printStackTrace();
+                    }
+                }).start();
+            } catch (Exception e) {
+                System.err.println("[GameScreen] Failed to parse matchId: " + e.getMessage());
+            }
+        } else {
+            System.out.println("[GameScreen] No matchId in GAME_END message, skipping finishMatch API call");
+        }
         
         // Update score labels on UI and hide any remaining visible cards
         Platform.runLater(() -> {

@@ -92,6 +92,9 @@ public class FriendListManager {
                 } else {
                     Platform.runLater(() -> listContainer.getChildren().clear());
                 }
+            } else if (tab == Tab.RECENT) {
+                List<UserSummary> users = UserApi.getRecentPlayers();
+                Platform.runLater(() -> populateList(users, currentUserId));
             } else {
                 List<UserSummary> users = UserApi.getAllUsers();
                 Platform.runLater(() -> populateList(users, currentUserId));

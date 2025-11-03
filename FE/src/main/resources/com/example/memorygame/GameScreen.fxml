@@ -13,7 +13,7 @@
       <ImageView fx:id="backgroundImage" fitHeight="720" fitWidth="1024" pickOnBounds="true" preserveRatio="false" />
       
       <!-- Card Grid - Direct placement -->
-      <GridPane fx:id="cardGrid" alignment="CENTER" styleClass="card-grid" maxWidth="600" maxHeight="400">
+      <GridPane fx:id="cardGrid" alignment="CENTER" styleClass="card-grid" maxWidth="750" maxHeight="600">
          <!-- Cards will be added programmatically -->
       </GridPane>
 

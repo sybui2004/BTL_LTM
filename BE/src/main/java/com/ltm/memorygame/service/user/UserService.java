@@ -19,9 +19,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Date;
-import java.util.List;
-import java.util.NoSuchElementException;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -131,5 +129,32 @@ public class UserService {
                 ? userRepository.searchByPrefix(q)
                 : userRepository.searchByPrefixExcluding(q, excludeUserId);
         return users.stream().map(userMapper::toFriendDTO).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserResponseDTO> getRecentPlayers(Long userId) {
+        User user = getEntityById(userId);
+        
+        // Lấy tất cả các matches của user, sắp xếp theo thời gian giảm dần
+        List<Match> matches = matchRepository.findByPlayer1OrPlayer2(user, user)
+                .stream()
+                .sorted((m1, m2) -> m2.getStartTime().compareTo(m1.getStartTime()))
+                .collect(Collectors.toList());
+        
+        // Lấy các opponents từ matches, loại bỏ duplicates và user hiện tại
+        LinkedHashSet<User> recentPlayers = new LinkedHashSet<>();
+        for (Match match : matches) {
+            User opponent = match.getOpponent(user);
+            if (!opponent.getId().equals(userId) && recentPlayers.size() < 20) {
+                recentPlayers.add(opponent);
+            }
+            if (recentPlayers.size() >= 20) {
+                break;
+            }
+        }
+        
+        return recentPlayers.stream()
+                .map(userMapper::toUserResponseDTO)
+                .collect(Collectors.toList());
     }
 }

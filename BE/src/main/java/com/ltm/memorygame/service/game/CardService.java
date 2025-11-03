@@ -29,11 +29,29 @@ public class CardService {
         int totalCards = getTotalCards(size);
         int uniqueCards = totalCards / 2; // Each card appears twice
         
+        // Check if theme has enough cards
+        int availableUniqueCards = (int) allCards.stream().map(Card::getCardPath).distinct().count();
+        if (availableUniqueCards < uniqueCards) {
+            System.out.println("[CardService] Warning: Theme '" + themeName + "' has only " + availableUniqueCards + 
+                             " unique cards, but " + uniqueCards + " are needed for size " + size);
+            // Adjust to use all available cards
+            uniqueCards = availableUniqueCards;
+            totalCards = uniqueCards * 2;
+            System.out.println("[CardService] Adjusted game size to " + totalCards + " cards (" + uniqueCards + " pairs)");
+        }
+        
         // Take only the first N unique cards
         List<Card> selectedCards = allCards.stream()
                 .distinct() // Remove duplicates by cardPath
                 .limit(uniqueCards)
                 .collect(Collectors.toList());
+        
+        if (selectedCards.size() < uniqueCards) {
+            System.out.println("[CardService] Error: Not enough cards available. Requested: " + uniqueCards + 
+                             ", Available: " + selectedCards.size());
+            throw new RuntimeException("Not enough cards available in theme '" + themeName + 
+                                     "'. Need " + uniqueCards + " unique cards, but only " + selectedCards.size() + " available.");
+        }
         
         // Duplicate each card to create pairs
         List<Card> gameCards = new ArrayList<>();
@@ -45,7 +63,7 @@ public class CardService {
         // Shuffle the cards with roomId as seed to ensure consistency
         Collections.shuffle(gameCards, new Random(roomId));
         
-        System.out.println("[CardService] Generated cards for room " + roomId + " with seed " + roomId);
+        System.out.println("[CardService] Generated " + gameCards.size() + " cards for room " + roomId + " with seed " + roomId);
         
         // Convert to DTOs
         return gameCards.stream()

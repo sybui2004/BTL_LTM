@@ -33,17 +33,23 @@ public class MemoryCard extends Button {
     }
     
     private void setupCard() {
-        // Set card size
-        setPrefSize(80, 100);
-        setMinSize(80, 100);
-        setMaxSize(80, 100);
+        // Set card size (matching CSS: 85x85)
+        setPrefSize(85, 85);
+        setMinSize(85, 85);
+        setMaxSize(85, 85);
+        
+        // Remove button padding to ensure image fills the button
+        setPadding(javafx.geometry.Insets.EMPTY);
+        setContentDisplay(javafx.scene.control.ContentDisplay.GRAPHIC_ONLY);
+        setGraphicTextGap(0);
         
         // Create image view
         cardImage = new ImageView();
-        cardImage.setFitWidth(80);
-        cardImage.setFitHeight(100);
-        cardImage.setPreserveRatio(true);
+        cardImage.setFitWidth(85);
+        cardImage.setFitHeight(85);
+        cardImage.setPreserveRatio(false); // Don't preserve ratio - force exact 85x85 to match card_back
         cardImage.setSmooth(true);
+        cardImage.setPickOnBounds(true);
         
         // Load card back image
         loadCardBack();
@@ -61,6 +67,13 @@ public class MemoryCard extends Button {
         try {
             System.out.println("[MemoryCard] Loading card back: " + cardBackPath);
             Image backImage = new Image(cardBackPath);
+            
+            // Force exact 85x85 size to match card_back exactly
+            cardImage.setFitWidth(85);
+            cardImage.setFitHeight(85);
+            cardImage.setPreserveRatio(false); // Force exact size - no ratio preservation
+            cardImage.setSmooth(true);
+            
             cardImage.setImage(backImage);
             System.out.println("[MemoryCard] Card back loaded successfully");
         } catch (Exception e) {
@@ -73,6 +86,13 @@ public class MemoryCard extends Button {
         try {
             System.out.println("[MemoryCard] Loading card front: " + cardFrontPath);
             Image frontImage = new Image(cardFrontPath);
+            
+            // Force exact 85x85 size to match card_back exactly
+            cardImage.setFitWidth(85);
+            cardImage.setFitHeight(85);
+            cardImage.setPreserveRatio(false); // Force exact size - no ratio preservation
+            cardImage.setSmooth(true);
+            
             cardImage.setImage(frontImage);
             System.out.println("[MemoryCard] Card front loaded successfully");
         } catch (Exception e) {

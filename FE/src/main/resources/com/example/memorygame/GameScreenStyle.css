@@ -196,8 +196,8 @@
   -fx-vgap: 5;
   -fx-padding: 20;
   -fx-alignment: center;
-  -fx-max-width: 600;
-  -fx-max-height: 400;
+  -fx-max-width: 750;
+  -fx-max-height: 600;
   -fx-pick-on-bounds: true;
 }
 
