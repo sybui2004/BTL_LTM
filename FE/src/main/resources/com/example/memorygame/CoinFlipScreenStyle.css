@@ -1,13 +1,8 @@
 /* Coin Flip Screen Styles */
 .coin-flip-container {
-  -fx-background-color: linear-gradient(to bottom, #667eea 0%, #764ba2 100%);
+  /* Match Room background: blue water gradient */
+  -fx-background-color: linear-gradient(to bottom, #d9f3ff, #a1ddf6);
   -fx-padding: 40;
-}
-
-.background-region {
-  -fx-background-color: rgba(0, 0, 0, 0.3);
-  -fx-pref-width: 100%;
-  -fx-pref-height: 100%;
 }
 
 .title-text {

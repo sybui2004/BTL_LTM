@@ -9,8 +9,7 @@
 <StackPane fx:id="rootContainer" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" 
            prefWidth="1024.0" prefHeight="720.0" styleClass="coin-flip-container">
    <children>
-      <!-- Background -->
-      <Region styleClass="background-region" />
+      <!-- Background is handled by root gradient -->
       
       <!-- Content -->
       <VBox alignment="CENTER" spacing="40">

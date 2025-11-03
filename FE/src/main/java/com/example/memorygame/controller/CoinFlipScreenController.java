@@ -33,6 +33,7 @@ public class CoinFlipScreenController {
     private volatile Integer pendingCoinResult = null; // Store result until animation finishes
     private volatile boolean rotationFinished = false;
     private volatile boolean imageSwapFinished = false;
+    private boolean currentCoinIs1 = true; // Track which side is currently shown
     private Thread timeoutThread;
     private int retryCount = 0;
     private static final int MAX_RETRIES = 3;
@@ -55,6 +56,8 @@ public class CoinFlipScreenController {
     @FXML
     private void initialize() {
         System.out.println("[CoinFlip] Initializing coin flip screen");
+        
+        // Background is handled by CSS gradient on root container
         
         // Setup TCP handler for both host and guest to receive coin result from server
         setupTCPHandlerForCoinResult();
@@ -264,44 +267,51 @@ public class CoinFlipScreenController {
         Image coin1 = new Image(getClass().getResourceAsStream(coin1Path));
         Image coin2 = new Image(getClass().getResourceAsStream(coin2Path));
         
-        // Reset animation flags
+        // Start with coin1 visible
+        coinImageView.setImage(coin1);
+        currentCoinIs1 = true;
+        
+        // Reset flags – we will mark both as finished when the sequence completes
         rotationFinished = false;
         imageSwapFinished = false;
         
-        // Create rotation animation
-        RotateTransition rotateTransition = new RotateTransition(Duration.millis(100), coinImageView);
-        rotateTransition.setByAngle(360);
-        rotateTransition.setCycleCount(20); // Flip 20 times (2 seconds)
-        rotateTransition.setAutoReverse(false);
-        
-        // Create image swap animation
-        Timeline imageSwap = new Timeline();
-        for (int i = 0; i < 20; i++) {
-            final Image coin = (i % 2 == 0) ? coin1 : coin2;
-            imageSwap.getKeyFrames().add(new KeyFrame(Duration.millis(i * 100), e -> {
-                coinImageView.setImage(coin);
-            }));
+        // Build a sequence of card-like flips (same timing as MemoryCard: 300ms + 300ms)
+        int flips = 6; // total flips before revealing result (~3.6s)
+        SequentialTransition sequence = new SequentialTransition();
+        for (int i = 0; i < flips; i++) {
+            final Image nextImage = currentCoinIs1 ? coin2 : coin1;
+            SequentialTransition oneFlip = createCardFlipLikeTransition(nextImage);
+            sequence.getChildren().add(oneFlip);
+            currentCoinIs1 = !currentCoinIs1;
         }
         
-        // Add callback when animations finish
-        rotateTransition.setOnFinished(e -> {
+        sequence.setOnFinished(e -> {
+            // Mark both animation flags as finished to reuse existing result sync logic
             rotationFinished = true;
-            System.out.println("[CoinFlip] Rotation animation finished");
-            checkAndShowResult();
-        });
-        
-        imageSwap.setOnFinished(e -> {
             imageSwapFinished = true;
-            System.out.println("[CoinFlip] Image swap animation finished");
+            System.out.println("[CoinFlip] Flip sequence finished");
             checkAndShowResult();
         });
         
-        // Play animations together
-        rotateTransition.play();
-        imageSwap.play();
-        
-        // Update instruction during flip
+        sequence.play();
         instructionLabel.setText("Đang tung đồng xu...");
+    }
+
+    /**
+     * Create a single 'card-flip-like' transition for the coin image.
+     * Shrinks on X to 0, swaps image, then expands back to 1.
+     */
+    private SequentialTransition createCardFlipLikeTransition(Image nextImage) {
+        ScaleTransition shrink = new ScaleTransition(Duration.millis(300), coinImageView);
+        shrink.setFromX(1.0);
+        shrink.setToX(0.0);
+        shrink.setOnFinished(e -> coinImageView.setImage(nextImage));
+        
+        ScaleTransition expand = new ScaleTransition(Duration.millis(300), coinImageView);
+        expand.setFromX(0.0);
+        expand.setToX(1.0);
+        
+        return new SequentialTransition(shrink, expand);
     }
     
     private void checkAndShowResult() {
@@ -343,14 +353,16 @@ public class CoinFlipScreenController {
         String coin1Path = "/com/example/memorygame/assets/images/coin1.png";
         String coin2Path = "/com/example/memorygame/assets/images/coin2.png";
         
-        // Show final coin image
-        Image finalCoin = new Image(getClass().getResourceAsStream(
-            coinResult == 1 ? coin1Path : coin2Path
-        ));
-        coinImageView.setImage(finalCoin);
-        
-        // Stop rotation
-        coinImageView.setRotate(0);
+        // Show final coin side using the same flip animation if needed
+        Image finalCoin = new Image(getClass().getResourceAsStream(coinResult == 1 ? coin1Path : coin2Path));
+        boolean desiredIs1 = (coinResult == 1);
+        if (desiredIs1 != currentCoinIs1) {
+            SequentialTransition finalFlip = createCardFlipLikeTransition(finalCoin);
+            finalFlip.setOnFinished(e -> currentCoinIs1 = desiredIs1);
+            finalFlip.play();
+        } else {
+            coinImageView.setImage(finalCoin);
+        }
         
         // Get player names
         String playerName;
