@@ -1,0 +1,33 @@
+/* Coin Flip Screen Styles */
+.coin-flip-container {
+  /* Match Room background: blue water gradient */
+  -fx-background-color: linear-gradient(to bottom, #d9f3ff, #a1ddf6);
+  -fx-padding: 40;
+}
+
+.title-text {
+  -fx-font-size: 48px;
+  -fx-font-weight: bold;
+  -fx-text-fill: white;
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.5), 10, 0.5, 0, 2);
+}
+
+.coin-image {
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.5), 20, 0.5, 0, 5);
+}
+
+.result-text {
+  -fx-font-size: 32px;
+  -fx-font-weight: bold;
+  -fx-text-fill: #FFD700;
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.7), 15, 0.5, 0, 3);
+  -fx-text-alignment: center;
+}
+
+.instruction-text {
+  -fx-font-size: 24px;
+  -fx-text-fill: white;
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.5), 10, 0.5, 0, 2);
+  -fx-text-alignment: center;
+}
+

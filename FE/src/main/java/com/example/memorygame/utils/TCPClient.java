@@ -121,12 +121,16 @@ public class TCPClient {
         if (out != null && socket != null && !socket.isClosed()) {
             try {
                 String json = MAPPER.writeValueAsString(message);
+                System.out.println("[TCP] Sending message type: " + message.getType() + ", JSON: " + json);
                 out.println(json);
+                out.flush(); // Ensure message is sent immediately
+                System.out.println("[TCP] ✓ Message sent successfully: " + message.getType());
             } catch (Exception e) {
                 System.err.println("[TCP] Failed to send message: " + e.getMessage());
+                e.printStackTrace();
             }
         } else {
-            System.err.println("[TCP] Not connected, cannot send message");
+            System.err.println("[TCP] Not connected, cannot send message. Socket closed: " + (socket == null || socket.isClosed()));
         }
     }
     

@@ -618,8 +618,8 @@ public class RoomScreenController {
         // Send TCP message to notify guest about game start
         sendGameStartToGuest(gameSettings);
         
-        // Navigate to game screen
-        navigateToGameScreen(gameSettings);
+        // Navigate to coin flip screen first
+        navigateToCoinFlipScreen(gameSettings);
     }
     
     private GameSettings getCurrentGameSettings() {
@@ -707,6 +707,38 @@ public class RoomScreenController {
         }
     }
     
+    private void navigateToCoinFlipScreen(GameSettings gameSettings) {
+        try {
+            // Get current stage
+            Stage stage = (Stage) playButton.getScene().getWindow();
+            
+            // Set game settings for CoinFlipScreenController
+            com.example.memorygame.controller.CoinFlipScreenController.setGameSettings(gameSettings);
+            
+            // Create coin flip screen controller
+            com.example.memorygame.controller.CoinFlipScreenController coinFlipController = 
+                new com.example.memorygame.controller.CoinFlipScreenController();
+            
+            // Create scene
+            Scene coinFlipScene = new Scene(coinFlipController.getScreen().getRoot());
+            
+            // Apply CSS
+            coinFlipScene.getStylesheets().add(getClass().getResource("/com/example/memorygame/CoinFlipScreenStyle.css").toExternalForm());
+            
+            // Set scene and show
+            stage.setScene(coinFlipScene);
+            stage.setTitle("Memory Game - Tung Đồng Xu");
+            stage.setResizable(true);
+            stage.show();
+            
+            System.out.println("[RoomScreen] Navigated to coin flip screen successfully");
+            
+        } catch (Exception e) {
+            System.err.println("[RoomScreen] Failed to navigate to coin flip screen: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
     private void navigateToGameScreen(GameSettings gameSettings) {
         try {
             // Get current stage
@@ -773,8 +805,8 @@ public class RoomScreenController {
         gameSettings.setHost(false); // Guest is not host
         gameSettings.setRoomId(stateManager.getCurrentRoomId()); // Set room ID for synchronization
         
-        // Navigate to game screen
-        navigateToGameScreen(gameSettings);
+        // Navigate to coin flip screen first (same as host)
+        navigateToCoinFlipScreen(gameSettings);
     }
     
     private void handleBack() {
