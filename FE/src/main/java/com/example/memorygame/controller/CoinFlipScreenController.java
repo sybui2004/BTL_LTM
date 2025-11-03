@@ -55,23 +55,47 @@ public class CoinFlipScreenController {
     
     @FXML
     private void initialize() {
-        System.out.println("[CoinFlip] Initializing coin flip screen");
+        System.out.println("[CoinFlip] ===== Initializing coin flip screen =====");
+        System.out.println("[CoinFlip] Game settings: " + (gameSettings != null ? "exists" : "null"));
+        if (gameSettings != null) {
+            System.out.println("[CoinFlip] Room ID: " + gameSettings.getRoomId());
+            System.out.println("[CoinFlip] Is Host: " + gameSettings.isHost());
+        }
         
         // Background is handled by CSS gradient on root container
         
-        // Setup TCP handler for both host and guest to receive coin result from server
+        // Setup TCP handler FIRST for both host and guest to receive coin result from server
+        // This MUST be done before any request is sent to ensure handler is registered
         setupTCPHandlerForCoinResult();
         
-        // Only host sends request to server (to avoid duplicate requests)
-        if (gameSettings != null && gameSettings.isHost()) {
-            requestCoinFlipFromServer();
-        } else {
-            System.out.println("[CoinFlip] Guest - waiting for server to send coin flip result");
-        }
+        // Small delay to ensure handler is fully registered before sending request
+        // This helps avoid race conditions where message arrives before handler is ready
+        new Thread(() -> {
+            try {
+                Thread.sleep(100); // 100ms delay to ensure handler registration completes
+                Platform.runLater(() -> {
+                    // Only host sends request to server (to avoid duplicate requests)
+                    if (gameSettings != null && gameSettings.isHost()) {
+                        System.out.println("[CoinFlip] Host: Sending COIN_FLIP_REQUEST after handler setup");
+                        requestCoinFlipFromServer();
+                    } else {
+                        System.out.println("[CoinFlip] Guest: Waiting for server to send coin flip result");
+                    }
+                });
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                // If interrupted, send request immediately
+                Platform.runLater(() -> {
+                    if (gameSettings != null && gameSettings.isHost()) {
+                        requestCoinFlipFromServer();
+                    }
+                });
+            }
+        }).start();
         
         startCoinFlip();
         
-        // Start timeout thread - if server doesn't respond in 5 seconds, fallback to local random
+        // Start timeout thread - if server doesn't respond in 5 seconds, show error
         startTimeoutFallback();
     }
     
@@ -79,19 +103,39 @@ public class CoinFlipScreenController {
         try {
             com.example.memorygame.utils.TCPClient client = com.example.memorygame.utils.TCPClient.getInstance();
             
+            if (client == null) {
+                System.err.println("[CoinFlip] ✗ Cannot setup handler: TCPClient is null!");
+                return;
+            }
+            
+            // Check connection status before registering handler
+            if (!client.isConnected()) {
+                System.err.println("[CoinFlip] ⚠ Warning: TCPClient is not connected when setting up handler");
+            }
+            
+            System.out.println("[CoinFlip] Registering handler for COIN_FLIP_RESULT...");
+            
+            // Register handler with detailed logging
             client.onMessage("COIN_FLIP_RESULT", message -> {
-                System.out.println("[CoinFlip] ✓ Received COIN_FLIP_RESULT from server: " + message.getData());
+                System.out.println("[CoinFlip] ===== COIN_FLIP_RESULT HANDLER TRIGGERED =====");
+                System.out.println("[CoinFlip] ✓ Received COIN_FLIP_RESULT from server");
+                System.out.println("[CoinFlip] Message data: " + message.getData());
+                System.out.println("[CoinFlip] Thread: " + Thread.currentThread().getName());
                 
                 // Cancel timeout thread
                 if (timeoutThread != null && timeoutThread.isAlive()) {
+                    System.out.println("[CoinFlip] Cancelling timeout thread");
                     timeoutThread.interrupt();
                 }
                 
                 coinResultReceived = true;
+                System.out.println("[CoinFlip] Flag coinResultReceived set to true");
                 
                 java.util.Map<String, Object> data = message.getData();
                 if (data != null) {
                     Integer coinResult = convertToInteger(data.get("coinResult"));
+                    System.out.println("[CoinFlip] Parsed coinResult: " + coinResult);
+                    
                     if (coinResult != null && (coinResult == 1 || coinResult == 2)) {
                         // Store result, wait for animation to finish before showing
                         pendingCoinResult = coinResult;
@@ -99,6 +143,7 @@ public class CoinFlipScreenController {
                         
                         // Check if animation already finished
                         Platform.runLater(() -> {
+                            System.out.println("[CoinFlip] Running checkAndShowResult on JavaFX thread");
                             checkAndShowResult();
                         });
                     } else {
@@ -113,9 +158,10 @@ public class CoinFlipScreenController {
                 }
             });
             
-            System.out.println("[CoinFlip] TCP handler for COIN_FLIP_RESULT setup completed");
+            System.out.println("[CoinFlip] ✓ TCP handler for COIN_FLIP_RESULT registered successfully");
+            System.out.println("[CoinFlip] Current TCP connection status: " + (client.isConnected() ? "CONNECTED" : "NOT CONNECTED"));
         } catch (Exception e) {
-            System.err.println("[CoinFlip] Failed to setup TCP handler: " + e.getMessage());
+            System.err.println("[CoinFlip] ✗ Failed to setup TCP handler: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -124,10 +170,52 @@ public class CoinFlipScreenController {
         try {
             com.example.memorygame.utils.TCPClient client = com.example.memorygame.utils.TCPClient.getInstance();
             
-            // Check if client is connected
+            // Check if client exists
             if (client == null) {
                 System.err.println("[CoinFlip] ✗ TCPClient is null!");
+                Platform.runLater(() -> {
+                    instructionLabel.setText("Lỗi: TCPClient không khởi tạo được");
+                });
                 return;
+            }
+            
+            // Check if client is connected
+            if (!client.isConnected()) {
+                System.err.println("[CoinFlip] ✗ TCPClient is not connected! Attempting to reconnect...");
+                
+                // Try to get token and username for reconnection
+                String token = com.example.memorygame.utils.TokenManager.getInstance().getToken();
+                String username = null;
+                
+                try {
+                    // Extract username from token if available
+                    if (token != null && !token.isEmpty()) {
+                        username = com.example.memorygame.utils.JwtDecoder.extractUsername(token);
+                    }
+                } catch (Exception e) {
+                    System.err.println("[CoinFlip] Failed to extract username from token: " + e.getMessage());
+                }
+                
+                if (username != null && token != null) {
+                    // Try to reconnect
+                    boolean reconnected = client.connect(username, token);
+                    if (!reconnected) {
+                        System.err.println("[CoinFlip] ✗ Failed to reconnect to TCP server");
+                        Platform.runLater(() -> {
+                            instructionLabel.setText("Lỗi: Không thể kết nối với server");
+                            resultLabel.setText("Vui lòng đảm bảo backend server đang chạy");
+                        });
+                        return;
+                    }
+                    System.out.println("[CoinFlip] ✓ Reconnected to TCP server");
+                } else {
+                    System.err.println("[CoinFlip] ✗ Cannot reconnect: missing username or token");
+                    Platform.runLater(() -> {
+                        instructionLabel.setText("Lỗi: Không thể kết nối với server");
+                        resultLabel.setText("Vui lòng đăng nhập lại");
+                    });
+                    return;
+                }
             }
             
             java.util.Map<String, Object> data = new java.util.HashMap<>();
@@ -146,6 +234,9 @@ public class CoinFlipScreenController {
         } catch (Exception e) {
             System.err.println("[CoinFlip] ✗ Failed to send COIN_FLIP_REQUEST to server: " + e.getMessage());
             e.printStackTrace();
+            Platform.runLater(() -> {
+                instructionLabel.setText("Lỗi: " + e.getMessage());
+            });
         }
     }
     
