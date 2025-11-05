@@ -27,15 +27,17 @@ public class FriendListManager {
     private final ToggleButton tabRecent;
     private final ToggleGroup tabsGroup = new ToggleGroup();
     private final FriendItemBuilder itemBuilder;
-    
+
     private String lastSearchQuery = null;
     private Tab currentTab = Tab.FRIENDS;
-    
-    public enum Tab { FRIENDS, STRANGERS, RECENT }
-    
+
+    public enum Tab {
+        FRIENDS, STRANGERS, RECENT
+    }
+
     public FriendListManager(VBox listContainer, HBox searchContainer, TextField txtSearch,
-                            ToggleButton tabFriends, ToggleButton tabStrangers, ToggleButton tabRecent,
-                            FriendItemBuilder itemBuilder) {
+            ToggleButton tabFriends, ToggleButton tabStrangers, ToggleButton tabRecent,
+            FriendItemBuilder itemBuilder) {
         this.listContainer = listContainer;
         this.searchContainer = searchContainer;
         this.txtSearch = txtSearch;
@@ -44,23 +46,27 @@ public class FriendListManager {
         this.tabRecent = tabRecent;
         this.itemBuilder = itemBuilder;
     }
-    
+
     public void setupTabs() {
         tabFriends.setToggleGroup(tabsGroup);
         tabStrangers.setToggleGroup(tabsGroup);
         tabRecent.setToggleGroup(tabsGroup);
         tabsGroup.selectedToggleProperty().addListener((obs, oldT, newT) -> {
-            if (newT == null) return;
-            if (newT == tabFriends) switchTab(Tab.FRIENDS);
-            else if (newT == tabStrangers) switchTab(Tab.STRANGERS);
-            else switchTab(Tab.RECENT);
+            if (newT == null)
+                return;
+            if (newT == tabFriends)
+                switchTab(Tab.FRIENDS);
+            else if (newT == tabStrangers)
+                switchTab(Tab.STRANGERS);
+            else
+                switchTab(Tab.RECENT);
         });
         tabFriends.setSelected(true);
     }
-    
+
     public void switchTab(Tab tab) {
         currentTab = tab;
-        
+
         if (tab == Tab.STRANGERS) {
             setSearchVisible(true);
             listContainer.getChildren().clear();
@@ -70,18 +76,18 @@ public class FriendListManager {
             }
             return;
         }
-        
+
         // Clear search query and field when leaving Strangers tab
         lastSearchQuery = null;
         if (txtSearch != null) {
             txtSearch.clear();
         }
         setSearchVisible(false);
-        
+
         new Thread(() -> {
             UserSummary currentUser = UserApi.getCurrentUser();
             Long currentUserId = (currentUser != null) ? currentUser.id : null;
-            
+
             if (tab == Tab.FRIENDS) {
                 FriendListDTO friendList = FriendApi.getFriendList();
                 if (friendList != null && friendList.friends != null) {
@@ -90,12 +96,12 @@ public class FriendListManager {
                     Platform.runLater(() -> listContainer.getChildren().clear());
                 }
             } else {
-                List<UserSummary> users = UserApi.getAllUsers();
+                List<UserSummary> users = UserApi.getAllUserSummaries();
                 Platform.runLater(() -> populateList(users, currentUserId));
             }
         }).start();
     }
-    
+
     public void refreshCurrentTab() {
         if (tabFriends.isSelected()) {
             switchTab(Tab.FRIENDS);
@@ -107,17 +113,19 @@ public class FriendListManager {
             switchTab(Tab.RECENT);
         }
     }
-    
+
     public void handleSearch() {
         String text = txtSearch.getText();
-        if (text == null) return;
+        if (text == null)
+            return;
         String trimmed = text.trim();
-        if (trimmed.isEmpty()) return;
-        
+        if (trimmed.isEmpty())
+            return;
+
         lastSearchQuery = trimmed;
         executeSearch(trimmed);
     }
-    
+
     private void executeSearch(String query) {
         long id;
         try {
@@ -127,11 +135,11 @@ public class FriendListManager {
             lastSearchQuery = null;
             return;
         }
-        
+
         new Thread(() -> {
             UserSummary currentUser = UserApi.getCurrentUser();
             Long currentUserId = (currentUser != null) ? currentUser.id : null;
-            
+
             UserSummary user = UserApi.getUserById(id);
             Platform.runLater(() -> {
                 if (user == null) {
@@ -146,16 +154,16 @@ public class FriendListManager {
             });
         }).start();
     }
-    
+
     private void setSearchVisible(boolean visible) {
         searchContainer.setVisible(visible);
         searchContainer.setManaged(visible);
     }
-    
+
     private void populateList(List<UserSummary> users) {
         populateList(users, null);
     }
-    
+
     private void populateList(List<UserSummary> users, Long excludeUserId) {
         listContainer.getChildren().clear();
         int displayIndex = 0;
@@ -167,7 +175,7 @@ public class FriendListManager {
             displayIndex++;
         }
     }
-    
+
     private void populateFriendList(List<FriendDTO> friends) {
         listContainer.getChildren().clear();
         for (int i = 0; i < friends.size(); i++) {
@@ -175,9 +183,8 @@ public class FriendListManager {
             listContainer.getChildren().add(itemBuilder.createFriendItemFromDTO(friend, i));
         }
     }
-    
+
     public Tab getCurrentTab() {
         return currentTab;
     }
 }
-

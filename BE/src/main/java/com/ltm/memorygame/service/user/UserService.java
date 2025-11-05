@@ -13,6 +13,7 @@ import com.ltm.memorygame.model.user.User;
 import com.ltm.memorygame.model.user.UserSetting;
 import com.ltm.memorygame.dao.user.UserRepository;
 import com.ltm.memorygame.event.UserStatusChangedEvent;
+import com.ltm.memorygame.event.UserProfileUpdatedEvent;
 import com.ltm.memorygame.security.PasswordHasher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
@@ -80,8 +81,17 @@ public class UserService {
         User user = getEntityById(userId);
 
         List<Match> matches = matchRepository.findTop20ByPlayer1OrPlayer2OrderByStartTimeDesc(user, user);
+        System.out.println("[UserService] Found " + matches.size() + " total matches for user " + userId);
 
-        return userMapper.toUserProfileDTO(user, matches);
+        // Filter out matches that are still playing (only include finished matches)
+        List<Match> finishedMatches = matches.stream()
+                .filter(match -> match.getStatus() != com.ltm.memorygame.model.enums.MatchStatus.PLAYING)
+                .collect(java.util.stream.Collectors.toList());
+
+        System.out.println(
+                "[UserService] After filtering, " + finishedMatches.size() + " finished matches for user " + userId);
+
+        return userMapper.toUserProfileDTO(user, finishedMatches);
     }
 
     @Transactional(readOnly = true)
@@ -94,7 +104,7 @@ public class UserService {
     public boolean existsByUsername(String username) {
         return userRepository.existsByUsername(username);
     }
-    
+
     @Transactional(readOnly = true)
     public User getUserByUsername(String username) {
         return userRepository.findByUsername(username)
@@ -111,9 +121,42 @@ public class UserService {
         User user = getEntityById(userId);
         user.setStatus(status);
         userRepository.save(user);
-        
+
         boolean online = (status == UserStatus.ONLINE || status == UserStatus.BUSY);
         eventPublisher.publishEvent(new UserStatusChangedEvent(this, user.getUsername(), online));
+    }
+
+    @Transactional
+    public UserResponseDTO updateProfile(Long userId, String displayName, String avatarUrl) {
+        User user = getEntityById(userId);
+
+        // Update display name if provided
+        if (displayName != null && !displayName.isBlank()) {
+            user.setDisplayName(displayName);
+        }
+
+        // Update avatar URL if provided
+        if (avatarUrl != null && !avatarUrl.isBlank()) {
+            user.setAvatarUrl(avatarUrl);
+        }
+
+        // Update updatedAt timestamp
+        user.setUpdatedAt(new Date());
+
+        User updatedUser = userRepository.save(user);
+
+        // Publish event to notify friends that profile has been updated
+        eventPublisher.publishEvent(new UserProfileUpdatedEvent(this, updatedUser.getUsername(), updatedUser.getId()));
+
+        return userMapper.toUserResponseDTO(updatedUser);
+    }
+
+    @Transactional
+    public void changePassword(Long userId, String newPassword) {
+        User user = getEntityById(userId);
+        user.setPassword(passwordHasher.hashPassword(newPassword));
+        user.setUpdatedAt(new Date());
+        userRepository.save(user);
     }
 
     @Transactional(readOnly = true)

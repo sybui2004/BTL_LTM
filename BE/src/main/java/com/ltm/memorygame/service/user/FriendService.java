@@ -8,6 +8,7 @@ import com.ltm.memorygame.mapper.FriendMapper;
 import com.ltm.memorygame.model.enums.FriendStatus;
 import com.ltm.memorygame.model.user.Friend;
 import com.ltm.memorygame.model.user.User;
+import com.ltm.memorygame.tcp.TCPServer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +21,7 @@ public class FriendService {
     private final FriendRepository friendRepository;
     private final UserRepository userRepository;
     private final FriendMapper friendMapper;
+    private final TCPServer tcpServer;
 
     @Transactional
     public FriendResponseDTO request(Long currentUserId, Long toUserId) {
@@ -34,12 +36,70 @@ public class FriendService {
         Optional<Friend> existedAB = friendRepository.findBySenderAndReceiverAndIsDeletedFalse(sender, receiver);
         Optional<Friend> existedBA = friendRepository.findBySenderAndReceiverAndIsDeletedFalse(receiver, sender);
 
-        if (existedAB.isPresent() || existedBA.isPresent()) {
-            throw new IllegalStateException("Relation already exists (PENDING/ACCEPTED)");
+        // Check if there's already a PENDING request from receiver to sender (reverse
+        // direction)
+        // If yes, automatically accept it instead of creating a new request
+        if (existedBA.isPresent()) {
+            Friend existingRequest = existedBA.get();
+            if (existingRequest.getStatus() == FriendStatus.PENDING) {
+                // Auto-accept the existing request
+                existingRequest.setStatus(FriendStatus.ACCEPTED);
+                existingRequest.setAcceptedAt(new Date());
+                friendRepository.save(existingRequest);
+
+                // Clean up any other active requests between the same two users
+                List<Friend> duplicates = friendRepository.findAllBetweenUsersActive(existingRequest.getSender(),
+                        existingRequest.getReceiver());
+                for (Friend dup : duplicates) {
+                    if (!Objects.equals(dup.getId(), existingRequest.getId())) {
+                        dup.setDeleted(true);
+                        friendRepository.save(dup);
+                    }
+                }
+
+                // Send real-time TCP notification to both users to refresh their friend lists
+                try {
+                    tcpServer.sendFriendStatusChangedNotification(
+                            existingRequest.getSender().getUsername(),
+                            existingRequest.getReceiver().getUsername());
+                } catch (Exception e) {
+                    System.err.println("[FriendService] Failed to send TCP notification: " + e.getMessage());
+                }
+
+                return friendMapper.toFriendResponseDTO(existingRequest);
+            } else if (existingRequest.getStatus() == FriendStatus.ACCEPTED) {
+                // Already friends
+                throw new IllegalStateException("Relation already exists (ACCEPTED)");
+            }
+        }
+
+        // Check if there's already a request from sender to receiver (same direction)
+        if (existedAB.isPresent()) {
+            Friend existingRequest = existedAB.get();
+            if (existingRequest.getStatus() == FriendStatus.ACCEPTED) {
+                throw new IllegalStateException("Relation already exists (ACCEPTED)");
+            } else if (existingRequest.getStatus() == FriendStatus.PENDING) {
+                throw new IllegalStateException("You have already sent a friend request to this user");
+            }
         }
 
         Friend fr = friendMapper.toFriend(sender, receiver);
         friendRepository.save(fr);
+
+        // Send real-time TCP notification to receiver if online
+        try {
+            tcpServer.sendFriendRequestNotification(
+                    receiver.getUsername(),
+                    fr.getId(),
+                    sender.getId(),
+                    sender.getDisplayName() != null && !sender.getDisplayName().isBlank()
+                            ? sender.getDisplayName()
+                            : sender.getUsername(),
+                    sender.getAvatarUrl() != null ? sender.getAvatarUrl() : "");
+        } catch (Exception e) {
+            // Log but don't fail the request if TCP notification fails
+            System.err.println("[FriendService] Failed to send TCP notification: " + e.getMessage());
+        }
 
         return friendMapper.toFriendResponseDTO(fr);
     }
@@ -78,6 +138,15 @@ public class FriendService {
             }
         }
 
+        // Send real-time TCP notification to both users to refresh their friend lists
+        try {
+            tcpServer.sendFriendStatusChangedNotification(
+                    fr.getSender().getUsername(),
+                    fr.getReceiver().getUsername());
+        } catch (Exception e) {
+            System.err.println("[FriendService] Failed to send TCP notification: " + e.getMessage());
+        }
+
         return friendMapper.toFriendResponseDTO(fr);
     }
 
@@ -88,9 +157,11 @@ public class FriendService {
 
         boolean isOwner = Objects.equals(fr.getSender().getId(), currentUserId)
                 || Objects.equals(fr.getReceiver().getId(), currentUserId);
-        if (!isOwner) throw new IllegalStateException("You are not allowed to modify this request");
+        if (!isOwner)
+            throw new IllegalStateException("You are not allowed to modify this request");
 
-        // Soft delete this request and any other active requests between the same two users
+        // Soft delete this request and any other active requests between the same two
+        // users
         List<Friend> between = friendRepository.findAllBetweenUsersActive(fr.getSender(), fr.getReceiver());
         boolean any = false;
         for (Friend f : between) {
@@ -102,6 +173,15 @@ public class FriendService {
             // Fallback to delete the current one if query failed to find it
             fr.setDeleted(true);
             friendRepository.save(fr);
+        }
+
+        // Send real-time TCP notification to both users to refresh their friend lists
+        try {
+            tcpServer.sendFriendStatusChangedNotification(
+                    fr.getSender().getUsername(),
+                    fr.getReceiver().getUsername());
+        } catch (Exception e) {
+            System.err.println("[FriendService] Failed to send TCP notification: " + e.getMessage());
         }
     }
 
@@ -115,12 +195,23 @@ public class FriendService {
         List<Friend> relations = friendRepository.findActiveByUser(me);
         boolean removedAny = false;
         for (Friend fr : relations) {
-            boolean match = (Objects.equals(fr.getSender().getId(), me.getId()) && Objects.equals(fr.getReceiver().getId(), other.getId()))
-                    || (Objects.equals(fr.getReceiver().getId(), me.getId()) && Objects.equals(fr.getSender().getId(), other.getId()));
+            boolean match = (Objects.equals(fr.getSender().getId(), me.getId())
+                    && Objects.equals(fr.getReceiver().getId(), other.getId()))
+                    || (Objects.equals(fr.getReceiver().getId(), me.getId())
+                            && Objects.equals(fr.getSender().getId(), other.getId()));
             if (match) {
                 fr.setDeleted(true);
                 friendRepository.save(fr);
                 removedAny = true;
+
+                // Send real-time TCP notification to both users to refresh their friend lists
+                try {
+                    tcpServer.sendFriendStatusChangedNotification(
+                            fr.getSender().getUsername(),
+                            fr.getReceiver().getUsername());
+                } catch (Exception e) {
+                    System.err.println("[FriendService] Failed to send TCP notification: " + e.getMessage());
+                }
             }
         }
         if (!removedAny) {
@@ -137,4 +228,3 @@ public class FriendService {
         return friendMapper.toFriendListDTO(me, all);
     }
 }
-

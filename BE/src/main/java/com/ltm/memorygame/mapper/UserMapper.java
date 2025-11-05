@@ -5,6 +5,7 @@ import com.ltm.memorygame.dto.game.response.MatchHistoryDTO;
 import com.ltm.memorygame.dto.user.response.UserProfileDTO;
 import com.ltm.memorygame.dto.user.response.UserResponseDTO;
 import com.ltm.memorygame.dto.user.response.UserSettingDTO;
+import com.ltm.memorygame.model.enums.MatchStatus;
 import com.ltm.memorygame.model.game.Match;
 import com.ltm.memorygame.model.user.User;
 import com.ltm.memorygame.model.user.UserSetting;
@@ -17,7 +18,8 @@ import java.util.stream.Collectors;
 public class UserMapper {
 
     public UserSettingDTO toUserSettingDTO(UserSetting setting) {
-        if (setting == null) return null;
+        if (setting == null)
+            return null;
 
         return UserSettingDTO.builder()
                 .musicVolume(setting.getMusicVolume())
@@ -28,12 +30,15 @@ public class UserMapper {
     }
 
     public MatchHistoryDTO toMatchHistoryDTO(User user, Match match) {
+        MatchStatus resultStatus = match.getResultFor(user);
+        String result = resultStatus != null ? resultStatus.name() : "PLAYING";
+
         return MatchHistoryDTO.builder()
                 .matchId(match.getId())
                 .opponentUsername(match.getOpponent(user).getUsername())
                 .userScore(match.getScoreFor(user))
                 .opponentScore(match.getScoreFor(match.getOpponent(user)))
-                .result(match.getResultFor(user).name())
+                .result(result)
                 .playedAt(match.getStartTime())
                 .build();
     }
@@ -66,7 +71,8 @@ public class UserMapper {
     }
 
     public FriendDTO toFriendDTO(User user) {
-        if (user == null) return null;
+        if (user == null)
+            return null;
 
         return FriendDTO.builder()
                 .id(user.getId())

@@ -1,4 +1,5 @@
 module com.example.memorygame {
+    requires javafx.base;
     requires javafx.controls;
     requires javafx.fxml;
     requires javafx.web;
@@ -19,9 +20,10 @@ module com.example.memorygame {
     opens com.example.memorygame.controller to javafx.fxml;
     opens com.example.memorygame.controller.room to javafx.fxml;
     opens com.example.memorygame.controller.friend to javafx.fxml;
+    opens com.example.memorygame.controller.main to javafx.fxml;
     opens com.example.memorygame.view to javafx.fxml;
     opens com.example.memorygame.model.user to com.fasterxml.jackson.databind;
-    opens com.example.memorygame.model.game to com.fasterxml.jackson.databind;
+    opens com.example.memorygame.model.game to com.fasterxml.jackson.databind, javafx.base;
     opens com.example.memorygame.utils to com.fasterxml.jackson.databind;
     exports com.example.memorygame;
     exports com.example.memorygame.model.game;

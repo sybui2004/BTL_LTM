@@ -34,143 +34,160 @@ import java.util.Objects;
  */
 public class RoomScreenController {
     private final RoomScreen screen;
-    
+
     // FXML Components
-    @FXML private VBox listContainer;
-    @FXML private HBox searchContainer;
-    @FXML private TextField txtSearch;
-    @FXML private Button btnSearch;
-    @FXML private ToggleButton tabFriends;
-    @FXML private ToggleButton tabStrangers;
-    @FXML private ToggleButton tabRecent;
-    @FXML private Label titleLabel;
-    @FXML private ImageView hostAvatar;
-    @FXML private ImageView guestAvatar;
-    @FXML private Label hostStatus;
-    @FXML private Label guestStatus;
-    @FXML private Label guestPlaceholder;
-    @FXML private StackPane playButton;
-    @FXML private StackPane questionButton;
-    @FXML private StackPane popupOverlay;
-    @FXML private Button closePopupButton;
-    @FXML private VBox inviteListContainer;
-    @FXML private VBox inviteList;
+    @FXML
+    private VBox listContainer;
+    @FXML
+    private HBox searchContainer;
+    @FXML
+    private TextField txtSearch;
+    @FXML
+    private Button btnSearch;
+    @FXML
+    private ToggleButton tabFriends;
+    @FXML
+    private ToggleButton tabStrangers;
+    @FXML
+    private ToggleButton tabRecent;
+    @FXML
+    private Label titleLabel;
+    @FXML
+    private ImageView hostAvatar;
+    @FXML
+    private ImageView guestAvatar;
+    @FXML
+    private Label hostStatus;
+    @FXML
+    private Label guestStatus;
+    @FXML
+    private Label guestPlaceholder;
+    @FXML
+    private StackPane playButton;
+    @FXML
+    private StackPane questionButton;
+    @FXML
+    private StackPane popupOverlay;
+    @FXML
+    private Button closePopupButton;
+    @FXML
+    private VBox inviteListContainer;
+    @FXML
+    private VBox inviteList;
 
     private RoomManager roomManager;
     private FriendListManager friendListManager;
     private InviteItemBuilder inviteItemBuilder;
     private TCPMessageHandler tcpHandler;
-    
+
     public RoomScreenController() {
         this.screen = new RoomScreen(this);
     }
-    
+
     public RoomScreen getScreen() {
         return screen;
     }
-    
+
     @FXML
     private void initialize() {
         setupFont();
         initializeHelpers();
         setupUI();
-        
+
         // Start room operations
         roomManager.createRoom();
         loadInvites();
         friendListManager.switchTab(FriendListManager.Tab.FRIENDS);
     }
-    
+
     private void setupFont() {
         try {
             Font loaded = Font.loadFont(
-                getClass().getResourceAsStream("/com/example/memorygame/assets/fonts/PlaywriteDESAS-VariableFont_wght.ttf"), 
-                26
-            );
+                    getClass().getResourceAsStream(
+                            "/com/example/memorygame/assets/fonts/PlaywriteDESAS-VariableFont_wght.ttf"),
+                    26);
             if (loaded != null && titleLabel != null) {
                 String fam = loaded.getFamily();
                 titleLabel.setFont(Font.font(fam, FontWeight.BOLD, 26));
                 titleLabel.setStyle("-fx-font-family: '" + fam + "'; -fx-font-size: 26px; -fx-font-weight: bold;");
             }
-        } catch (Exception ignored) { }
+        } catch (Exception ignored) {
+        }
     }
-    
+
     private void initializeHelpers() {
         // State manager
         // Helper classes
         RoomStateManager stateManager = new RoomStateManager();
-        
+
         // UI updater
         RoomUIUpdater uiUpdater = new RoomUIUpdater(
                 hostAvatar, guestAvatar,
                 hostStatus, guestStatus, guestPlaceholder,
                 playButton,
-                this::loadUserAvatarOrFallback
-        );
-        
+                this::loadUserAvatarOrFallback);
+
         // Room manager
         roomManager = new RoomManager(stateManager, this::showAlert);
-        
+
         // Friend item builder
         FriendItemBuilder friendItemBuilder = new FriendItemBuilder(
                 stateManager,
                 this::loadUserAvatarOrFallback,
-                roomManager::handleInviteUser
-        );
-        
+                roomManager::handleInviteUser);
+
         // Friend list manager
         friendListManager = new FriendListManager(
-            listContainer, searchContainer, txtSearch,
-            tabFriends, tabStrangers, tabRecent,
-                friendItemBuilder
-        );
-        
+                listContainer, searchContainer, txtSearch,
+                tabFriends, tabStrangers, tabRecent,
+                friendItemBuilder);
+
         // Invite item builder
         inviteItemBuilder = new InviteItemBuilder(
-            this::loadUserAvatarOrFallback,
-            this::handleAcceptInvite,
-            this::handleRejectInvite
-        );
-        
+                this::loadUserAvatarOrFallback,
+                this::handleAcceptInvite,
+                this::handleRejectInvite);
+
         // TCP handler
         tcpHandler = new TCPMessageHandler(
                 uiUpdater,
-            friendListManager::refreshCurrentTab,
-            this::loadInvites,
-                stateManager
-        );
+                friendListManager::refreshCurrentTab,
+                this::loadInvites,
+                stateManager);
     }
-    
+
     private void setupUI() {
         friendListManager.setupTabs();
-        
-        if (btnSearch != null) btnSearch.setOnAction(e -> friendListManager.handleSearch());
-        if (txtSearch != null) txtSearch.setOnAction(e -> friendListManager.handleSearch());
-        
+
+        if (btnSearch != null)
+            btnSearch.setOnAction(e -> friendListManager.handleSearch());
+        if (txtSearch != null)
+            txtSearch.setOnAction(e -> friendListManager.handleSearch());
+
         setupRoomAvatars();
         setupPopup();
         tcpHandler.setupListeners();
     }
-    
+
     private void setupRoomAvatars() {
         new Thread(() -> {
             UserSummary currentUser = UserApi.getCurrentUser();
             Platform.runLater(() -> {
                 if (hostAvatar != null) {
                     hostAvatar.setVisible(true);
-                    
+
                     if (currentUser != null && currentUser.avatarUrl != null) {
                         hostAvatar.setImage(loadUserAvatarOrFallback(currentUser.avatarUrl));
                     } else {
                         hostAvatar.setImage(loadUserAvatarOrFallback(null));
                     }
-                    
+
                     Rectangle clip = new Rectangle(96, 96);
                     clip.setArcWidth(12);
                     clip.setArcHeight(12);
                     hostAvatar.setClip(clip);
                 }
-                
+
                 if (hostStatus != null) {
                     String displayName = "Player";
                     if (currentUser != null) {
@@ -184,7 +201,7 @@ public class RoomScreenController {
                 }
             });
         }).start();
-        
+
         if (guestAvatar != null) {
             guestAvatar.setVisible(false);
             Rectangle guestClip = new Rectangle(96, 96);
@@ -196,7 +213,7 @@ public class RoomScreenController {
             guestStatus.setText("Waiting for player...");
         }
     }
-    
+
     private void setupPopup() {
         if (questionButton != null) {
             questionButton.setOnMouseClicked(e -> showPopup());
@@ -212,21 +229,21 @@ public class RoomScreenController {
             });
         }
     }
-    
+
     private void showPopup() {
         if (popupOverlay != null) {
             popupOverlay.setVisible(true);
             popupOverlay.setManaged(true);
         }
     }
-    
+
     private void hidePopup() {
         if (popupOverlay != null) {
             popupOverlay.setVisible(false);
             popupOverlay.setManaged(false);
         }
     }
-    
+
     private void loadInvites() {
         roomManager.loadInvites(invites -> {
             if (invites == null || invites.isEmpty()) {
@@ -242,21 +259,21 @@ public class RoomScreenController {
             }
         });
     }
-    
+
     private void handleAcceptInvite(InviteDTO invite) {
         roomManager.handleAcceptInvite(invite, this::loadInvites);
     }
-    
+
     private void handleRejectInvite(InviteDTO invite) {
         roomManager.handleRejectInvite(invite, this::loadInvites);
     }
-    
+
     private void showAlert(String message, Alert.AlertType type) {
         Alert alert = new Alert(type);
         alert.setContentText(message);
         alert.showAndWait();
     }
-    
+
     private Image loadUserAvatarOrFallback(String candidateUrl) {
         String fallbackResource = "/com/example/memorygame/assets/images/name.png";
         try {
@@ -264,15 +281,25 @@ public class RoomScreenController {
                 String trimmed = candidateUrl.trim();
                 if (!trimmed.isEmpty()) {
                     String lower = trimmed.toLowerCase();
-                    if (lower.startsWith("http://") || lower.startsWith("https://")) {
+                    // Check if it's a resource path (starts with /)
+                    if (lower.startsWith("/")) {
+                        var resourceUrl = getClass().getResource(trimmed);
+                        if (resourceUrl != null) {
+                            return new Image(resourceUrl.toExternalForm(), true);
+                        }
+                    } else if (lower.startsWith("http://") || lower.startsWith("https://")) {
                         return new Image(trimmed, true);
                     }
                 }
             }
-        } catch (IllegalArgumentException ignored) { }
-        
+        } catch (IllegalArgumentException ignored) {
+        }
+
         var url = getClass().getResource(fallbackResource);
+        if (url == null) {
+            // Try alternative path in main directory
+            url = getClass().getResource("/com/example/memorygame/name.png");
+        }
         return new Image(Objects.requireNonNull(url).toExternalForm(), true);
     }
 }
-
