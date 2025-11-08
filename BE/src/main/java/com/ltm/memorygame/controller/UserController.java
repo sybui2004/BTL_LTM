@@ -3,6 +3,8 @@ package com.ltm.memorygame.controller;
 import com.ltm.memorygame.dao.user.UserRankingProjection;
 import com.ltm.memorygame.dto.friend.response.FriendDTO;
 import com.ltm.memorygame.dto.user.request.SetStatusRequest;
+import com.ltm.memorygame.dto.user.request.UpdateProfileRequest;
+import com.ltm.memorygame.dto.user.request.ChangePasswordRequest;
 import jakarta.validation.Valid;
 import com.ltm.memorygame.dto.user.response.UserProfileDTO;
 import com.ltm.memorygame.dto.user.response.UserResponseDTO;
@@ -52,9 +54,40 @@ public class UserController {
         return ResponseEntity.ok().build();
     }
 
+    @PatchMapping("/{id}")
+    public ResponseEntity<UserResponseDTO> updateProfile(@PathVariable Long id,
+                                                          @Valid @RequestBody UpdateProfileRequest body) {
+        Long authId = AuthUtils.getAuthenticatedUserId();
+        if (authId == null || !authId.equals(id)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        UserResponseDTO updatedUser = userService.updateProfile(id, body.getDisplayName(), body.getAvatarUrl());
+        return ResponseEntity.ok(updatedUser);
+    }
+
+    @PatchMapping("/{id}/password")
+    public ResponseEntity<Void> changePassword(@PathVariable Long id,
+                                               @Valid @RequestBody ChangePasswordRequest body) {
+        Long authId = AuthUtils.getAuthenticatedUserId();
+        if (authId == null || !authId.equals(id)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        userService.changePassword(id, body.getPassword());
+        return ResponseEntity.ok().build();
+    }
+
     @GetMapping("/search")
     public ResponseEntity<List<FriendDTO>> search(@RequestParam String q) {
         Long excludeId = AuthUtils.getAuthenticatedUserId();
         return ResponseEntity.ok(userService.searchUsersExcluding(q, excludeId));
+    }
+
+    @GetMapping("/recent")
+    public ResponseEntity<List<UserResponseDTO>> getRecentPlayers() {
+        Long userId = AuthUtils.getAuthenticatedUserId();
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        return ResponseEntity.ok(userService.getRecentPlayers(userId));
     }
 }

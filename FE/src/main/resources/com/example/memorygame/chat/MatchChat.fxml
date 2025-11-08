@@ -4,19 +4,23 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
 
 <!--
   Match Chat Layout
-  - Chat giữa 2 players trong trận
-  - Tích hợp vào match screen
-  - Temporary (xóa sau match)
+  - Chat giữa 2 người chơi trong trận
+  - Góc dưới trái: tin của người gửi + ô nhập
+  - Góc trên phải: tin của đối thủ
 -->
 
 <VBox xmlns="http://javafx.com/javafx/11.0.1" 
       xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.example.memorygame.controller.chat.MatchChatController"
-      prefWidth="350.0" prefHeight="500.0"
-      styleClass="match-chat-container">
+    fx:id="rootBox"
+    styleClass="match-chat-container"
+    alignment="TOP_LEFT"
+    pickOnBounds="false" mouseTransparent="false">
     <stylesheets>
                 <URL value="@chatstyles/BaseChatStyle.css"/>
                 <URL value="@chatstyles/MatchChatStyle.css"/>
@@ -25,37 +29,73 @@
                 <URL value="@ChatStyles/MatchChatStyle.css"/>
     </stylesheets>
     
-    <!-- Header -->
-    <HBox styleClass="chat-header" alignment="CENTER_LEFT" spacing="10.0">
-        <padding>
-            <Insets top="8.0" right="12.0" bottom="8.0" left="12.0"/>
-        </padding>
-        
-        <Label text="⚔️ Match Chat" styleClass="chat-title"/>
-        
-        <Region HBox.hgrow="ALWAYS"/>
-        
-        <!-- Match status indicator -->
-        <Label fx:id="matchStatusLabel" text="●" styleClass="status-indicator" 
-               style="-fx-text-fill: #00ff00; -fx-font-size: 18px;"/>
-    </HBox>
     
-    <!-- Chat Container - sẽ chứa ChatComponent -->
-    <VBox fx:id="chatContainer" VBox.vgrow="ALWAYS" styleClass="chat-content">
-        <!-- ChatComponent sẽ được add vào đây từ controller -->
-    </VBox>
+    <!-- AnchorPane để đặt chat ở các góc màn hình -->
+    <AnchorPane fx:id="chatAnchor" styleClass="match-chat-anchor" pickOnBounds="false" mouseTransparent="false" style="-fx-background-color: transparent;" VBox.vgrow="ALWAYS">
+        
+        <!-- Góc dưới trái: Panel người gửi (messages + input) -->
+        <VBox fx:id="leftPane" styleClass="left-pane" spacing="0" 
+              AnchorPane.bottomAnchor="10" AnchorPane.leftAnchor="10"
+              maxWidth="350" minWidth="280"
+              prefHeight="350" maxHeight="400"
+              mouseTransparent="false" pickOnBounds="false">
+            
+            <!-- Khu vực tin nhắn -->
+            <ScrollPane fx:id="leftScroll" fitToWidth="true" prefHeight="250" maxHeight="300" 
+                        VBox.vgrow="ALWAYS" styleClass="chat-scroll-pane"
+                        style="-fx-background-color: transparent;">
+                <VBox fx:id="leftMessageContainer" spacing="8" styleClass="message-container left-messages"/>
+            </ScrollPane>
+            
+            <!-- Khu vực nhập liệu với header người chơi -->
+            <HBox fx:id="leftInputArea" spacing="8" alignment="CENTER_LEFT" styleClass="input-area player-header"
+                  style="-fx-background-color: rgb(255, 255, 255); -fx-background-radius: 12; -fx-border-radius: 12; -fx-border-color: transparent; -fx-border-width: 0;">
+                <padding>
+                    <Insets top="8" right="12" bottom="8" left="12"/>
+                </padding>
+                <ImageView fx:id="leftPlayerAvatar" fitWidth="48" fitHeight="48" preserveRatio="true" styleClass="player-header-avatar" />
+                <VBox fx:id="leftPlayerInputContainer" spacing="2" alignment="CENTER_LEFT" HBox.hgrow="ALWAYS">
+                    <Label fx:id="leftPlayerName" text="Me" styleClass="player-header-name" />
+                    <TextField fx:id="inputField" promptText="" styleClass="message-input"/>
+                </VBox>
+                <VBox alignment="BOTTOM_RIGHT">
+                    <Button fx:id="sendButton" styleClass="send-button"
+                            style="-fx-background-color: transparent; -fx-background-radius: 0; -fx-border-radius: 0; -fx-padding: 0; -fx-border-width: 0; -fx-border-color: transparent;">
+                        <graphic>
+                            <ImageView fitWidth="30" fitHeight="30" preserveRatio="true">
+                                <Image url="@../assets/images/icon/send_mess.png"/>
+                            </ImageView>
+                        </graphic>
+                    </Button>
+                </VBox>
+            </HBox>
+        </VBox>
+
+        <!-- Góc trên phải: Panel đối thủ (chỉ tin nhắn) -->
+        <VBox fx:id="rightPane" styleClass="right-pane" spacing="6"
+              AnchorPane.topAnchor="40" AnchorPane.rightAnchor="10"
+              maxWidth="350" minWidth="280"
+              prefHeight="350" maxHeight="400"
+              mouseTransparent="false" pickOnBounds="false">
+            
+            <!-- Header người chơi: avatar + tên -->
+            <HBox styleClass="player-header" alignment="CENTER_RIGHT" spacing="8">
+                <padding>
+                    <Insets top="8.0" right="8.0" bottom="8.0" left="8.0"/>
+                </padding>
+                <Label fx:id="rightPlayerName" text="Opponent" styleClass="player-header-name" />
+                <ImageView fx:id="rightPlayerAvatar" fitWidth="48" fitHeight="48" preserveRatio="true" styleClass="player-header-avatar" />
+            </HBox>
+            
+            <!-- Khu vực tin nhắn -->
+            <ScrollPane fx:id="rightScroll" fitToWidth="true" prefHeight="300" maxHeight="350" 
+                        VBox.vgrow="ALWAYS" styleClass="chat-scroll-pane"
+                        style="-fx-background-color: transparent; -fx-padding: 0;">
+                <VBox fx:id="rightMessageContainer" spacing="8" styleClass="message-container right-messages"
+                      style="-fx-padding: 2 0 2 0; -fx-alignment: TOP_RIGHT;"/>
+            </ScrollPane>
+        </VBox>
+    </AnchorPane>
     
-    <!-- Quick reactions (optional) -->
-    <HBox styleClass="quick-reactions" alignment="CENTER" spacing="8.0" 
-          visible="false" managed="false">
-        <padding>
-            <Insets top="5.0" right="10.0" bottom="5.0" left="10.0"/>
-        </padding>
-        <Button text="👍" styleClass="reaction-btn"/>
-        <Button text="😄" styleClass="reaction-btn"/>
-        <Button text="😮" styleClass="reaction-btn"/>
-        <Button text="👏" styleClass="reaction-btn"/>
-        <Button text="🔥" styleClass="reaction-btn"/>
-    </HBox>
     
 </VBox>

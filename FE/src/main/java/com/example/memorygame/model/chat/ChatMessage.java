@@ -25,6 +25,7 @@ public class ChatMessage {
     private String channelId;        // roomId cho MATCH/LOBBY chat
     private MessageStatus status;    // SENT, DELIVERED, READ
     private String stickerId;        // ID của sticker (nếu messageType là STICKER)
+    private String stickerPath;     // Path của sticker image (nếu messageType là STICKER)
     
     // Additional fields
     private String replyTo;          // ID của message được reply (nullable)
@@ -92,6 +93,14 @@ public class ChatMessage {
 
     public void setStickerId(String stickerId) {
         this.stickerId = stickerId;
+    }
+
+    public String getStickerPath() {
+        return stickerPath;
+    }
+
+    public void setStickerPath(String stickerPath) {
+        this.stickerPath = stickerPath;
     }
 
 

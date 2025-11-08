@@ -45,14 +45,14 @@ public interface PrivateMessageRepository extends JpaRepository<PrivateMessage, 
                    CASE WHEN p.sender_id = :userId THEN p.receiver_id ELSE p.sender_id END AS peer_id,
                    ROW_NUMBER() OVER (
                        PARTITION BY CASE WHEN p.sender_id = :userId THEN p.receiver_id ELSE p.sender_id END
-                       ORDER BY p.created_at ASC, p.id DESC
+                       ORDER BY p.created_at DESC, p.id DESC
                    ) AS rn
             FROM private_message p
             WHERE p.sender_id = :userId OR p.receiver_id = :userId
         ) pm
         JOIN users other_u ON other_u.id = pm.peer_id
         WHERE pm.rn = 1
-        ORDER BY pm.created_at ASC, pm.id DESC
+        ORDER BY pm.created_at DESC, pm.id DESC
         """, nativeQuery = true)
     List<ConversationPreviewProjection> findLatestConversations(@Param("userId") Long userId);
 }

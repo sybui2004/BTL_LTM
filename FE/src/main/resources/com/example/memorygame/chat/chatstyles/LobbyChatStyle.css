@@ -1,7 +1,10 @@
-/* Lobby Chat theme - Màu xanh dương nhạt giống World Chat */
+/* Lobby Chat theme - Background image giống World Chat */
 
 .lobby-chat-container {
-  -fx-background-color: #ffffff;
+  -fx-background-image: url("/com/example/memorygame/assets/images/bg_3.png");
+  -fx-background-size: cover;
+  -fx-background-repeat: no-repeat;
+  -fx-background-position: center center;
   -fx-border-color: #e5e7eb;
   -fx-border-radius: 8;
   -fx-background-radius: 8;
@@ -12,26 +15,18 @@
   -fx-border-color: #d1fae5;
 }
 
-.lobby-chat-container .players-count {
-  -fx-text-fill: #0f766e;
-}
-
-.lobby-chat-container .participants-bar {
-  -fx-background-color: #f8fafc;
-}
-
 .lobby-chat-container .chat-content {
+  -fx-background-color: transparent;
   -fx-padding: 6;
 }
 
-/* Message area background - Xanh dương nhạt như hình */
 .lobby-chat-container .base-chat-container {
-  -fx-background-color: #B3E5FC;
+  -fx-background-color: transparent;
 }
 
 .lobby-chat-container .chat-scroll-pane,
 .lobby-chat-container .chat-scroll-pane > .viewport {
-  -fx-background-color: #B3E5FC;
+  -fx-background-color: transparent;
 }
 
 .lobby-chat-container .chat-footer {

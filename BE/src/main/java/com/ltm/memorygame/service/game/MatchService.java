@@ -100,4 +100,10 @@ public class MatchService {
         return matchRepository.findById(matchId)
                 .orElseThrow(() -> new NoSuchElementException("Match not found"));
     }
+
+    @Transactional(readOnly = true)
+    public boolean isPlayerInMatch(Long matchId, Long userId) {
+        Match match = getEntityById(matchId);
+        return match.getPlayer1().getId().equals(userId) || match.getPlayer2().getId().equals(userId);
+    }
 }

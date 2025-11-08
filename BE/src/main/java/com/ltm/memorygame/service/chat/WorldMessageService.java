@@ -2,8 +2,7 @@ package com.ltm.memorygame.service.chat;
 
 import java.time.Instant;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
+import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -66,11 +65,17 @@ public class WorldMessageService {
         return response;
     }
 
-    // Lấy danh sách 100 tin nhắn gần nhất (mặc định)
+    // Lấy danh sách 100 tin nhắn gần nhất
+    // Query lấy DESC (mới nhất trước) nhưng đảo ngược để trả về ASC (cũ nhất trước, mới nhất sau)
+    // để phù hợp với cách frontend hiển thị (scroll từ trên xuống, tin mới nhất ở dưới)
     @Transactional(readOnly = true)
-    public Page<WorldMessageResponse> getRecentMessages(int page, int size) {
-        Page<WorldMessage> messages = worldMessageRepository.findAllByOrderByCreatedAtDesc(PageRequest.of(page, size));
-        return messages.map(MessageMapper::toWorldMessageResponse);
+    public List<WorldMessageResponse> getRecentMessages() {
+        List<WorldMessage> messages = worldMessageRepository.findTop100ByOrderByCreatedAtDesc();
+        // Đảo ngược list để trả về thứ tự ASC (oldest first, newest last)
+        java.util.Collections.reverse(messages);
+        return messages.stream()
+                .map(MessageMapper::toWorldMessageResponse)
+                .collect(java.util.stream.Collectors.toList());
     }
 
 }

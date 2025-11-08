@@ -1,5 +1,3 @@
-/* Private Chat theme - Màu xanh dương nhạt */
-
 .private-chat-container {
   -fx-background-color: #ffffff;
   -fx-border-color: #e5e7eb;
@@ -12,51 +10,129 @@
   -fx-border-color: #e5e7eb;
   -fx-border-width: 0 0 1 0;
 }
+
 .private-chat-container .list-title {
   -fx-text-fill: #1f2937;
 }
+
 .private-chat-container .new-chat-btn {
   -fx-background-color: #e2e8f0;
   -fx-background-radius: 14;
 }
+
 .private-chat-container .search-input {
   -fx-background-color: white;
   -fx-border-color: #e2e8f0;
   -fx-border-radius: 14;
   -fx-background-radius: 14;
 }
+
 .private-chat-container .conversation-list {
   -fx-background-insets: 0;
+  -fx-background-color: #B4E9FF;
+}
+
+.private-chat-container .conversation-list .list-cell {
+  -fx-background-color: #B4E9FF;
+  -fx-border-color: rgba(90, 197, 236, 0.3);
+  -fx-border-width: 0 0 1 0;
+  -fx-padding: 0;
+}
+
+.private-chat-container .conversation-list .list-cell:hover {
+  -fx-background-color: #5AC5EC;
+}
+
+.private-chat-container .conversation-list .list-cell:selected {
+  -fx-background-color: #3DB8E8;
+  -fx-border-color: #2A9FD4;
+  -fx-border-width: 0 0 2 0;
+}
+
+.private-chat-container .conversation-list .list-cell:focused {
+  -fx-background-color: #3DB8E8;
+}
+
+.private-chat-container .conversation-list .list-cell:selected:focused {
+  -fx-background-color: #2A9FD4;
+  -fx-border-color: #1E7BA8;
+  -fx-border-width: 0 0 2 0;
+}
+
+.private-chat-container .conversation-list .list-cell:empty {
+  -fx-background-color: #B4E9FF;
+  -fx-border-width: 0;
+}
+
+.private-chat-container .conversation-list .virtual-flow .clipped-container .sheet .list-cell {
+  -fx-background-color: #B4E9FF;
 }
 
 .private-chat-container .chat-header {
-  -fx-background-color: #f8fafc;
-  -fx-border-color: #e5e7eb;
+  -fx-background-color: #B4E9FF;
 }
+
 .private-chat-container .chat-title {
   -fx-text-fill: #111827;
+  -fx-font-size: 20px;
 }
-.private-chat-container .status-label {
-  -fx-text-fill: #6b7280;
+
+.private-chat-container .friend-status {
+  -fx-font-size: 12px;
+  -fx-opacity: 0.9;
 }
+
+.private-chat-container .friend-status.status-online {
+  -fx-text-fill: #007f2b;
+}
+
+.private-chat-container .friend-status.status-offline {
+  -fx-text-fill: #7F8C8D;
+}
+
+.private-chat-container .friend-status.status-busy {
+  -fx-text-fill: #b8860b;
+}
+
 .private-chat-container .options-btn {
-  -fx-text-fill: #374151;
+  -fx-text-fill: #5AC5EC;
 }
 
 .private-chat-container .chat-content {
   -fx-padding: 6;
+  -fx-background-image: url("/com/example/memorygame/assets/images/bg_2.png");
+  -fx-background-size: cover;
+  -fx-background-repeat: no-repeat;
+  -fx-background-position: center center;
 }
 
-/* Message area background - Xanh dương nhạt */
 .private-chat-container .base-chat-container {
-  -fx-background-color: #B3E5FC;
+  -fx-background-color: transparent;
+  -fx-min-height: 0;
+  -fx-pref-height: 0;
 }
 
 .private-chat-container .chat-scroll-pane,
 .private-chat-container .chat-scroll-pane > .viewport {
-  -fx-background-color: #B3E5FC;
+  -fx-background-color: transparent;
+}
+
+.private-chat-container .message-container {
+  -fx-background-color: transparent;
+  -fx-min-height: 0;
 }
 
 .private-chat-container .empty-state {
   -fx-background-color: #ffffff;
+}
+
+.private-chat-container .conversation-list-panel {
+  -fx-background-color: #B4E9FF;
+}
+
+.private-chat-container .search-box {
+  -fx-pref-height: 56px;
+  -fx-min-height: 56px;
+  -fx-max-height: 56px;
+  -fx-padding: 10px 10px 10px 10px;
 }

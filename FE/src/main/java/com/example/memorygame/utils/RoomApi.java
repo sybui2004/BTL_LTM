@@ -23,7 +23,7 @@ public class RoomApi {
             if (guestId != null) {
                 request.put("guestId", guestId);
             }
-            
+
             String json = MAPPER.writeValueAsString(request);
             String response = ApiClient.postJsonAuth("/api/rooms", json);
             return MAPPER.readValue(response, RoomResponseDTO.class);
@@ -42,7 +42,7 @@ public class RoomApi {
             request.put("roomId", roomId);
             request.put("senderId", senderId);
             request.put("targetId", targetId);
-            
+
             String json = MAPPER.writeValueAsString(request);
             ApiClient.postJsonAuth("/api/invites/send", json);
             return true;
@@ -58,7 +58,8 @@ public class RoomApi {
     public static java.util.List<RoomResponseDTO> getWaitingRooms() {
         try {
             String response = ApiClient.getAuth("/api/rooms");
-            return MAPPER.readValue(response, new TypeReference<List<RoomResponseDTO>>(){});
+            return MAPPER.readValue(response, new TypeReference<List<RoomResponseDTO>>() {
+            });
         } catch (Exception e) {
             System.err.println("[RoomApi] Failed to get rooms: " + e.getMessage());
             return java.util.Collections.emptyList();
@@ -66,33 +67,33 @@ public class RoomApi {
     }
 
     /**
-     * Lấy danh sách phòng đang hoạt động (WAITING/READY/PLAYING) của user hiện tại.
+     * Exit a room (host or guest).
+     * This is safe to call even if backend already processed exit via TCP.
      */
-    public static java.util.List<RoomResponseDTO> getMyActiveRooms() {
+    public static boolean exitRoom(Long roomId, Long playerId) {
         try {
-            String response = ApiClient.getAuth("/api/rooms/my-active");
-            return MAPPER.readValue(response, new TypeReference<List<RoomResponseDTO>>(){});
+            Map<String, Object> request = new HashMap<>();
+            request.put("roomId", roomId);
+            request.put("playerId", playerId);
+            String json = MAPPER.writeValueAsString(request);
+            ApiClient.postJsonAuth("/api/rooms/exit", json);
+            return true;
         } catch (Exception e) {
-            System.err.println("[RoomApi] Failed to get my active rooms: " + e.getMessage());
-            return java.util.Collections.emptyList();
+            System.err.println("[RoomApi] Failed to exit room: " + e.getMessage());
+            return false;
         }
     }
 
     /**
-     * Chọn room ưu tiên theo trạng thái (PLAYING > READY > WAITING). Trả null nếu không có.
+     * Get a specific room by ID
      */
-    public static Long pickBestRoomId(java.util.List<RoomResponseDTO> rooms) {
-        if (rooms == null || rooms.isEmpty()) return null;
-        // Ưu tiên PLAYING
-        for (RoomResponseDTO r : rooms) {
-            if ("PLAYING".equalsIgnoreCase(r.status)) return r.id;
+    public static RoomResponseDTO getRoom(Long roomId) {
+        try {
+            String response = ApiClient.getAuth("/api/rooms/" + roomId);
+            return MAPPER.readValue(response, RoomResponseDTO.class);
+        } catch (Exception e) {
+            System.err.println("[RoomApi] Failed to get room: " + e.getMessage());
+            return null;
         }
-        // Sau đó READY
-        for (RoomResponseDTO r : rooms) {
-            if ("READY".equalsIgnoreCase(r.status)) return r.id;
-        }
-        // Cuối cùng bất kỳ
-        return rooms.get(0).id;
     }
 }
-

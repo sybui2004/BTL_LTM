@@ -2,6 +2,8 @@ package com.example.memorygame.controller.chat;
 
 import com.example.memorygame.model.chat.ChatMessage;
 import com.example.memorygame.model.user.UserSummary;
+import com.example.memorygame.utils.AvatarCacheManager;
+import com.example.memorygame.utils.TimestampUtil;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -15,37 +17,42 @@ import javafx.scene.layout.VBox;
 import javafx.scene.shape.Circle;
 
 /**
- * Custom message cell component for chat
- * Displays avatar, username, and message bubble
+ * Custom message cell component for chat.
+ * Displays avatar, username, and message bubble based on the sender and layout mode.
  */
 public class MessageCell extends HBox {
+    public enum LayoutMode {
+        DEFAULT,          // Tin nhắn của mình bên phải, của người khác bên trái.
+        MINE_ON_LEFT,     // Dành cho MatchChat: Tin nhắn của mình bên trái.
+        OPPONENT_ON_RIGHT // Dành cho MatchChat: Tin nhắn của đối thủ bên phải.
+    }
     
     private final ChatMessage message;
     private final UserSummary currentUser;
+    private final LayoutMode layoutMode;
+    private final ChatMessage previousMessage;
     
-    public MessageCell(ChatMessage message, UserSummary currentUser) {
+    public MessageCell(ChatMessage message, UserSummary currentUser, LayoutMode layoutMode, ChatMessage previousMessage) {
         this.message = message;
         this.currentUser = currentUser;
+        this.layoutMode = layoutMode != null ? layoutMode : LayoutMode.DEFAULT;
+        this.previousMessage = previousMessage;
         
         setupLayout();
         buildUI();
     }
     
     private void setupLayout() {
-        this.setSpacing(10);
-        this.setPadding(new Insets(5, 10, 5, 10));
-        this.setMaxWidth(Double.MAX_VALUE);
-        this.setPrefWidth(Double.MAX_VALUE); // ensure cell stretches to container width
+        setSpacing(10);
+        setPadding(new Insets(5, 0, 5, 0));
+        setMaxWidth(Double.MAX_VALUE);
         
-        // Check if message is from current user
         boolean isMine = isMyMessage();
         
-        if (isMine) {
-            // Align right for own messages
-            this.setAlignment(Pos.CENTER_RIGHT);
+        if ((isMine && layoutMode == LayoutMode.DEFAULT) || (!isMine && layoutMode == LayoutMode.OPPONENT_ON_RIGHT)) {
+            setAlignment(Pos.CENTER_RIGHT);
         } else {
-            // Align left for other's messages
-            this.setAlignment(Pos.CENTER_LEFT);
+            setAlignment(Pos.TOP_LEFT);
         }
     }
     
@@ -53,185 +60,223 @@ public class MessageCell extends HBox {
         boolean isMine = isMyMessage();
         
         if (isMine) {
-            // Own message: [spacer] [username+bubble] [avatar]
+            // Tin nhắn của bản thân
             Region spacer = new Region();
-            HBox.setHgrow(spacer, Priority.ALWAYS);
+            VBox bubbleContainer = createOwnMessageContainer(true);
             
-            VBox bubbleContainer = createContentWithUsernameForMine();
-            ImageView avatar = createAvatar();
-            
-            this.getChildren().addAll(spacer, bubbleContainer, avatar);
+            if (layoutMode == LayoutMode.DEFAULT) {
+                HBox.setHgrow(spacer, Priority.ALWAYS);
+                getChildren().addAll(spacer, bubbleContainer);
+            } else { // MINE_ON_LEFT
+                HBox.setHgrow(spacer, Priority.ALWAYS);
+                getChildren().addAll(bubbleContainer, spacer);
+            }
         } else {
-            // Other's message: [avatar] [username + bubble] [spacer]
-            ImageView avatar = createAvatar();
-            VBox contentContainer = createContentWithUsername();
-            
-            Region spacer = new Region();
-            HBox.setHgrow(spacer, Priority.ALWAYS);
-            
-            this.getChildren().addAll(avatar, contentContainer, spacer);
+            // Tin nhắn của người khác
+            if (layoutMode == LayoutMode.OPPONENT_ON_RIGHT) {
+                // Tin nhắn đối thủ trong MatchChat (chỉ có bubble)
+                Region spacer = new Region();
+                HBox.setHgrow(spacer, Priority.ALWAYS);
+                VBox bubbleOnly = createBubbleContainer(false);
+                getChildren().addAll(spacer, bubbleOnly);
+            } else {
+                // Tin nhắn người khác trong các chat khác (đầy đủ avatar, tên)
+                ImageView avatar = createAvatar();
+                VBox contentContainer = createContentWithUsername(false);
+                
+                VBox avatarWrapper = new VBox(avatar);
+                avatarWrapper.setAlignment(Pos.TOP_LEFT);
+                
+                Region spacer = new Region();
+                HBox.setHgrow(spacer, Priority.ALWAYS);
+                
+                getChildren().addAll(avatarWrapper, contentContainer, spacer);
+            }
         }
     }
     
     private ImageView createAvatar() {
-        ImageView avatar = new ImageView();
-        avatar.setFitWidth(40);
-        avatar.setFitHeight(40);
-        avatar.setPreserveRatio(true);
+        ImageView avatarView = new ImageView();
+        avatarView.setFitWidth(44);
+        avatarView.setFitHeight(44);
+        avatarView.setPreserveRatio(true);
         
-        // Clip to circle
-        Circle clip = new Circle(20, 20, 20);
-        avatar.setClip(clip);
+        Circle clip = new Circle(22, 22, 22);
+        avatarView.setClip(clip);
         
-        // Load avatar image if available
-        String avatarUrl = getAvatarUrl();
-        if (avatarUrl != null && !avatarUrl.isEmpty()) {
-            try {
-                Image image = new Image(avatarUrl, true);
-                avatar.setImage(image);
-            } catch (Exception e) {
-                // Fallback to default avatar
-                setDefaultAvatar(avatar);
-            }
-        } else {
-            setDefaultAvatar(avatar);
-        }
+        AvatarCacheManager cacheManager = AvatarCacheManager.getInstance();
+        Image avatarImage = cacheManager.getAvatar(getAvatarUrl());
         
-        return avatar;
+        avatarView.setImage(avatarImage != null ? avatarImage : cacheManager.getDefaultAvatar());
+        
+        // ImageView tự động cập nhật khi Image tải trong nền.
+        // AvatarCacheManager xử lý lỗi và trả về ảnh mặc định.
+        
+        return avatarView;
     }
     
-    private void setDefaultAvatar(ImageView avatar) {
-        try {
-            // Load default avatar from assets
-            Image defaultImage = new Image(
-                getClass().getResourceAsStream("/com/example/memorygame/assets/images/name.png")
-            );
-            avatar.setImage(defaultImage);
-        } catch (Exception e) {
-            // If loading fails, use a solid color background
-            System.err.println("Failed to load default avatar: " + e.getMessage());
-            avatar.setStyle("-fx-background-color: #cccccc; -fx-background-radius: 20;");
-        }
-    }
-    
-    private VBox createContentWithUsername() {
+    /**
+     * Tạo container cho tin nhắn của chính mình (chỉ có bubble và timestamp).
+     */
+    private VBox createOwnMessageContainer(boolean alignRight) {
         VBox container = new VBox(3);
-        container.setAlignment(Pos.TOP_LEFT);
+        container.setAlignment(alignRight ? Pos.TOP_RIGHT : Pos.TOP_LEFT);
         
-        // Username label
-        Label usernameLabel = new Label(getDisplayName());
-        usernameLabel.getStyleClass().add("message-username");
-        usernameLabel.setStyle("-fx-font-size: 11px; -fx-text-fill: #666; -fx-font-weight: bold;");
+        boolean showTimestamp = layoutMode == LayoutMode.DEFAULT && TimestampUtil.shouldShowTimestamp(
+            message.getTimestamp(), 
+            previousMessage != null ? previousMessage.getTimestamp() : null
+        );
         
-        // Message bubble
-        VBox bubble = createBubbleContainer(false);
+        if (showTimestamp && message.getTimestamp() != null) {
+            Label timestampLabel = new Label(TimestampUtil.formatMessageTimestamp(message.getTimestamp()));
+            timestampLabel.getStyleClass().add("message-timestamp");
+            timestampLabel.setStyle("-fx-font-size: 11px; -fx-text-fill: #888; -fx-font-style: italic;");
+            
+            if (alignRight) {
+                timestampLabel.setPadding(new Insets(5, 13, 2, 0));
+                timestampLabel.setAlignment(Pos.CENTER_RIGHT);
+            } else {
+                timestampLabel.setPadding(new Insets(5, 0, 2, 13));
+                timestampLabel.setAlignment(Pos.CENTER_LEFT);
+            }
+            container.getChildren().add(timestampLabel);
+        }
         
-        container.getChildren().addAll(usernameLabel, bubble);
+        VBox bubble = createBubbleContainer(true);
+        container.getChildren().add(bubble);
+        
         return container;
     }
 
-    private VBox createContentWithUsernameForMine() {
+    /**
+     * Tạo container cho tin nhắn của người khác (tên, bubble, và timestamp).
+     */
+    private VBox createContentWithUsername(boolean alignRight) {
         VBox container = new VBox(3);
-        container.setAlignment(Pos.TOP_RIGHT);
-
-        // Username label (right aligned)
+        container.setAlignment(alignRight ? Pos.TOP_RIGHT : Pos.TOP_LEFT);
+        
+        boolean showTimestamp = layoutMode == LayoutMode.DEFAULT && TimestampUtil.shouldShowTimestamp(
+            message.getTimestamp(), 
+            previousMessage != null ? previousMessage.getTimestamp() : null
+        );
+        
         Label usernameLabel = new Label(getDisplayName());
         usernameLabel.getStyleClass().add("message-username");
-        usernameLabel.setStyle("-fx-font-size: 11px; -fx-text-fill: #666; -fx-font-weight: bold;");
+        usernameLabel.setStyle("-fx-font-size: 17px; -fx-text-fill: #000; -fx-font-weight: bold; -fx-font-family: 'VT323', 'Consolas', 'Courier New', monospace;");
+        usernameLabel.setPadding(alignRight ? new Insets(0, 13, 0, 0) : new Insets(0, 0, 0, 25));
         
-        VBox bubble = createBubbleContainer(true);
-
+        VBox bubble = createBubbleContainer(false);
+        
         container.getChildren().addAll(usernameLabel, bubble);
+        
+        if (showTimestamp && message.getTimestamp() != null) {
+            Label timestampLabel = new Label(TimestampUtil.formatMessageTimestamp(message.getTimestamp()));
+            timestampLabel.getStyleClass().add("message-timestamp");
+            timestampLabel.setStyle("-fx-font-size: 11px; -fx-text-fill: #888; -fx-font-style: italic;");
+            
+            timestampLabel.setPadding(new Insets(2, 5, 0, 0));
+            timestampLabel.setAlignment(Pos.CENTER_RIGHT);
+            timestampLabel.setMaxWidth(Double.MAX_VALUE);
+            
+            container.getChildren().add(timestampLabel);
+        }
+        
         return container;
     }
     
     private VBox createBubbleContainer(boolean isMine) {
         VBox bubble = new VBox();
-        bubble.setPadding(new Insets(10, 16, 10, 16));
-        bubble.setMaxWidth(320);
         
-        // Message content
-        Label contentLabel = new Label(message.getContent());
-        contentLabel.setWrapText(true);
-        contentLabel.setStyle("-fx-font-size: 14px; -fx-font-family: 'Source Serif Pro', serif; -fx-text-fill: #1a1a1a;");
-        
-        bubble.getChildren().add(contentLabel);
-        
-        // Apply style class
-        bubble.getStyleClass().add("chat-bubble");
-        if (isMine) {
-            bubble.getStyleClass().add("mine");
+        if (message.getMessageType() == com.example.memorygame.model.chat.MessageType.STICKER) {
+            bubble.setPadding(new Insets(0));
+            bubble.setMaxWidth(100);
+            
+            ImageView stickerImageView = new ImageView();
+            stickerImageView.setFitWidth(60);
+            stickerImageView.setFitHeight(60);
+            stickerImageView.setPreserveRatio(true);
+            stickerImageView.setSmooth(true);
+            
+            String stickerPath = message.getStickerPath();
+            if (stickerPath != null && !stickerPath.isBlank()) {
+                try {
+                    String imageUrl = stickerPath;
+                    if (!imageUrl.startsWith("http")) {
+                        imageUrl = "http://localhost:8080" + (imageUrl.startsWith("/") ? "" : "/static/stickers/") + imageUrl;
+                    }
+                    stickerImageView.setImage(new Image(imageUrl, true));
+                } catch (Exception e) {
+                    bubble.getChildren().add(new Label("Sticker"));
+                }
+            } else {
+                bubble.getChildren().add(new Label("Sticker"));
+            }
+            
+            if (stickerImageView.getImage() != null) {
+                bubble.getChildren().add(stickerImageView);
+            }
         } else {
-            bubble.getStyleClass().add("theirs");
+            bubble.setPadding(new Insets(8, 16, 8, 16));
+            bubble.setMaxWidth(320);
+            
+            Label contentLabel = new Label(message.getContent());
+            contentLabel.setWrapText(true);
+
+            String fontFamily = MatchChatController.getSourceSerif4Family();
+            if (fontFamily != null && !fontFamily.isEmpty()) {
+                contentLabel.setFont(javafx.scene.text.Font.font(fontFamily, 17));
+                contentLabel.setStyle("-fx-text-fill: #000000;");
+            } else {
+                contentLabel.setStyle("-fx-font-size: 17px; -fx-font-family: serif; -fx-text-fill: #000000;");
+            }
+            
+            bubble.getChildren().add(contentLabel);
+            
+            bubble.getStyleClass().addAll("chat-bubble", isMine ? "mine" : "theirs");
+            
+            bubble.setStyle(
+                "-fx-background-color: white;" +
+                "-fx-background-radius: 18;" +
+                "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 4, 0.3, 0, 1);"
+            );
         }
-        
-        // Force white background with inline style to ensure it applies
-        bubble.setStyle(
-            "-fx-background-color: white;" +
-            "-fx-background-radius: 18;" +
-            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 4, 0.3, 0, 1);"
-        );
         
         return bubble;
     }
     
     private boolean isMyMessage() {
         if (currentUser == null || message.getSender() == null) {
-            System.out.println("[MessageCell] NULL CHECK - currentUser: " + currentUser + ", sender: " + message.getSender());
             return false;
         }
 
-        long curId = currentUser.id;
-        long senderId = message.getSender().id;
-
-        // Prefer reliable id comparison when both ids are positive
-        if (curId > 0 && senderId > 0) {
-            boolean same = curId == senderId;
-            System.out.println("[MessageCell] Compare by ID - cur:" + curId + ", sender:" + senderId + " -> " + same);
-            if (same) return true;
+        if (currentUser.id > 0 && message.getSender().id > 0) {
+            return currentUser.id == message.getSender().id;
         }
 
-        // Fallback: compare by username (common in realtime messages w/o id)
-        String cu = currentUser.username;
-        String su = message.getSender().username;
-        if (cu != null && su != null && !cu.isBlank() && !su.isBlank()) {
-            boolean same = cu.equalsIgnoreCase(su);
-            System.out.println("[MessageCell] Compare by username - cur:" + cu + ", sender:" + su + " -> " + same);
-            if (same) return true;
-        }
-
-        // Last fallback: compare by displayName if provided
-        String cd = currentUser.displayName;
-        String sd = message.getSender().displayName;
-        if (cd != null && sd != null && !cd.isBlank() && !sd.isBlank()) {
-            boolean same = cd.equalsIgnoreCase(sd);
-            System.out.println("[MessageCell] Compare by displayName - cur:" + cd + ", sender:" + sd + " -> " + same);
-            if (same) return true;
+        if (currentUser.username != null && !currentUser.username.isBlank()) {
+            return currentUser.username.equalsIgnoreCase(message.getSender().username);
         }
 
         return false;
     }
     
     private String getDisplayName() {
-        if (message.getSender() == null) {
-            return "Unknown";
-        }
-        
-        if (message.getSender().displayName != null && !message.getSender().displayName.isBlank()) {
-            return message.getSender().displayName;
-        }
-        
-        if (message.getSender().username != null && !message.getSender().username.isBlank()) {
-            return message.getSender().username;
-        }
-        
+        UserSummary sender = message.getSender();
+        if (sender == null) return "Unknown";
+        if (sender.displayName != null && !sender.displayName.isBlank()) return sender.displayName;
+        if (sender.username != null && !sender.username.isBlank()) return sender.username;
         return "Unknown";
     }
     
     private String getAvatarUrl() {
-        if (message.getSender() == null || message.getSender().avatarUrl == null) {
+        UserSummary sender = message.getSender();
+        if (sender == null || sender.avatarUrl == null || sender.avatarUrl.isBlank() || "null".equals(sender.avatarUrl)) {
             return null;
         }
-        return message.getSender().avatarUrl;
+        return sender.avatarUrl;
+    }
+
+    public ChatMessage getMessage() {
+        return message;
     }
 }

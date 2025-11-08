@@ -13,6 +13,10 @@ public class ApiClient {
         baseUrl = url;
     }
 
+    public static String getBaseUrl() {
+        return baseUrl;
+    }
+
     public static String get(String path) {
         try {
             HttpRequest request = HttpRequest.newBuilder()
@@ -104,6 +108,86 @@ public class ApiClient {
             System.err.println("[ApiClient] Exception: " + e.getClass().getName() + " - " + e.getMessage());
             e.printStackTrace();
             throw new RuntimeException("POST (auth) request failed: " + path, e);
+        }
+    }
+
+    public static void deleteAuth(String path) {
+        try {
+            String token = TokenManager.getInstance().getToken();
+            if (token == null || token.isBlank()) {
+                throw new IllegalStateException("Missing auth token");
+            }
+            System.out.println("[ApiClient] DELETE " + path + " with auth");
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(baseUrl + path))
+                    .header("Authorization", "Bearer " + token)
+                    .DELETE()
+                    .build();
+			HttpResponse<String> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+			int status = response.statusCode();
+			if (status >= 200 && status < 300) {
+				return;
+			}
+			System.err.println("[ApiClient] DELETE failed - Status: " + status + ", Body: " + response.body());
+			throw new RuntimeException("DELETE (auth) failed (" + status + ") for " + path + ": " + response.body());
+        } catch (Exception e) {
+            System.err.println("[ApiClient] Exception: " + e.getClass().getName() + " - " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("DELETE (auth) request failed: " + path, e);
+        }
+    }
+    
+    public static String patchAuth(String path, String jsonBody) {
+        try {
+            String token = TokenManager.getInstance().getToken();
+            if (token == null || token.isBlank()) {
+                throw new IllegalStateException("Missing auth token");
+            }
+            System.out.println("[ApiClient] PATCH " + path + " with auth");
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(baseUrl + path))
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", "Bearer " + token)
+                    .method("PATCH", HttpRequest.BodyPublishers.ofString(jsonBody))
+                    .build();
+			HttpResponse<String> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+			int status = response.statusCode();
+			if (status >= 200 && status < 300) {
+				return response.body();
+			}
+			System.err.println("[ApiClient] PATCH failed - Status: " + status + ", Body: " + response.body());
+			throw new RuntimeException("PATCH (auth) failed (" + status + ") for " + path + ": " + response.body());
+        } catch (Exception e) {
+            System.err.println("[ApiClient] Exception: " + e.getClass().getName() + " - " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("PATCH (auth) request failed: " + path, e);
+        }
+    }
+
+    public static String putJsonAuth(String path, String jsonBody) {
+        try {
+            String token = TokenManager.getInstance().getToken();
+            if (token == null || token.isBlank()) {
+                throw new IllegalStateException("Missing auth token");
+            }
+            System.out.println("[ApiClient] PUT " + path + " with auth");
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(baseUrl + path))
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", "Bearer " + token)
+                    .PUT(HttpRequest.BodyPublishers.ofString(jsonBody))
+                    .build();
+			HttpResponse<String> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+			int status = response.statusCode();
+			if (status >= 200 && status < 300) {
+				return response.body();
+			}
+			System.err.println("[ApiClient] PUT failed - Status: " + status + ", Body: " + response.body());
+			throw new RuntimeException("PUT (auth) failed (" + status + ") for " + path + ": " + response.body());
+        } catch (Exception e) {
+            System.err.println("[ApiClient] Exception: " + e.getClass().getName() + " - " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("PUT (auth) request failed: " + path, e);
         }
     }
 }

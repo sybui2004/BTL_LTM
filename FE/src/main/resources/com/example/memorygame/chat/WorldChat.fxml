@@ -7,80 +7,31 @@
 
 <!--
   World Chat Layout
-  - Chat toàn server cho tất cả users
-  - Có thể floating hoặc docked
-  - Messages được lưu DB
+  - Chat toàn server cho tất cả người chơi
+  - Sử dụng ChatComponent để hiển thị và xử lý tin nhắn
 -->
-
-<VBox xmlns="http://javafx.com/javafx/11.0.1" 
+<VBox fx:id="root" xmlns="http://javafx.com/javafx/11.0.1" 
     xmlns:fx="http://javafx.com/fxml/1"
     fx:controller="com.example.memorygame.controller.chat.WorldChatController"
-    fx:id="rootBox"
-    prefWidth="900.0" prefHeight="600.0"
+    prefWidth="400.0" prefHeight="600.0"
+    minWidth="400.0" minHeight="600.0"
     styleClass="world-chat-container">
     <stylesheets>
-                <URL value="@chatstyles/BaseChatStyle.css"/>
-                <URL value="@chatstyles/WorldChatStyle.css"/>
-                <!-- Also load capitalized path if present to avoid casing mismatch during edits -->
-                <URL value="@ChatStyles/WorldChatStyle.css"/>
+        <URL value="@chatstyles/BaseChatStyle.css"/>
+        <URL value="@chatstyles/WorldChatStyle.css"/>
     </stylesheets>
     
-    <!-- Header (centered title, toggle at right) -->
+    <!-- Header với title -->
     <BorderPane styleClass="chat-header">
         <padding>
             <Insets top="10.0" right="15.0" bottom="10.0" left="15.0"/>
         </padding>
-
-        <!-- Centered Title -->
         <center>
             <Label text="🌍 World Chat" styleClass="chat-title" BorderPane.alignment="CENTER"/>
         </center>
-
-        <!-- Toggle button at the right -->
-        <right>
-            <HBox alignment="CENTER_RIGHT">
-                <Button fx:id="toggleButton" text="−" styleClass="toggle-btn" onAction="#toggleVisibility"/>
-            </HBox>
-        </right>
     </BorderPane>
     
-    <!-- Split layout: left (me) | spacer | right (others) -->
-    <HBox fx:id="splitContainer" VBox.vgrow="ALWAYS" spacing="0" styleClass="world-chat-split">
-        
-        <!-- LEFT: Sender panel (messages + input) -->
-        <VBox fx:id="leftPane" styleClass="left-pane" spacing="6">
-            <ScrollPane fx:id="leftScroll" fitToWidth="true" VBox.vgrow="ALWAYS" styleClass="chat-scroll-pane">
-                <VBox fx:id="leftMessageContainer" spacing="8" styleClass="message-container"/>
-            </ScrollPane>
-            <!-- Input area only on the left -->
-            <HBox spacing="8" alignment="CENTER" styleClass="input-area">
-                <padding>
-                    <Insets top="10" right="12" bottom="10" left="12"/>
-                </padding>
-                <Button fx:id="emojiButton" styleClass="emoji-button" />
-                <TextField fx:id="inputField" promptText="" HBox.hgrow="ALWAYS" styleClass="message-input"/>
-                <Button fx:id="sendButton" styleClass="send-button"/>
-            </HBox>
-        </VBox>
-
-        <!-- Spacer takes the middle area (about 50%) -->
-        <Region fx:id="centerSpacer" HBox.hgrow="ALWAYS" />
-
-        <!-- RIGHT: Opponent panel (messages only) -->
-        <VBox fx:id="rightPane" styleClass="right-pane" spacing="6">
-            <ScrollPane fx:id="rightScroll" fitToWidth="true" VBox.vgrow="ALWAYS" styleClass="chat-scroll-pane">
-                <VBox fx:id="rightMessageContainer" spacing="8" styleClass="message-container"/>
-            </ScrollPane>
-            <!-- no input on the right -->
-        </VBox>
-    </HBox>
-    
-    <!-- Footer với info -->
-    <HBox styleClass="chat-footer" alignment="CENTER" spacing="5.0">
-        <padding>
-            <Insets top="5.0" right="10.0" bottom="5.0" left="10.0"/>
-        </padding>
-        <Label text="💬 Messages are saved" styleClass="footer-text" style="-fx-font-size: 10px; -fx-text-fill: #888;"/>
-    </HBox>
-    
+    <!-- Container cho ChatComponent - sẽ được thêm vào từ controller -->
+    <VBox fx:id="chatContainer" VBox.vgrow="ALWAYS" styleClass="chat-content">
+    </VBox>
 </VBox>

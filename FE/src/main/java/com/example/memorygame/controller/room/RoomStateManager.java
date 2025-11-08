@@ -42,7 +42,11 @@ public class RoomStateManager {
     }
     
     public boolean isRoomFull() {
-        return currentGuestId != null || currentHostId != null;
+        return currentGuestId != null;
+    }
+    
+    public boolean canStartGame() {
+        return currentGuestId != null;
     }
 }
 

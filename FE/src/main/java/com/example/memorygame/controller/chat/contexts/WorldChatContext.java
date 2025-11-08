@@ -37,6 +37,19 @@ public class WorldChatContext implements ChatContext {
         try {
             this.historyMessages = ChatApi.fetchWorldHistory();
             System.out.println("[WorldChatContext] Loaded " + historyMessages.size() + " messages from history");
+            
+            // Preload avatars for better performance
+            if (historyMessages != null && !historyMessages.isEmpty()) {
+                com.example.memorygame.utils.AvatarCacheManager cacheManager = 
+                    com.example.memorygame.utils.AvatarCacheManager.getInstance();
+                
+                for (ChatMessage msg : historyMessages) {
+                    if (msg.getSender() != null && msg.getSender().avatarUrl != null) {
+                        cacheManager.preloadAvatar(msg.getSender().avatarUrl);
+                    }
+                }
+                System.out.println("[WorldChatContext] Preloading avatars for " + historyMessages.size() + " messages");
+            }
         } catch (Exception e) {
             System.err.println("[WorldChatContext] Failed to load history: " + e.getMessage());
             this.historyMessages = Collections.emptyList();

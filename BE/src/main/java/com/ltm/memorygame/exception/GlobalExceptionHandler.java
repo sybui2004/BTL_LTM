@@ -52,11 +52,15 @@ public class GlobalExceptionHandler {
 
 	@ExceptionHandler(Exception.class)
 	public ResponseEntity<ApiError> handleInternal(Exception ex, HttpServletRequest request) {
+		// Log the exception for debugging
+		System.err.println("[GlobalExceptionHandler] Unexpected error: " + ex.getClass().getName() + " - " + ex.getMessage());
+		ex.printStackTrace();
+		
 		ApiError body = new ApiError(
 			OffsetDateTime.now().toString(),
 			HttpStatus.INTERNAL_SERVER_ERROR.value(),
 			HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(),
-			"Unexpected server error",
+			"Unexpected server error: " + ex.getClass().getSimpleName() + " - " + ex.getMessage(),
 			request.getRequestURI()
 		);
 		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);

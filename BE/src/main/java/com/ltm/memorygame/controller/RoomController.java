@@ -58,7 +58,7 @@ public class RoomController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<RoomResponseDTO> getRoom(@PathVariable Long id) {
+    public ResponseEntity<RoomResponseDTO> genganngantRoom(@PathVariable Long id) {
         return ResponseEntity.ok(roomService.getRoom(id));
     }
 
@@ -71,17 +71,5 @@ public class RoomController {
         return ResponseEntity.ok(roomFacadeService.startMatch(request));
     }
 
-    /**
-     * Danh sách phòng đang active (WAITING/READY/PLAYING) của user hiện tại.
-     * FE dùng để biết mình đang ở phòng nào cho MatchChat.
-     */
-    @GetMapping("/my-active")
-    public ResponseEntity<java.util.List<RoomResponseDTO>> getMyActiveRooms() {
-        Long authId = AuthUtils.getAuthenticatedUserId();
-        if (authId == null) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-        var rooms = roomService.findRoomsByPlayer(authId);
-        return ResponseEntity.ok(RoomMapper.toDTOList(rooms));
-    }
+
 }

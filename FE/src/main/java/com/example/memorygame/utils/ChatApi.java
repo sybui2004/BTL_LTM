@@ -3,6 +3,7 @@ package com.example.memorygame.utils;
 import com.example.memorygame.model.chat.ChatMessage;
 import com.example.memorygame.model.chat.ChatType;
 import com.example.memorygame.model.chat.MessageType;
+import com.example.memorygame.model.chat.Sticker;
 import com.example.memorygame.model.user.UserSummary;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -11,6 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -24,38 +26,22 @@ public class ChatApi {
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     /**
-     * Fetch world chat history (recent 100 messages by default)
-     * GET /api/chat/world/?page=0&size=100
+     * Fetch world chat history (recent 100 messages)
+     * GET /api/chat/world/
      * 
      * @return List of ChatMessage for world channel (channelId="world")
      */
     public static List<ChatMessage> fetchWorldHistory() {
-        return fetchWorldHistory(0, 100);
-    }
-
-    /**
-     * Fetch world chat history with pagination
-     * 
-     * @param page page number (0-based)
-     * @param size messages per page (max 100)
-     * @return List of ChatMessage for world channel
-     */
-    public static List<ChatMessage> fetchWorldHistory(int page, int size) {
         try {
-            String json = ApiClient.getAuth("/api/chat/world/?page=" + page + "&size=" + size);
-            // BE returns Page<WorldMessageResponse>; extract content array
-            Map<String, Object> pageData = MAPPER.readValue(json, new TypeReference<Map<String, Object>>(){});
-            Object contentObj = pageData.get("content");
-            if (contentObj == null) return Collections.emptyList();
+            String json = ApiClient.getAuth("/api/chat/world/");
+            // BE returns List<WorldMessageResponse> directly
+            List<Map<String, Object>> contentList = MAPPER.readValue(json, new TypeReference<List<Map<String, Object>>>(){});
 
-            @SuppressWarnings("unchecked")
-            List<Map<String, Object>> contentList = (List<Map<String, Object>>) contentObj;
-
-            // BE trả về DESC (mới nhất trước), reverse để hiển thị cũ nhất trước
+            // BE đã trả về đúng thứ tự ASC (cũ nhất trước, mới nhất cuối)
+            // Không cần reverse nữa - giữ nguyên thứ tự từ BE
             List<ChatMessage> messages = contentList.stream()
                     .map(ChatApi::mapWorldMessageToChatMessage)
                     .collect(Collectors.toList());
-            Collections.reverse(messages);
             return messages;
         } catch (Exception e) {
             System.err.println("[ChatApi] Failed to fetch world history: " + e.getMessage());
@@ -84,9 +70,6 @@ public class ChatApi {
      */
     public static List<ChatMessage> fetchPrivateHistory(long otherUserId, int page, int size) {
         try {
-            // BE expects userId in header; ApiClient doesn't support custom headers yet
-            // For now, use path param approach or extend ApiClient
-            // Assuming BE allows userId from JWT token in Authorization header
             String json = ApiClient.getAuth("/api/chat/private/" + otherUserId + "?page=" + page + "&size=" + size);
             
             // BE returns Page<PrivateMessageResponse>; extract content array
@@ -97,15 +80,79 @@ public class ChatApi {
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> contentList = (List<Map<String, Object>>) contentObj;
 
-            // BE trả về ASC (cũ nhất trước), reverse để hiển thị mới nhất trước
+            // BE trả về ASC (cũ nhất trước), giữ nguyên thứ tự để ChatComponent tự sort
             List<ChatMessage> messages = contentList.stream()
                     .map(m -> mapPrivateMessageToChatMessage(m, otherUserId))
+                    .filter(msg -> msg != null)
                     .collect(Collectors.toList());
-            Collections.reverse(messages);
             return messages;
         } catch (Exception e) {
             System.err.println("[ChatApi] Failed to fetch private history: " + e.getMessage());
+            e.printStackTrace();
             return Collections.emptyList();
+        }
+    }
+
+    /**
+     * Fetch all private chat history by fetching multiple pages if needed
+     * 
+     * @param otherUserId ID của người chat cùng
+     * @return List of ChatMessage for private channel (all messages)
+     */
+    public static List<ChatMessage> fetchAllPrivateHistory(long otherUserId) {
+        List<ChatMessage> allMessages = new ArrayList<>();
+        int page = 0;
+        int size = 100; // Maximum size per request
+        
+        try {
+            while (true) {
+                String json = ApiClient.getAuth("/api/chat/private/" + otherUserId + "?page=" + page + "&size=" + size);
+                
+                Map<String, Object> pageData = MAPPER.readValue(json, new TypeReference<Map<String, Object>>(){});
+                Object contentObj = pageData.get("content");
+                
+                if (contentObj == null) break;
+                
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> contentList = (List<Map<String, Object>>) contentObj;
+                
+                if (contentList.isEmpty()) break;
+                
+                List<ChatMessage> pageMessages = contentList.stream()
+                        .map(m -> mapPrivateMessageToChatMessage(m, otherUserId))
+                        .filter(msg -> msg != null)
+                        .collect(Collectors.toList());
+                
+                allMessages.addAll(pageMessages);
+                
+                // Check if there are more pages
+                Object totalPagesObj = pageData.get("totalPages");
+                Object totalElementsObj = pageData.get("totalElements");
+                boolean hasMore = false;
+                
+                if (totalPagesObj instanceof Number) {
+                    int totalPages = ((Number) totalPagesObj).intValue();
+                    hasMore = (page + 1) < totalPages;
+                } else if (totalElementsObj instanceof Number) {
+                    // If we got less than requested, we're done
+                    hasMore = pageMessages.size() >= size;
+                } else {
+                    // Fallback: if we got a full page, try next page
+                    hasMore = pageMessages.size() >= size;
+                }
+                
+                if (!hasMore) break;
+                page++;
+            }
+            
+            // BE trả về ASC (cũ nhất trước), nhưng trong ChatComponent sẽ sort lại
+            // Không reverse ở đây, để ChatComponent tự sort theo timestamp
+            System.out.println("[ChatApi] Fetched " + allMessages.size() + " messages from history");
+            return allMessages;
+        } catch (Exception e) {
+            System.err.println("[ChatApi] Failed to fetch all private history: " + e.getMessage());
+            e.printStackTrace();
+            return allMessages; // Return what we have so far
         }
     }
 
@@ -123,9 +170,32 @@ public class ChatApi {
             
             return conversations.stream()
                     .map(ChatApi::mapConversationPreview)
+                    .filter(conv -> conv != null)
                     .collect(Collectors.toList());
         } catch (Exception e) {
             System.err.println("[ChatApi] Failed to fetch conversation list: " + e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * Fetch all friends with conversation info (including those without messages)
+     * GET /api/chat/private/friends-with-conversations/{userId}
+     * 
+     * @param currentUserId ID của user hiện tại
+     * @return List of ConversationPreview (all friends + conversations)
+     */
+    public static List<ConversationPreview> fetchFriendsWithConversations(long currentUserId) {
+        try {
+            String json = ApiClient.getAuth("/api/chat/private/friends-with-conversations/" + currentUserId);
+            List<Map<String, Object>> conversations = MAPPER.readValue(json, new TypeReference<List<Map<String, Object>>>(){});
+            
+            return conversations.stream()
+                    .map(ChatApi::mapConversationPreview)
+                    .filter(conv -> conv != null)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            System.err.println("[ChatApi] Failed to fetch friends with conversations: " + e.getMessage());
             return Collections.emptyList();
         }
     }
@@ -158,24 +228,58 @@ public class ChatApi {
 
             // Sticker (optional)
             String stickerId = null;
+            String stickerPath = null;
             Object stickerObj = m.get("sticker");
             if (stickerObj instanceof Map) {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> stickerMap = (Map<String, Object>) stickerObj;
                 Object stickerIdObj = stickerMap.get("id");
                 if (stickerIdObj != null) stickerId = stickerIdObj.toString();
+                Object stickerPathObj = stickerMap.get("stickerPath");
+                if (stickerPathObj != null) stickerPath = stickerPathObj.toString();
             }
 
-            // Timestamp (createdAt from BE is epoch millis)
-            LocalDateTime ts = LocalDateTime.now();
+            // Timestamp (createdAt from BE can be epoch millis, Instant object, or string) - same logic as private messages
+            LocalDateTime ts = null;
             Object createdAtObj = m.get("createdAt");
+            
             if (createdAtObj instanceof Number) {
                 ts = LocalDateTime.ofInstant(Instant.ofEpochMilli(((Number) createdAtObj).longValue()), ZoneId.systemDefault());
+            } else if (createdAtObj instanceof Map) {
+                // Jackson may serialize Instant as {epochSecond: xxx, nano: yyy}
+                @SuppressWarnings("unchecked")
+                Map<String, Object> instantMap = (Map<String, Object>) createdAtObj;
+                Object epochSecondObj = instantMap.get("epochSecond");
+                Object nanoObj = instantMap.get("nano");
+                if (epochSecondObj instanceof Number) {
+                    long epochSecond = ((Number) epochSecondObj).longValue();
+                    int nano = (nanoObj instanceof Number) ? ((Number) nanoObj).intValue() : 0;
+                    ts = LocalDateTime.ofInstant(Instant.ofEpochSecond(epochSecond, nano), ZoneId.systemDefault());
+                }
+            } else if (createdAtObj instanceof String) {
+                // Try parsing as ISO string or epoch millis string
+                String timeStr = (String) createdAtObj;
+                try {
+                    // Try epoch millis first
+                    long epochMillis = Long.parseLong(timeStr);
+                    ts = LocalDateTime.ofInstant(Instant.ofEpochMilli(epochMillis), ZoneId.systemDefault());
+                } catch (NumberFormatException e) {
+                    // Try ISO format (e.g., "2025-11-08T03:34:31.168Z")
+                    try {
+                        Instant instant = Instant.parse(timeStr);
+                        ts = LocalDateTime.ofInstant(instant, ZoneId.systemDefault());
+                    } catch (Exception ignored) {}
+                }
+            }
+            
+            if (ts == null) {
+                ts = LocalDateTime.now();
             }
 
             ChatMessage cm = new ChatMessage(id, content, sender, "world", ChatType.WORLD);
             cm.setMessageType(mt);
             cm.setStickerId(stickerId);
+            cm.setStickerPath(stickerPath);
             cm.setTimestamp(ts);
             return cm;
 
@@ -229,19 +333,52 @@ public class ChatApi {
 
             // Sticker (optional)
             String stickerId = null;
+            String stickerPath = null;
             Object stickerObj = m.get("sticker");
             if (stickerObj instanceof Map) {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> stickerMap = (Map<String, Object>) stickerObj;
                 Object stickerIdObj = stickerMap.get("id");
                 if (stickerIdObj != null) stickerId = stickerIdObj.toString();
+                Object stickerPathObj = stickerMap.get("stickerPath");
+                if (stickerPathObj != null) stickerPath = stickerPathObj.toString();
             }
 
-            // Timestamp (createdAt from BE is epoch millis)
-            LocalDateTime ts = LocalDateTime.now();
+            // Timestamp (createdAt from BE can be epoch millis, Instant object, or string)
+            LocalDateTime ts = null;
             Object createdAtObj = m.get("createdAt");
+            
             if (createdAtObj instanceof Number) {
                 ts = LocalDateTime.ofInstant(Instant.ofEpochMilli(((Number) createdAtObj).longValue()), ZoneId.systemDefault());
+            } else if (createdAtObj instanceof Map) {
+                // Jackson may serialize Instant as {epochSecond: xxx, nano: yyy}
+                @SuppressWarnings("unchecked")
+                Map<String, Object> instantMap = (Map<String, Object>) createdAtObj;
+                Object epochSecondObj = instantMap.get("epochSecond");
+                Object nanoObj = instantMap.get("nano");
+                if (epochSecondObj instanceof Number) {
+                    long epochSecond = ((Number) epochSecondObj).longValue();
+                    int nano = (nanoObj instanceof Number) ? ((Number) nanoObj).intValue() : 0;
+                    ts = LocalDateTime.ofInstant(Instant.ofEpochSecond(epochSecond, nano), ZoneId.systemDefault());
+                }
+            } else if (createdAtObj instanceof String) {
+                // Try parsing as ISO string or epoch millis string
+                String timeStr = (String) createdAtObj;
+                try {
+                    // Try epoch millis first
+                    long epochMillis = Long.parseLong(timeStr);
+                    ts = LocalDateTime.ofInstant(Instant.ofEpochMilli(epochMillis), ZoneId.systemDefault());
+                } catch (NumberFormatException e) {
+                    // Try ISO format (e.g., "2025-11-08T03:34:31.168Z")
+                    try {
+                        Instant instant = Instant.parse(timeStr);
+                        ts = LocalDateTime.ofInstant(instant, ZoneId.systemDefault());
+                    } catch (Exception ignored) {}
+                }
+            }
+            
+            if (ts == null) {
+                ts = LocalDateTime.now();
             }
 
             // Generate channelId for private chat (sorted user IDs)
@@ -252,6 +389,7 @@ public class ChatApi {
             ChatMessage cm = new ChatMessage(id, content, sender, channelId, ChatType.PRIVATE);
             cm.setMessageType(mt);
             cm.setStickerId(stickerId);
+            cm.setStickerPath(stickerPath);
             cm.setTimestamp(ts);
 
             // Set receiver if needed (for private chat display)
@@ -327,6 +465,47 @@ public class ChatApi {
 
         public String getDisplayName() {
             return (otherDisplayName != null && !otherDisplayName.isBlank()) ? otherDisplayName : otherUsername;
+        }
+    }
+
+    /**
+     * Fetch all available stickers
+     * GET /api/stickers
+     * 
+     * @return List of Sticker
+     */
+    public static List<Sticker> fetchStickers() {
+        try {
+            String json = ApiClient.getAuth("/api/stickers");
+            List<Map<String, Object>> stickers = MAPPER.readValue(json, new TypeReference<List<Map<String, Object>>>(){});
+            
+            return stickers.stream()
+                    .map(ChatApi::mapSticker)
+                    .filter(sticker -> sticker != null)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            System.err.println("[ChatApi] Failed to fetch stickers: " + e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * Map StickerResponse to Sticker model
+     */
+    private static Sticker mapSticker(Map<String, Object> m) {
+        try {
+            Long id = null;
+            Object idObj = m.get("id");
+            if (idObj instanceof Number) {
+                id = ((Number) idObj).longValue();
+            }
+
+            String stickerPath = String.valueOf(m.getOrDefault("stickerPath", ""));
+
+            return new Sticker(id, stickerPath);
+        } catch (Exception e) {
+            System.err.println("[ChatApi] Failed to parse sticker: " + e.getMessage());
+            return null;
         }
     }
 }

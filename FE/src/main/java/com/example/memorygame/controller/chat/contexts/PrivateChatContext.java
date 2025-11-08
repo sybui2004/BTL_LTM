@@ -37,14 +37,13 @@ public class PrivateChatContext implements ChatContext {
     }
     
     /**
-     * Load lịch sử tin nhắn private chat từ server
+     * Tải lịch sử tin nhắn private chat từ server
      */
     private void loadHistory() {
         try {
-            this.historyMessages = com.example.memorygame.utils.ChatApi.fetchPrivateHistory(otherUser.id);
-            System.out.println("[PrivateChatContext] Loaded " + historyMessages.size() + " messages from history with " + otherUser.username);
+            this.historyMessages = com.example.memorygame.utils.ChatApi.fetchAllPrivateHistory(otherUser.id);
         } catch (Exception e) {
-            System.err.println("[PrivateChatContext] Failed to load history: " + e.getMessage());
+            System.err.println("[PrivateChatContext] Không thể tải lịch sử: " + e.getMessage());
             this.historyMessages = java.util.Collections.emptyList();
         }
     }
@@ -78,7 +77,6 @@ public class PrivateChatContext implements ChatContext {
     
     @Override
     public boolean canSendMessage() {
-        // Luôn cho phép gửi tin (kể cả khi user offline)
         return currentUser != null && otherUser != null;
     }
     
@@ -92,7 +90,6 @@ public class PrivateChatContext implements ChatContext {
     
     @Override
     public boolean showUserStatus() {
-        // Hiển thị online/offline status
         return true;
     }
     
@@ -103,10 +100,9 @@ public class PrivateChatContext implements ChatContext {
     
     @Override
     public boolean showTimestamp() {
-        return true; // Private chat cần timestamp để track conversation
+        return true;
     }
     
-    // Getters
     public UserSummary getOtherUser() {
         return otherUser;
     }
@@ -116,7 +112,7 @@ public class PrivateChatContext implements ChatContext {
     }
     
     /**
-     * Check xem user kia có đang online không
+     * Kiểm tra user kia có đang online không
      */
     public boolean isOtherUserOnline() {
         return otherUser != null && "online".equalsIgnoreCase(otherUser.status);

@@ -3,14 +3,21 @@
    ============================================ */
 
 /* === FONT === */
-* {
-  -fx-font-family: "Source Serif Pro", "Segoe UI", serif;
+@font-face {
+  font-family: "Source Serif 4";
+  src: url("../../assets/fonts/SourceSerif4-VariableFont_opsz,wght.ttf");
+}
+
+@font-face {
+  font-family: "VT323";
+  src: url("../../assets/fonts/VT323-Regular.ttf");
 }
 
 /* === CONTAINER === */
 .base-chat-container {
-  -fx-background-color: white;
+  -fx-background-color: transparent; /* Transparent để mỗi chat có thể dùng background riêng */
   -fx-spacing: 0;
+  /* Removed min-height: 0 and pref-height: 0 to allow proper sizing */
 }
 
 /* === SCROLL PANE === */
@@ -54,7 +61,7 @@
   -fx-wrap-text: true;
   -fx-max-width: 320px;
   -fx-font-size: 14px;
-  -fx-font-family: "Source Serif Pro", serif;
+  -fx-font-family: "Source Serif 4", serif;
   -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 4, 0.3, 0, 1);
 }
 
@@ -72,11 +79,13 @@
 
 /* === INPUT AREA === */
 .input-area {
-  -fx-background-color: white;
+  -fx-background-color: transparent;
   -fx-padding: 10 15 10 15;
   -fx-spacing: 8;
   -fx-border-color: rgba(0, 0, 0, 0.08);
   -fx-border-width: 1 0 0 0;
+  -fx-min-height: -1;
+  -fx-pref-height: -1;
 }
 
 /* === INPUT FIELD === */
@@ -88,7 +97,7 @@
   -fx-border-width: 1;
   -fx-padding: 10 18 10 18;
   -fx-font-size: 14px;
-  -fx-font-family: "Source Serif Pro", serif;
+  -fx-font-family: "Source Serif 4", serif;
   -fx-text-fill: #1a1a1a;
   -fx-prompt-text-fill: rgba(0, 0, 0, 0.4);
 }
@@ -118,23 +127,21 @@
 }
 
 /* === SEND BUTTON === */
+/* Send button: icon-only (no outer circle) */
 .send-button {
-  -fx-background-color: #FF9147;
-  -fx-background-radius: 50%;
-  -fx-padding: 10;
+  -fx-background-color: transparent;
+  -fx-background-radius: 0;
+  -fx-padding: 0; /* keep icon true size */
   -fx-cursor: hand;
   -fx-border-width: 0;
-  -fx-effect: dropshadow(gaussian, rgba(255, 145, 71, 0.3), 4, 0.4, 0, 1);
 }
 
 .send-button:hover {
-  -fx-background-color: #FF7E2E;
-  -fx-effect: dropshadow(gaussian, rgba(255, 145, 71, 0.4), 6, 0.5, 0, 2);
+  -fx-opacity: 0.85; /* subtle hover */
 }
 
 .send-button:pressed {
-  -fx-background-color: #E86A1A;
-  -fx-effect: dropshadow(gaussian, rgba(255, 145, 71, 0.2), 3, 0.3, 0, 1);
+  -fx-opacity: 0.7; /* simple press feedback */
 }
 
 /* === USERNAME LABEL === */
@@ -142,7 +149,7 @@
   -fx-font-size: 11px;
   -fx-font-weight: bold;
   -fx-text-fill: #1a1a1a;
-  -fx-font-family: "Source Serif Pro", serif;
+  -fx-font-family: "VT323", "Consolas", "Courier New", monospace;
   -fx-padding: 0 0 2 0;
 }
 
@@ -153,8 +160,9 @@
   -fx-border-width: 0 0 1 0;
 }
 .chat-title {
-  -fx-font-size: 14px;
+  -fx-font-size: 28px;
   -fx-font-weight: bold;
+  -fx-font-family: "VT323", "Consolas", "Courier New", monospace;
 }
 .chat-footer {
   -fx-background-color: rgba(0,0,0,0.02);

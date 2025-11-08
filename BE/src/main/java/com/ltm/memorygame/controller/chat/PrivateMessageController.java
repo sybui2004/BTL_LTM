@@ -43,4 +43,11 @@ public Page<PrivateMessageResponse> getPrivateMessageHistory(
     public ResponseEntity<List<ConversationPreviewDTO>> listConversations(@PathVariable Long userId) {
         return ResponseEntity.ok(privateMessageService.getLatestConversations(userId));
     }
+
+    // Lấy danh sách tất cả bạn bè kèm thông tin conversation (nếu có)
+    // Trả về danh sách bạn bè, merge với conversation preview nếu đã từng nhắn tin
+    @GetMapping("/friends-with-conversations/{userId}")
+    public ResponseEntity<List<ConversationPreviewDTO>> getFriendsWithConversations(@PathVariable Long userId) {
+        return ResponseEntity.ok(privateMessageService.getFriendsWithConversations(userId));
+    }
 }

@@ -11,10 +11,11 @@
 <?import javafx.scene.layout.Region?>
 
 <fx:root type="VBox" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml" 
-         styleClass="base-chat-container">
+         styleClass="base-chat-container" VBox.vgrow="ALWAYS">
     
-    <!-- Messages Area -->
-    <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" styleClass="chat-scroll-pane">
+    <!-- Messages Area - Always takes full available space, grows to fill -->
+    <ScrollPane fx:id="scrollPane" fitToWidth="true" VBox.vgrow="ALWAYS" styleClass="chat-scroll-pane" 
+                minHeight="200" prefHeight="400" vbarPolicy="AS_NEEDED">
         <VBox fx:id="messageContainer" spacing="8" styleClass="message-container">
             <padding>
                 <Insets top="15" right="15" bottom="15" left="15"/>
@@ -22,8 +23,8 @@
         </VBox>
     </ScrollPane>
     
-    <!-- Input Area -->
-    <HBox spacing="8" alignment="CENTER" styleClass="input-area">
+    <!-- Input Area - Fixed at bottom, no grow -->
+    <HBox fx:id="inputArea" spacing="8" alignment="CENTER" styleClass="input-area" VBox.vgrow="NEVER">
         <padding>
             <Insets top="10" right="15" bottom="10" left="15"/>
         </padding>
@@ -43,7 +44,7 @@
         <!-- Send Button -->
         <Button fx:id="sendButton" styleClass="send-button">
             <graphic>
-                <ImageView fitWidth="20" fitHeight="20" preserveRatio="true">
+                <ImageView fitWidth="30" fitHeight="30" preserveRatio="true">
                     <!-- Placeholder - bạn sẽ thêm icon send sau -->
                     <Image url="@../assets/images/icon/send_mess.png"/>
                 </ImageView>

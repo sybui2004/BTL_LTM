@@ -6,48 +6,27 @@
 <?import javafx.scene.layout.*?>
 
 <!--
-  Lobby Chat Layout
-  - Chat trong phòng chờ
-  - Hiển thị participants list
-  - Temporary (xóa khi room giải tán)
+  Lobby Chat Layout - Chat trong phòng chờ
 -->
 
 <VBox xmlns="http://javafx.com/javafx/11.0.1" 
       xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.example.memorygame.controller.chat.LobbyChatController"
-      prefWidth="400.0" prefHeight="550.0"
+      fx:id="root"
+      minWidth="0.0" maxWidth="420.0" prefWidth="420.0"
+      minHeight="0.0" maxHeight="Infinity" prefHeight="500.0"
       styleClass="lobby-chat-container">
     <stylesheets>
         <URL value="@chatstyles/BaseChatStyle.css"/>
         <URL value="@chatstyles/LobbyChatStyle.css"/>
     </stylesheets>
     
-    <!-- Header với room info -->
-    <HBox styleClass="chat-header" alignment="CENTER_LEFT" spacing="10.0">
+    <!-- Header -->
+    <HBox styleClass="chat-header" alignment="CENTER" spacing="10.0">
         <padding>
             <Insets top="10.0" right="15.0" bottom="10.0" left="15.0"/>
         </padding>
-        
         <Label text="🏠 Lobby Chat" styleClass="chat-title"/>
-        
-        <Region HBox.hgrow="ALWAYS"/>
-        
-        <!-- Players count -->
-        <Label fx:id="playersCountLabel" text="2/4" styleClass="players-count"
-               style="-fx-text-fill: #666; -fx-font-size: 12px;"/>
-    </HBox>
-    
-    <!-- Participants list (có thể collapse) -->
-    <HBox styleClass="participants-bar" alignment="CENTER_LEFT" spacing="8.0"
-          maxHeight="40.0" minHeight="40.0">
-        <padding>
-            <Insets top="5.0" right="10.0" bottom="5.0" left="10.0"/>
-        </padding>
-        
-        <Label text="Players:" style="-fx-font-size: 11px; -fx-text-fill: #888;"/>
-        
-        <!-- List of player avatars/names -->
-        <HBox fx:id="participantsContainer" spacing="5.0" alignment="CENTER_LEFT"/>
     </HBox>
     
     <Separator/>
@@ -56,14 +35,4 @@
     <VBox fx:id="chatContainer" VBox.vgrow="ALWAYS" styleClass="chat-content">
         <!-- ChatComponent sẽ được add vào đây từ controller -->
     </VBox>
-    
-    <!-- Footer info -->
-    <HBox styleClass="chat-footer" alignment="CENTER" spacing="5.0">
-        <padding>
-            <Insets top="5.0" right="10.0" bottom="5.0" left="10.0"/>
-        </padding>
-        <Label text="💡 Chat clears when room closes" styleClass="footer-text" 
-               style="-fx-font-size: 10px; -fx-text-fill: #888;"/>
-    </HBox>
-    
 </VBox>

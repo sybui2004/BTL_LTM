@@ -6,14 +6,6 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.image.*?>
 
-<!--
-  Private Chat Layout
-  - Chat 1-1 giữa users
-  - Conversation list bên trái
-  - Chat window bên phải
-  - Messages lưu DB, có history
--->
-
 <BorderPane xmlns="http://javafx.com/javafx/11.0.1" 
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.example.memorygame.controller.chat.PrivateChatController"
@@ -24,55 +16,28 @@
         <URL value="@chatstyles/PrivateChatStyle.css"/>
     </stylesheets>
     
-    <!-- CENTER: Chat Window -->
     <center>
         <VBox styleClass="chat-window">
-            
-            <!-- Removed top Messages header and plus button as requested -->
-            
-            <!-- Search box removed from left as requested -->
-            
-            <!-- Conversations ListView -->
-
-            
-            <!-- Chat Header với user info -->
             <HBox styleClass="chat-header" alignment="CENTER_LEFT" spacing="12.0">
                 <padding>
                     <Insets top="10.0" right="15.0" bottom="10.0" left="15.0"/>
                 </padding>
                 
-          <!-- User avatar image -->
-          <ImageView fx:id="chatAvatar" fitWidth="36.0" fitHeight="36.0" preserveRatio="true"/>
+                <ImageView fx:id="chatAvatar" fitWidth="36.0" fitHeight="36.0" preserveRatio="true"/>
                 
                 <VBox spacing="2.0">
                     <Label fx:id="chatTitle" text="Select a conversation" 
-                           styleClass="chat-title" style="-fx-font-weight: bold; -fx-font-size: 14px;"/>
-                    
-                    <!-- Online status -->
-                    <Label fx:id="statusLabel" text="offline" styleClass="status-label"
-                           style="-fx-font-size: 11px; -fx-text-fill: #888;"/>
+                           styleClass="chat-title" style="-fx-font-weight: bold; -fx-font-size: 20px;"/>
+                    <Label fx:id="statusLabel" text="Offline" styleClass="friend-status status-offline"
+                           style="-fx-font-size: 12px; -fx-opacity: 0.9;"/>
                 </VBox>
                 
                 <Region HBox.hgrow="ALWAYS"/>
-                
-                <!-- Options menu -->
-                <MenuButton text="⋮" styleClass="options-btn"
-                            style="-fx-background-color: transparent; -fx-font-size: 18px;">
-                    <items>
-                        <MenuItem text="View Profile"/>
-                        <MenuItem text="Clear History"/>
-                        <MenuItem text="Block User"/>
-                    </items>
-                </MenuButton>
             </HBox>
             
             <Separator/>
             
-            <!-- Chat Container - sẽ chứa ChatComponent -->
             <VBox fx:id="chatContainer" VBox.vgrow="ALWAYS" styleClass="chat-content">
-                <!-- ChatComponent sẽ được add vào đây từ controller -->
-                
-                <!-- Empty state khi chưa chọn conversation -->
                 <VBox fx:id="emptyState" alignment="CENTER" spacing="15.0" 
                       VBox.vgrow="ALWAYS" styleClass="empty-state">
                     <Label text="💬" style="-fx-font-size: 48px;"/>
@@ -80,33 +45,20 @@
                            style="-fx-font-size: 14px; -fx-text-fill: #888;"/>
                 </VBox>
             </VBox>
-            
         </VBox>
     </center>
     
-    <!-- RIGHT: Conversation List -->
     <right>
         <VBox styleClass="conversation-list-panel" prefWidth="250.0">
-            
-            <!-- Removed right Messages header and plus button as requested -->
-
-            <!-- Search box kept on the right panel -->
             <HBox styleClass="search-box" alignment="CENTER_LEFT" spacing="5.0">
-                <padding>
-                    <Insets top="8.0" right="10.0" bottom="8.0" left="10.0"/>
-                </padding>
                 <TextField fx:id="searchField" promptText="Search conversations..."
                            styleClass="search-input" HBox.hgrow="ALWAYS"
                            style="-fx-background-radius: 15; -fx-padding: 5 10;"/>
             </HBox>
 
-            <!-- Conversations ListView -->
             <ListView fx:id="conversationList" VBox.vgrow="ALWAYS" 
                       styleClass="conversation-list">
-                <!-- Items sẽ được populate từ controller -->
             </ListView>
-            
         </VBox>
     </right>
-    
 </BorderPane>
