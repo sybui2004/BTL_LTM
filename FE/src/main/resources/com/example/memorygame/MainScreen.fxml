@@ -179,48 +179,7 @@
     
     <!-- Overlay for Popups -->
     <StackPane fx:id="popupOverlay" visible="false" managed="false" styleClass="popup-overlay" onMouseClicked="#handleOverlayClick">
-        
-      
-        
-        <!-- Settings Popup -->
-        <VBox fx:id="settingsPopup" spacing="20" styleClass="popup-container-settings" visible="false" maxWidth="500" maxHeight="450">
-            <HBox alignment="CENTER_LEFT" spacing="15" styleClass="settings-header">
-                <Label text="⚙️" styleClass="settings-icon"/>
-                <Label text="Settings" styleClass="popup-title-settings" HBox.hgrow="ALWAYS"/>
-                <Button text="✕" onAction="#closePopup" styleClass="close-popup-btn"/>
-            </HBox>
-            <VBox spacing="20" styleClass="settings-content">
-                <VBox spacing="12" styleClass="settings-section">
-                    <Label text="Audio Settings" styleClass="settings-section-title"/>
-                    <HBox spacing="15" alignment="CENTER_LEFT" styleClass="setting-item">
-                        <VBox spacing="2" HBox.hgrow="ALWAYS">
-                            <Label text="Sound Effects" styleClass="setting-label"/>
-                            <Label text="Enable game sound effects" styleClass="setting-description"/>
-                        </VBox>
-                        <CheckBox fx:id="soundEffectsCheckbox" selected="true" styleClass="setting-checkbox"/>
-                </HBox>
-                    <HBox spacing="15" alignment="CENTER_LEFT" styleClass="setting-item">
-                        <VBox spacing="2" HBox.hgrow="ALWAYS">
-                            <Label text="Background Music" styleClass="setting-label"/>
-                            <Label text="Play background music while playing" styleClass="setting-description"/>
-                        </VBox>
-                        <CheckBox fx:id="backgroundMusicCheckbox" selected="true" styleClass="setting-checkbox"/>
-                </HBox>
-                </VBox>
-                <VBox spacing="12" styleClass="settings-section">
-                    <Label text="Notification Settings" styleClass="settings-section-title"/>
-                    <HBox spacing="15" alignment="CENTER_LEFT" styleClass="setting-item">
-                        <VBox spacing="2" HBox.hgrow="ALWAYS">
-                            <Label text="Push Notifications" styleClass="setting-label"/>
-                            <Label text="Receive notifications for friend requests and invites" styleClass="setting-description"/>
-                        </VBox>
-                        <CheckBox fx:id="notificationsCheckbox" selected="true" styleClass="setting-checkbox"/>
-                </HBox>
-                </VBox>
-                <Separator styleClass="settings-separator"/>
-                <Button text="Logout" onAction="#handleLogout" styleClass="logout-button"/>
-            </VBox>
-        </VBox>
+        <fx:include source="SettingsPopup.fxml" fx:id="settingsPopupComponent"/>
         
         <!-- Notifications Popup -->
         <VBox fx:id="notificationsPopup" spacing="15" styleClass="popup-container" visible="false" maxWidth="400" maxHeight="500">

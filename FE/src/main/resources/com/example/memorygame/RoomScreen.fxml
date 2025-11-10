@@ -31,7 +31,7 @@
                                 <Image url="@assets/images/icon/question.png"/>
                             </ImageView>
                         </StackPane>
-                        <StackPane styleClass="icon-hover">
+                        <StackPane styleClass="icon-hover" fx:id="settingsButton" onMouseClicked="#handleSettingsClick">
                             <ImageView fitWidth="28" fitHeight="28" preserveRatio="true">
                                 <Image url="@assets/images/icon/setting.png"/>
                             </ImageView>
@@ -269,8 +269,14 @@
         </center>
     </BorderPane>
 
-    <!-- Game Rules Popup Overlay -->
-    <StackPane fx:id="popupOverlay" visible="false" managed="false" styleClass="popup-overlay">
+    <!-- Settings Popup Overlay -->
+    <StackPane fx:id="popupOverlay" visible="false" managed="false" styleClass="popup-overlay" onMouseClicked="#handleOverlayClick">
+        <!-- Settings Popup (included component) -->
+        <fx:include source="SettingsPopup.fxml" fx:id="settingsPopupComponent"/>
+    </StackPane>
+    
+    <!-- Game Rules Popup Overlay (separate from settings) -->
+    <StackPane fx:id="rulesPopupOverlay" visible="false" managed="false" styleClass="popup-overlay">
         <!-- Popup content -->
         <VBox styleClass="popup-content" alignment="CENTER" spacing="20">
             <!-- Title -->

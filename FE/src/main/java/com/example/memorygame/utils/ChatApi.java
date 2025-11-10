@@ -497,6 +497,32 @@ public class ChatApi {
     }
 
     /**
+     * Fetch stickers by type
+     * GET /api/stickers?type={type}
+     * 
+     * @param type Sticker type ("NORMAL" or "MATCH")
+     * @return List of Sticker filtered by type
+     */
+    public static List<Sticker> fetchStickersByType(String type) {
+        try {
+            String url = "/api/stickers";
+            if (type != null && !type.isBlank()) {
+                url += "?type=" + java.net.URLEncoder.encode(type.toUpperCase(), "UTF-8");
+            }
+            String json = ApiClient.getAuth(url);
+            List<Map<String, Object>> stickers = MAPPER.readValue(json, new TypeReference<List<Map<String, Object>>>(){});
+            
+            return stickers.stream()
+                    .map(ChatApi::mapSticker)
+                    .filter(sticker -> sticker != null)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            System.err.println("[ChatApi] Failed to fetch stickers by type: " + e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    /**
      * Map StickerResponse to Sticker model
      */
     private static Sticker mapSticker(Map<String, Object> m) {
@@ -508,8 +534,9 @@ public class ChatApi {
             }
 
             String stickerPath = String.valueOf(m.getOrDefault("stickerPath", ""));
+            String type = String.valueOf(m.getOrDefault("type", "NORMAL"));
 
-            return new Sticker(id, stickerPath);
+            return new Sticker(id, stickerPath, type);
         } catch (Exception e) {
             System.err.println("[ChatApi] Failed to parse sticker: " + e.getMessage());
             return null;

@@ -88,8 +88,18 @@ public class RoomScreenController {
     @FXML private StackPane lobbyOverlay;
     @FXML private AnchorPane lobbyChatContainer;
     @FXML
-    private StackPane popupOverlay;
+    private StackPane popupOverlay; // For settings popup
+    @FXML
+    private StackPane rulesPopupOverlay; // For game rules popup
+    // Note: JavaFX creates key "settingsPopupComponentController" from fx:id="settingsPopupComponent"
+    @FXML
+    private SettingsPopupController settingsPopupComponentController;
     @FXML private StackPane backButton;
+    
+    // Convenience getter
+    private SettingsPopupController getSettingsPopupController() {
+        return settingsPopupComponentController;
+    }
     @FXML
     private Button closePopupButton;
     @FXML
@@ -128,6 +138,7 @@ public class RoomScreenController {
         initializeHelpers();
         setupUI();
         setupLobbyChat();
+        setupSettingsPopup();
         
         // Start background music after UI is loaded to avoid module access issues during FXML loading
         Platform.runLater(() -> {
@@ -139,6 +150,89 @@ public class RoomScreenController {
         loadInvites();
         friendListManager.switchTab(FriendListManager.Tab.FRIENDS);
     }
+    
+    private void setupSettingsPopup() {
+        SettingsPopupController controller = getSettingsPopupController();
+        if (controller != null) {
+            UserSummary currentUser = UserApi.getCurrentUser();
+            if (currentUser != null) {
+                controller.setCurrentUser(currentUser);
+                // Set parent overlay reference
+                controller.setParentOverlay(popupOverlay);
+                // Load settings on start to apply notification enabled state
+                loadSettingsOnStart();
+            }
+        }
+    }
+    
+    /**
+     * Load user settings on start to apply notification enabled state
+     */
+    private void loadSettingsOnStart() {
+        UserSummary currentUser = UserApi.getCurrentUser();
+        if (currentUser == null) {
+            return;
+        }
+        new Thread(() -> {
+            try {
+                com.example.memorygame.model.user.UserSettingDTO settings = UserApi.getSettings(currentUser.id);
+                if (settings != null) {
+                    javafx.application.Platform.runLater(() -> {
+                        // Apply notification enabled state to SoundManager
+                        SoundManager.setNotificationEnabled(settings.notification);
+                        // Also apply volume settings
+                        SoundManager.setBackgroundMusicVolume(settings.musicVolume / 100.0);
+                        SoundManager.setSoundFxVolume(settings.soundFxVolume / 100.0);
+                    });
+                }
+            } catch (Exception e) {
+                System.err.println("[RoomScreen] Failed to load settings on start: " + e.getMessage());
+            }
+        }).start();
+    }
+    
+    @FXML
+    private void handleSettingsClick() {
+        SoundManager.playSound("button.wav");
+        SettingsPopupController controller = getSettingsPopupController();
+        if (controller == null) {
+            System.err.println("[RoomScreen] SettingsPopupController is null! Cannot show settings.");
+            return;
+        }
+        
+        VBox settingsPopup = controller.getSettingsPopup();
+        if (settingsPopup == null) {
+            System.err.println("[RoomScreen] SettingsPopup VBox is null!");
+            return;
+        }
+        
+        if (settingsPopup.isVisible()) {
+            // If already visible, close it
+            controller.hide();
+        } else {
+            // Close other popups if open
+            if (rulesPopupOverlay != null && rulesPopupOverlay.isVisible()) {
+                hidePopup(); // Close game rules
+            }
+            if (inviteListContainer != null && inviteListContainer.isVisible()) {
+                inviteListContainer.setVisible(false);
+                inviteListContainer.setManaged(false);
+            }
+            controller.show();
+        }
+    }
+    
+    @FXML
+    private void handleOverlayClick(javafx.scene.input.MouseEvent event) {
+        SettingsPopupController controller = getSettingsPopupController();
+        if (controller != null) {
+            VBox settingsPopup = controller.getSettingsPopup();
+            if (settingsPopup != null && settingsPopup.isVisible()) {
+                controller.hide();
+            }
+        }
+    }
+    
     
     /**
      * Lấy LobbyChatController từ namespace
@@ -465,9 +559,9 @@ public class RoomScreenController {
                 hidePopup();
             });
         }
-        if (popupOverlay != null) {
-            popupOverlay.setOnMouseClicked(e -> {
-                if (e.getTarget() == popupOverlay) {
+        if (rulesPopupOverlay != null) {
+            rulesPopupOverlay.setOnMouseClicked(e -> {
+                if (e.getTarget() == rulesPopupOverlay) {
                     hidePopup();
                 }
             });
@@ -475,16 +569,25 @@ public class RoomScreenController {
     }
 
     private void showPopup() {
-        if (popupOverlay != null) {
-            popupOverlay.setVisible(true);
-            popupOverlay.setManaged(true);
+        // Close settings if open
+        SettingsPopupController controller = getSettingsPopupController();
+        if (controller != null) {
+            VBox settingsPopup = controller.getSettingsPopup();
+            if (settingsPopup != null && settingsPopup.isVisible()) {
+                controller.hide();
+            }
+        }
+        
+        if (rulesPopupOverlay != null) {
+            rulesPopupOverlay.setVisible(true);
+            rulesPopupOverlay.setManaged(true);
         }
     }
 
     private void hidePopup() {
-        if (popupOverlay != null) {
-            popupOverlay.setVisible(false);
-            popupOverlay.setManaged(false);
+        if (rulesPopupOverlay != null) {
+            rulesPopupOverlay.setVisible(false);
+            rulesPopupOverlay.setManaged(false);
         }
     }
 

@@ -4,8 +4,10 @@ import com.ltm.memorygame.dao.game.MatchRepository;
 import com.ltm.memorygame.dao.user.UserRankingProjection;
 import com.ltm.memorygame.dto.auth.request.RegisterRequest;
 import com.ltm.memorygame.dto.friend.response.FriendDTO;
+import com.ltm.memorygame.dto.user.request.UpdateSettingsRequest;
 import com.ltm.memorygame.dto.user.response.UserProfileDTO;
 import com.ltm.memorygame.dto.user.response.UserResponseDTO;
+import com.ltm.memorygame.dto.user.response.UserSettingDTO;
 import com.ltm.memorygame.mapper.UserMapper;
 import com.ltm.memorygame.model.enums.UserStatus;
 import com.ltm.memorygame.model.game.Match;
@@ -199,5 +201,48 @@ public class UserService {
         return recentPlayers.stream()
                 .map(userMapper::toUserResponseDTO)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public UserSettingDTO getSettings(Long userId) {
+        User user = getEntityById(userId);
+        UserSetting setting = user.getUserSetting();
+        if (setting == null) {
+            // Create default settings if not exists
+            setting = new UserSetting();
+            setting.setUser(user);
+            user.setUserSetting(setting);
+            userRepository.save(user);
+        }
+        return userMapper.toUserSettingDTO(setting);
+    }
+
+    @Transactional
+    public UserSettingDTO updateSettings(Long userId, UpdateSettingsRequest request) {
+        User user = getEntityById(userId);
+        UserSetting setting = user.getUserSetting();
+        
+        if (setting == null) {
+            setting = new UserSetting();
+            setting.setUser(user);
+            user.setUserSetting(setting);
+        }
+        
+        // Update only provided fields
+        if (request.getMusicVolume() != null) {
+            setting.setMusicVolume(request.getMusicVolume());
+        }
+        if (request.getSoundFxVolume() != null) {
+            setting.setSoundFxVolume(request.getSoundFxVolume());
+        }
+        if (request.getNotificationEnabled() != null) {
+            setting.setNotification(request.getNotificationEnabled());
+        }
+        if (request.getLanguage() != null && !request.getLanguage().isBlank()) {
+            setting.setLanguage(request.getLanguage());
+        }
+        
+        userRepository.save(user);
+        return userMapper.toUserSettingDTO(setting);
     }
 }

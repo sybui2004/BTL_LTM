@@ -90,14 +90,14 @@ public class MatchStickerAnimator {
         Point2D startInLayer, endInLayer;
         if (isFromMe) {
             double startX = sceneWidth * 0.15;
-            double startY = sceneHeight * 0.70;
+            double startY = sceneHeight * 0.80;
             double endX = sceneWidth * 0.15;
             double endY = sceneHeight * 0.10;
             startInLayer = animationLayer.sceneToLocal(startX, startY);
             endInLayer = animationLayer.sceneToLocal(endX, endY);
         } else {
             double startX = sceneWidth * 0.85;
-            double startY = sceneHeight * 0.30;
+            double startY = sceneHeight * 0.20;
             double endX = sceneWidth * 0.85;
             double endY = sceneHeight * 0.90;
             startInLayer = animationLayer.sceneToLocal(startX, startY);

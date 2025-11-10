@@ -32,6 +32,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import javafx.util.Duration;
@@ -71,11 +72,20 @@ public class GameScreenController {
     @FXML private GridPane cardGrid;
     @FXML private ImageView backgroundImage;
     @FXML private StackPane backButton;
+    @FXML private StackPane settingsButton;
+    @FXML private StackPane popupOverlay;
+    // Note: JavaFX creates key "settingsPopupComponentController" from fx:id="settingsPopupComponent"
+    @FXML private SettingsPopupController settingsPopupComponentController;
+    
+    // Convenience getter
+    private SettingsPopupController getSettingsPopupController() {
+        return settingsPopupComponentController;
+    }
     @FXML private Label myScoreLabel;
     @FXML private Label opponentScoreLabel;
     @FXML private Label timerLabel;
     @FXML private Label turnIndicatorLabel;
-    @FXML private AnchorPane overlayPane; // << THÊM DÒNG NÀY
+    @FXML private AnchorPane overlayPane;
     
     private GameScreen screen;
     private volatile boolean gameEndReceived = false;
@@ -132,9 +142,85 @@ public class GameScreenController {
         setupResizeListener();
         setupOverlayUI();
         setupMatchChat();
+        setupSettingsPopup();
         updateTurnIndicator();
         startTurnTimer();
     }
+    
+    private void setupSettingsPopup() {
+        SettingsPopupController controller = getSettingsPopupController();
+        if (controller != null) {
+            com.example.memorygame.model.user.UserSummary currentUser = com.example.memorygame.utils.UserApi.getCurrentUser();
+            if (currentUser != null) {
+                controller.setCurrentUser(currentUser);
+                // Set parent overlay reference
+                controller.setParentOverlay(popupOverlay);
+                // Load settings on start to apply notification enabled state
+                loadSettingsOnStart();
+            }
+        }
+    }
+    
+    /**
+     * Load user settings on start to apply notification enabled state
+     */
+    private void loadSettingsOnStart() {
+        com.example.memorygame.model.user.UserSummary currentUser = com.example.memorygame.utils.UserApi.getCurrentUser();
+        if (currentUser == null) {
+            return;
+        }
+        new Thread(() -> {
+            try {
+                com.example.memorygame.model.user.UserSettingDTO settings = com.example.memorygame.utils.UserApi.getSettings(currentUser.id);
+                if (settings != null) {
+                    javafx.application.Platform.runLater(() -> {
+                        // Apply notification enabled state to SoundManager
+                        com.example.memorygame.utils.SoundManager.setNotificationEnabled(settings.notification);
+                        // Also apply volume settings
+                        com.example.memorygame.utils.SoundManager.setBackgroundMusicVolume(settings.musicVolume / 100.0);
+                        com.example.memorygame.utils.SoundManager.setSoundFxVolume(settings.soundFxVolume / 100.0);
+                    });
+                }
+            } catch (Exception e) {
+                System.err.println("[GameScreen] Failed to load settings on start: " + e.getMessage());
+            }
+        }).start();
+    }
+    
+    @FXML
+    private void handleSettingsClick() {
+        SoundManager.playSound("button.wav");
+        SettingsPopupController controller = getSettingsPopupController();
+        if (controller == null) {
+            System.err.println("[GameScreen] SettingsPopupController is null! Cannot show settings.");
+            return;
+        }
+        
+        VBox settingsPopup = controller.getSettingsPopup();
+        if (settingsPopup == null) {
+            System.err.println("[GameScreen] SettingsPopup VBox is null!");
+            return;
+        }
+        
+        if (settingsPopup.isVisible()) {
+            // If already visible, close it
+            controller.hide();
+        } else {
+            controller.show();
+        }
+    }
+    
+    @FXML
+    private void handleOverlayClick(javafx.scene.input.MouseEvent event) {
+        SettingsPopupController controller = getSettingsPopupController();
+        if (controller != null) {
+            VBox settingsPopup = controller.getSettingsPopup();
+            if (settingsPopup != null && settingsPopup.isVisible()) {
+                controller.hide();
+            }
+        }
+    }
+    
     
     private void setupGame() {
         if (gameSettings == null) {
@@ -251,7 +337,8 @@ public class GameScreenController {
             
             if (rightPane != null) {
                 overlayPane.getChildren().add(rightPane);
-                AnchorPane.setTopAnchor(rightPane, 10.0);
+                // Lùi xuống để tránh bị che bởi settings button (settings button ở Y=10, height=36)
+                AnchorPane.setTopAnchor(rightPane, 70.0);
                 AnchorPane.setRightAnchor(rightPane, 10.0);
             }
             

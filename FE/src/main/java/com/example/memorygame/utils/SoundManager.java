@@ -28,6 +28,9 @@ public class SoundManager {
     private static boolean useJavaxFallback = false; // Switch to javax.sound on JavaFX media issues
     private static boolean soundDisabled = false; // Disable completely if even fallback fails
     private static String currentMusicFile = null; // Track current playing music file
+    private static double backgroundMusicVolume = 0.5; // Default volume (0.0 to 1.0)
+    private static double soundFxVolume = 0.7; // Default volume (0.0 to 1.0)
+    private static boolean notificationEnabled = true; // Notification sounds enabled (for friend_noti.mp3 and mess_noti.mp3)
     
     /**
      * Play background music (looping)
@@ -70,7 +73,7 @@ public class SoundManager {
             Media media = new Media(mediaUrl);
             backgroundMusicPlayer = new MediaPlayer(media);
             backgroundMusicPlayer.setCycleCount(MediaPlayer.INDEFINITE);
-            backgroundMusicPlayer.setVolume(0.5);
+            backgroundMusicPlayer.setVolume(backgroundMusicVolume);
             backgroundMusicPlayer.setOnError(() -> {
                 System.err.println("[SoundManager] MediaPlayer error: " + backgroundMusicPlayer.getError());
                 trySwitchToJavaxFallbackAndPlayBg(musicFile);
@@ -102,7 +105,7 @@ public class SoundManager {
             // Try set volume
             try {
                 FloatControl volume = (FloatControl) backgroundClip.getControl(FloatControl.Type.MASTER_GAIN);
-                volume.setValue(linearToDecibel(0.5f));
+                volume.setValue(linearToDecibel((float) backgroundMusicVolume));
             } catch (IllegalArgumentException ignored) {}
             backgroundClip.loop(Clip.LOOP_CONTINUOUSLY);
             backgroundClip.start();
@@ -138,6 +141,13 @@ public class SoundManager {
         if (soundDisabled) {
             return;
         }
+        
+        // Check notification enabled for notification sounds
+        if (soundFile.equals("friend_noti.mp3") || soundFile.equals("mess_noti.mp3")) {
+            if (!notificationEnabled) {
+                return; // Don't play notification sounds if disabled
+            }
+        }
         if (useJavaxFallback) {
             playSoundJavax(soundFile);
             return;
@@ -151,7 +161,7 @@ public class SoundManager {
             String mediaUrl = resource.toExternalForm();
             Media media = new Media(mediaUrl);
             MediaPlayer mediaPlayer = new MediaPlayer(media);
-            mediaPlayer.setVolume(0.7);
+            mediaPlayer.setVolume(soundFxVolume);
             mediaPlayer.setOnError(() -> {
                 System.err.println("[SoundManager] MediaPlayer error: " + mediaPlayer.getError());
                 mediaPlayer.dispose();
@@ -179,7 +189,7 @@ public class SoundManager {
             clip.open(audioInputStream);
             try {
                 FloatControl volume = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
-                volume.setValue(linearToDecibel(0.7f));
+                volume.setValue(linearToDecibel((float) soundFxVolume));
             } catch (IllegalArgumentException ignored) {}
             clip.addLineListener(event -> {
                 if (event.getType() == LineEvent.Type.STOP) {
@@ -197,9 +207,54 @@ public class SoundManager {
      * Set background music volume (0.0 to 1.0)
      */
     public static void setBackgroundMusicVolume(double volume) {
+        backgroundMusicVolume = Math.max(0.0, Math.min(1.0, volume));
         if (backgroundMusicPlayer != null) {
-            backgroundMusicPlayer.setVolume(Math.max(0.0, Math.min(1.0, volume)));
+            backgroundMusicPlayer.setVolume(backgroundMusicVolume);
         }
+        // Also update javax.sound fallback if active
+        if (backgroundClip != null && backgroundClip.isOpen()) {
+            try {
+                FloatControl volumeControl = (FloatControl) backgroundClip.getControl(FloatControl.Type.MASTER_GAIN);
+                volumeControl.setValue(linearToDecibel((float) backgroundMusicVolume));
+            } catch (IllegalArgumentException ignored) {}
+        }
+    }
+    
+    /**
+     * Set sound effects volume (0.0 to 1.0)
+     * This will apply to all future sound effects played
+     */
+    public static void setSoundFxVolume(double volume) {
+        soundFxVolume = Math.max(0.0, Math.min(1.0, volume));
+    }
+    
+    /**
+     * Get current background music volume
+     */
+    public static double getBackgroundMusicVolume() {
+        return backgroundMusicVolume;
+    }
+    
+    /**
+     * Get current sound effects volume
+     */
+    public static double getSoundFxVolume() {
+        return soundFxVolume;
+    }
+    
+    /**
+     * Set notification enabled state (affects friend_noti.mp3 and mess_noti.mp3)
+     * @param enabled Whether notification sounds should play
+     */
+    public static void setNotificationEnabled(boolean enabled) {
+        notificationEnabled = enabled;
+    }
+    
+    /**
+     * Get notification enabled state
+     */
+    public static boolean isNotificationEnabled() {
+        return notificationEnabled;
     }
     
     /**

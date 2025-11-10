@@ -5,10 +5,10 @@ import com.example.memorygame.controller.main.FriendListUIManager;
 import com.example.memorygame.controller.main.LeaderboardManager;
 import com.example.memorygame.controller.main.NotificationManager;
 import com.example.memorygame.utils.SoundManager;
+import com.example.memorygame.model.user.UserSettingDTO;
 import com.example.memorygame.model.game.LeaderboardRow;
 import com.example.memorygame.model.user.UserSummary;
 import com.example.memorygame.utils.TCPClient;
-import com.example.memorygame.utils.TokenManager;
 import com.example.memorygame.utils.UserApi;
 import com.example.memorygame.model.chat.ChatError;
 import com.example.memorygame.model.chat.ChatMessage;
@@ -90,8 +90,6 @@ public class MainScreenController {
     @FXML
     private VBox helpPopup;
     @FXML
-    private VBox settingsPopup;
-    @FXML
     private VBox notificationsPopup;
     @FXML
     private HBox leaderboardPopupContainer;
@@ -134,13 +132,15 @@ public class MainScreenController {
     @FXML
     private TableColumn<LeaderboardRow, String> winsColumn;
 
-    // Settings
+    // Settings Popup (included component)
+    // Note: JavaFX creates key "settingsPopupComponentController" from fx:id="settingsPopupComponent"
     @FXML
-    private CheckBox soundEffectsCheckbox;
-    @FXML
-    private CheckBox backgroundMusicCheckbox;
-    @FXML
-    private CheckBox notificationsCheckbox;
+    private SettingsPopupController settingsPopupComponentController;
+    
+    // Convenience getter
+    private SettingsPopupController getSettingsPopupController() {
+        return settingsPopupComponentController;
+    }
 
     // Notification badge
     @FXML
@@ -192,6 +192,7 @@ public class MainScreenController {
         setupStartButton();
         setupLeaderboardRankIcon();
         setupLeaderboardTable();
+        setupSettingsPopup();
         initializeHelpers();
         loadData();
         setupTCPListeners();
@@ -841,11 +842,11 @@ public class MainScreenController {
     }
 
     private void closeAllPopups() {
-        // Close settings and notifications popups
-        if (settingsPopup != null) {
-            settingsPopup.setVisible(false);
-            settingsPopup.setManaged(false);
+        SettingsPopupController settingsController = getSettingsPopupController();
+        if (settingsController != null) {
+            settingsController.hide();
         }
+        
         if (notificationsPopup != null) {
             notificationsPopup.setVisible(false);
             notificationsPopup.setManaged(false);
@@ -909,6 +910,13 @@ public class MainScreenController {
 
     @FXML
     private void handleOverlayClick(javafx.scene.input.MouseEvent event) {
+        SettingsPopupController controller = getSettingsPopupController();
+        if (controller != null) {
+            VBox settingsPopup = controller.getSettingsPopup();
+            if (settingsPopup != null && settingsPopup.isVisible()) {
+                controller.hide();
+            }
+        }
     }
 
     @FXML
@@ -957,10 +965,9 @@ public class MainScreenController {
             // If already visible, close it
             closePopup();
         } else {
-            // Close settings if open, then show notifications
-            if (settingsPopup != null) {
-                settingsPopup.setVisible(false);
-                settingsPopup.setManaged(false);
+            SettingsPopupController settingsController = getSettingsPopupController();
+            if (settingsController != null) {
+                settingsController.hide();
             }
             notificationManager.refreshNotifications();
             showNotificationPopup();
@@ -977,6 +984,45 @@ public class MainScreenController {
         }
     }
 
+    private void setupSettingsPopup() {
+        SettingsPopupController controller = getSettingsPopupController();
+        if (controller != null) {
+            controller.setCurrentUser(currentUser);
+            // Set parent overlay reference
+            controller.setParentOverlay(popupOverlay);
+            // Load settings on app start to apply notification enabled state
+            loadSettingsOnStart();
+            System.out.println("[MainScreen] SettingsPopupController setup completed");
+        } else {
+            System.err.println("[MainScreen] SettingsPopupController is null in setupSettingsPopup!");
+        }
+    }
+    
+    /**
+     * Load user settings on app start to apply notification enabled state
+     */
+    private void loadSettingsOnStart() {
+        if (currentUser == null) {
+            return;
+        }
+        new Thread(() -> {
+            try {
+                UserSettingDTO settings = UserApi.getSettings(currentUser.id);
+                if (settings != null) {
+                    Platform.runLater(() -> {
+                        // Apply notification enabled state to SoundManager
+                        SoundManager.setNotificationEnabled(settings.notification);
+                        // Also apply volume settings
+                        SoundManager.setBackgroundMusicVolume(settings.musicVolume / 100.0);
+                        SoundManager.setSoundFxVolume(settings.soundFxVolume / 100.0);
+                    });
+                }
+            } catch (Exception e) {
+                System.err.println("[MainScreen] Failed to load settings on start: " + e.getMessage());
+            }
+        }).start();
+    }
+    
     @FXML
     private void handleSettingsClick() {
         SoundManager.playSound("button.wav");
@@ -991,77 +1037,48 @@ public class MainScreenController {
         }
 
         // Toggle settings popup
-        if (settingsPopup != null && settingsPopup.isVisible()) {
+        SettingsPopupController controller = getSettingsPopupController();
+        if (controller == null) {
+            System.err.println("[MainScreen] SettingsPopupController is null! Cannot show settings.");
+            return;
+        }
+        
+        VBox settingsPopup = controller.getSettingsPopup();
+        if (settingsPopup == null) {
+            System.err.println("[MainScreen] SettingsPopup VBox is null!");
+            return;
+        }
+        
+        if (settingsPopup.isVisible()) {
             // If already visible, close it
-            closePopup();
+            controller.hide();
         } else {
             // Close notifications if open, then show settings
             if (notificationsPopup != null) {
                 notificationsPopup.setVisible(false);
                 notificationsPopup.setManaged(false);
             }
-            showSettingsPopup();
+            controller.show();
         }
     }
 
-    private void showSettingsPopup() {
-        if (popupOverlay != null && settingsPopup != null) {
-            popupOverlay.setVisible(true);
-            popupOverlay.setManaged(true);
-            popupOverlay.setMouseTransparent(false); // Cho phép nhận mouse events khi hiển thị
-            settingsPopup.setVisible(true);
-            settingsPopup.setManaged(true);
-        }
-    }
-
-    @FXML
-    private void handleLogout() {
-        SoundManager.playSound("button.wav");
-        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setTitle("Logout");
-        confirm.setHeaderText("Are you sure you want to logout?");
-        confirm.setContentText("You will need to login again to play.");
-
-        confirm.showAndWait().ifPresent(response -> {
-            if (response == ButtonType.OK) {
-                performLogout();
-            }
-        });
-    }
-
-    private void performLogout() {
-        try {
-            // Disconnect TCP
-            TCPClient.getInstance().disconnect();
-
-            // Clear token
-            TokenManager.getInstance().clearToken();
-
-            // Navigate to Auth screen
-            AuthScreenController authController = new AuthScreenController();
-            Scene scene = new Scene(authController.getScreen().getRoot());
-            Stage stage = (Stage) startButton.getScene().getWindow();
-            stage.setScene(scene);
-        } catch (Exception e) {
-            System.err.println("[MainScreen] Logout error: " + e.getMessage());
-            showAlert("Logout failed. Please try again.", Alert.AlertType.ERROR);
-        }
-    }
 
     @FXML
     private void closePopup() {
-        // Only close settings and notifications popups
-        // Leaderboard has its own close method
         boolean shouldHideOverlay = true;
 
-        // Hide all popups
         if (helpPopup != null) {
             helpPopup.setVisible(false);
         }
-        if (settingsPopup != null) {
-            settingsPopup.setVisible(false);
-            settingsPopup.setManaged(false);
+        
+        SettingsPopupController settingsController = getSettingsPopupController();
+        if (settingsController != null) {
+            VBox settingsPopup = settingsController.getSettingsPopup();
+            if (settingsPopup != null && settingsPopup.isVisible()) {
+                settingsController.hide();
+            }
         }
+        
         if (notificationsPopup != null) {
             notificationsPopup.setVisible(false);
             notificationsPopup.setManaged(false);

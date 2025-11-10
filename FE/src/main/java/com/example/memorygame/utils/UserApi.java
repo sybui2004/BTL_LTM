@@ -3,6 +3,7 @@ package com.example.memorygame.utils;
 import com.example.memorygame.model.user.UserSummary;
 import com.example.memorygame.model.user.UserProfileDTO;
 import com.example.memorygame.model.user.UserResponseDTO;
+import com.example.memorygame.model.user.UserSettingDTO;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -244,6 +245,53 @@ public class UserApi {
         } catch (Exception e) {
             System.err.println("Failed to get user Elo: " + e.getMessage());
             return 0;
+        }
+    }
+
+    /**
+     * Gets user settings
+     * 
+     * @param userId User ID
+     * @return UserSettingDTO or null if error
+     */
+    public static UserSettingDTO getSettings(Long userId) {
+        try {
+            String json = ApiClient.getAuth("/api/users/" + userId + "/settings");
+            return MAPPER.readValue(json, UserSettingDTO.class);
+        } catch (Exception e) {
+            System.err.println("Failed to get settings: " + e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Updates user settings
+     * 
+     * @param userId User ID
+     * @param musicVolume Music volume (0-100)
+     * @param soundFxVolume Sound effects volume (0-100)
+     * @param notificationEnabled Notification enabled flag
+     * @return Updated UserSettingDTO or null if error
+     */
+    public static UserSettingDTO updateSettings(Long userId, Integer musicVolume, Integer soundFxVolume, Boolean notificationEnabled) {
+        try {
+            Map<String, Object> body = new HashMap<>();
+            if (musicVolume != null) {
+                body.put("musicVolume", musicVolume);
+            }
+            if (soundFxVolume != null) {
+                body.put("soundFxVolume", soundFxVolume);
+            }
+            if (notificationEnabled != null) {
+                body.put("notificationEnabled", notificationEnabled);
+            }
+            
+            String jsonBody = MAPPER.writeValueAsString(body);
+            String response = ApiClient.patchAuth("/api/users/" + userId + "/settings", jsonBody);
+            return MAPPER.readValue(response, UserSettingDTO.class);
+        } catch (Exception e) {
+            System.err.println("Failed to update settings: " + e.getMessage());
+            return null;
         }
     }
 }

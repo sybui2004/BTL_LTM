@@ -5,9 +5,11 @@ import com.ltm.memorygame.dto.friend.response.FriendDTO;
 import com.ltm.memorygame.dto.user.request.SetStatusRequest;
 import com.ltm.memorygame.dto.user.request.UpdateProfileRequest;
 import com.ltm.memorygame.dto.user.request.ChangePasswordRequest;
+import com.ltm.memorygame.dto.user.request.UpdateSettingsRequest;
 import jakarta.validation.Valid;
 import com.ltm.memorygame.dto.user.response.UserProfileDTO;
 import com.ltm.memorygame.dto.user.response.UserResponseDTO;
+import com.ltm.memorygame.dto.user.response.UserSettingDTO;
 import com.ltm.memorygame.service.user.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -89,5 +91,24 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         return ResponseEntity.ok(userService.getRecentPlayers(userId));
+    }
+
+    @GetMapping("/{id}/settings")
+    public ResponseEntity<UserSettingDTO> getSettings(@PathVariable Long id) {
+        Long authId = AuthUtils.getAuthenticatedUserId();
+        if (authId == null || !authId.equals(id)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        return ResponseEntity.ok(userService.getSettings(id));
+    }
+
+    @PatchMapping("/{id}/settings")
+    public ResponseEntity<UserSettingDTO> updateSettings(@PathVariable Long id,
+                                                         @Valid @RequestBody UpdateSettingsRequest body) {
+        Long authId = AuthUtils.getAuthenticatedUserId();
+        if (authId == null || !authId.equals(id)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        return ResponseEntity.ok(userService.updateSettings(id, body));
     }
 }
