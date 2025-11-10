@@ -1,19 +1,20 @@
 package com.ltm.memorygame.config;
 
-import com.ltm.memorygame.dao.chat.StickerRepository;
-import com.ltm.memorygame.model.chat.Sticker;
-import lombok.RequiredArgsConstructor;
-import org.springframework.boot.CommandLineRunner;
-import org.springframework.stereotype.Component;
-
 import java.util.List;
 
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.ltm.memorygame.dao.chat.StickerRepository;
+import com.ltm.memorygame.model.chat.Sticker;
+import com.ltm.memorygame.model.chat.StickerType;
+
+import lombok.RequiredArgsConstructor;
+
 /**
- * Initializer để tự động khởi tạo stickers vào database khi app start
- * Tương tự CardInitializer, nhưng cho stickers
- * 
- * Lưu ý: File stickers cần được đổi tên thành sticker_01.png, sticker_02.png, ...
- * trong thư mục src/main/resources/static/stickers/
+ * Initializer để tự động khởi tạo stickers vào database khi app start.
+ * Sẽ khởi tạo 2 loại sticker: NORMAL và MATCH.
  */
 @Component
 @RequiredArgsConstructor
@@ -21,76 +22,77 @@ public class StickerInitializer implements CommandLineRunner {
     
     private final StickerRepository stickerRepository;
     
-    // Số lượng stickers (19 stickers)
-    private static final int STICKER_COUNT = 19;
+    // Số lượng stickers cho mỗi loại
+    private static final int NORMAL_STICKER_COUNT = 19;
+    private static final int MATCH_STICKER_COUNT = 19; // Dựa trên số file đã đổi tên
     
     @Override
+    @Transactional
     public void run(String... args) throws Exception {
-        initializeStickers();
+        // Khởi tạo sticker loại NORMAL
+        initializeStickerType(
+            StickerType.NORMAL,
+            NORMAL_STICKER_COUNT,
+            "/static/stickers/",
+            "sticker_%02d.png"
+        );
+        
+        // Khởi tạo sticker loại MATCH
+        initializeStickerType(
+            StickerType.MATCH,
+            MATCH_STICKER_COUNT,
+            "/static/sticker_match/",
+            "sticker_match_%02d.png"
+        );
     }
     
-    private void initializeStickers() {
-        try {
-            // Kiểm tra xem đã có stickers với static paths chưa
-            List<Sticker> existingStickers = stickerRepository.findAll();
-            boolean needsRecreate = false;
-            
-            // Kiểm tra nếu có sticker nào đang dùng Google Drive URL
+    private void initializeStickerType(StickerType type, int expectedCount, String pathPrefix, String fileNameFormat) {
+        System.out.println("[StickerInitializer] Checking for sticker type: " + type);
+        
+        List<Sticker> existingStickers = stickerRepository.findByType(type);
+        boolean needsRecreate = false;
+        
+        // 1. Kiểm tra số lượng
+        if (existingStickers.size() != expectedCount) {
+            needsRecreate = true;
+            System.out.println("[StickerInitializer] " + type + " sticker count mismatch. Expected: " + expectedCount + 
+                             ", Found: " + existingStickers.size());
+        }
+        
+        // 2. Kiểm tra đường dẫn
+        if (!needsRecreate) {
             for (Sticker sticker : existingStickers) {
-                if (sticker.getSticker_path() != null && 
-                    sticker.getSticker_path().contains("drive.google.com")) {
+                if (sticker.getStickerPath() == null || !sticker.getStickerPath().startsWith(pathPrefix)) {
                     needsRecreate = true;
-                    System.out.println("[StickerInitializer] Found Google Drive URL, will recreate: " + sticker.getSticker_path());
+                    System.out.println("[StickerInitializer] Found incorrect path for " + type + " type: " + sticker.getStickerPath());
                     break;
                 }
             }
-            
-            // Kiểm tra số lượng stickers
-            if (existingStickers.size() != STICKER_COUNT) {
-                needsRecreate = true;
-                System.out.println("[StickerInitializer] Sticker count mismatch. Expected: " + STICKER_COUNT + 
-                                 ", Found: " + existingStickers.size());
-            }
-            
-            // Kiểm tra xem có sticker nào không dùng static path
-            if (!needsRecreate) {
-                for (Sticker sticker : existingStickers) {
-                    if (sticker.getSticker_path() == null || 
-                        !sticker.getSticker_path().startsWith("/static/stickers/")) {
-                        needsRecreate = true;
-                        System.out.println("[StickerInitializer] Found non-static path: " + sticker.getSticker_path());
-                        break;
-                    }
-                }
-            }
-            
-            if (!needsRecreate) {
-                System.out.println("[StickerInitializer] Stickers already initialized with static paths, skipping.");
-                return;
-            }
-            
-            System.out.println("[StickerInitializer] Recreating stickers with static paths...");
-            
-            // Xóa tất cả stickers cũ
-            stickerRepository.deleteAll();
-            
-            // Tạo stickers mới với static paths
-            // Format: /static/stickers/sticker_01.png, sticker_02.png, ...
-            for (int i = 1; i <= STICKER_COUNT; i++) {
-                Sticker sticker = new Sticker();
-                String fileName = String.format("sticker_%02d.png", i);
-                sticker.setSticker_path("/static/stickers/" + fileName);
-                stickerRepository.save(sticker);
-                System.out.println("[StickerInitializer] Created sticker: " + sticker.getSticker_path());
-            }
-            
-            System.out.println("[StickerInitializer] Initialized " + stickerRepository.count() + " stickers with static paths.");
-            System.out.println("[StickerInitializer] Note: Make sure sticker files are renamed to sticker_01.png through sticker_19.png");
-            
-        } catch (Exception e) {
-            System.err.println("[StickerInitializer] Error initializing stickers: " + e.getMessage());
-            e.printStackTrace();
         }
+        
+        if (!needsRecreate) {
+            System.out.println("[StickerInitializer] " + type + " stickers are already initialized correctly.");
+            return;
+        }
+        
+        System.out.println("[StickerInitializer] Recreating " + type + " stickers...");
+        
+        // Xóa các sticker cũ của loại này
+        if (!existingStickers.isEmpty()) {
+            stickerRepository.deleteAll(existingStickers);
+            System.out.println("[StickerInitializer] Deleted " + existingStickers.size() + " old " + type + " stickers.");
+        }
+        
+        // Tạo stickers mới
+        for (int i = 1; i <= expectedCount; i++) {
+            Sticker sticker = new Sticker();
+            String fileName = String.format(fileNameFormat, i);
+            sticker.setStickerPath(pathPrefix + fileName);
+            sticker.setType(type);
+            stickerRepository.save(sticker);
+        }
+        
+        System.out.println("[StickerInitializer] Initialized " + expectedCount + " " + type + " stickers.");
     }
 }
 

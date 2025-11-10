@@ -32,7 +32,6 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import javafx.util.Duration;
@@ -241,8 +240,8 @@ public class GameScreenController {
             matchChatController.setupMatchFromGameSettings(gameSettings, roomStateManager);
 
             // Trích xuất các panes từ Controller và thêm vào overlayPane
-            VBox leftPane = matchChatController.getLeftPane();
-            VBox rightPane = matchChatController.getRightPane();
+            StackPane leftPane = matchChatController.getLeftPane();
+            StackPane rightPane = matchChatController.getRightPane();
 
             if (leftPane != null) {
                 overlayPane.getChildren().add(leftPane);

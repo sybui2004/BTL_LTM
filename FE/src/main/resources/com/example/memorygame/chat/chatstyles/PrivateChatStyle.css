@@ -136,3 +136,22 @@
   -fx-max-height: 56px;
   -fx-padding: 10px 10px 10px 10px;
 }
+
+/* Status dot styles for conversation list */
+.private-chat-container .status-online {
+  -fx-fill: #2ECC71; /* Xanh lá */
+  -fx-stroke: white;
+  -fx-stroke-width: 2;
+}
+
+.private-chat-container .status-offline {
+  -fx-fill: #E74C3C; /* Đỏ */
+  -fx-stroke: white;
+  -fx-stroke-width: 2;
+}
+
+.private-chat-container .status-busy {
+  -fx-fill: #FF8C00; /* Cam */
+  -fx-stroke: white;
+  -fx-stroke-width: 2;
+}

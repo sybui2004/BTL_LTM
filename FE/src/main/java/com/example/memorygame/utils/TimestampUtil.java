@@ -11,7 +11,6 @@ public class TimestampUtil {
     
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd/MM HH:mm");
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM");
     
     /**
      * Check if timestamp should be displayed for this message
@@ -49,37 +48,6 @@ public class TimestampUtil {
     }
     
     /**
-     * Format relative time for conversation list
-     * - "Vừa xong" (< 1 minute)
-     * - "5 phút trước" (< 1 hour) 
-     * - "2 giờ trước" (< 24 hours)
-     * - "Hôm qua" (1 day ago)
-     * - "dd/MM" (> 1 day ago)
-     */
-    public static String getRelativeTime(LocalDateTime timestamp) {
-        if (timestamp == null) {
-            return "";
-        }
-        
-        LocalDateTime now = LocalDateTime.now();
-        long minutes = ChronoUnit.MINUTES.between(timestamp, now);
-        long hours = ChronoUnit.HOURS.between(timestamp, now);
-        long days = ChronoUnit.DAYS.between(timestamp, now);
-        
-        if (minutes < 1) {
-            return "Vừa xong";
-        } else if (minutes < 60) {
-            return minutes + " phút trước";
-        } else if (hours < 24) {
-            return hours + " giờ trước";
-        } else if (days == 1) {
-            return "Hôm qua";
-        } else {
-            return timestamp.format(DATE_FORMATTER);
-        }
-    }
-    
-    /**
      * Check if two timestamps are on the same day
      */
     public static boolean isSameDay(LocalDateTime date1, LocalDateTime date2) {
@@ -97,5 +65,33 @@ public class TimestampUtil {
             return false;
         }
         return timestamp.toLocalDate().equals(LocalDateTime.now().toLocalDate());
+    }
+    
+    /**
+     * Format relative time for conversation preview
+     * - "Vừa xong" (< 1 minute)
+     * - "a phút trước" (< 1 hour)
+     * - "b giờ trước" (< 1 day)
+     * - "c ngày trước" (>= 1 day)
+     */
+    public static String getRelativeTimeForConversation(LocalDateTime timestamp) {
+        if (timestamp == null) {
+            return "";
+        }
+        
+        LocalDateTime now = LocalDateTime.now();
+        long minutes = ChronoUnit.MINUTES.between(timestamp, now);
+        long hours = ChronoUnit.HOURS.between(timestamp, now);
+        long days = ChronoUnit.DAYS.between(timestamp, now);
+        
+        if (minutes < 1) {
+            return "Vừa xong";
+        } else if (minutes < 60) {
+            return minutes + " phút trước";
+        } else if (hours < 24) {
+            return hours + " giờ trước";
+        } else {
+            return days + " ngày trước";
+        }
     }
 }

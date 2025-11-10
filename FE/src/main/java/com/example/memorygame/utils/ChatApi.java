@@ -34,11 +34,8 @@ public class ChatApi {
     public static List<ChatMessage> fetchWorldHistory() {
         try {
             String json = ApiClient.getAuth("/api/chat/world/");
-            // BE returns List<WorldMessageResponse> directly
             List<Map<String, Object>> contentList = MAPPER.readValue(json, new TypeReference<List<Map<String, Object>>>(){});
 
-            // BE đã trả về đúng thứ tự ASC (cũ nhất trước, mới nhất cuối)
-            // Không cần reverse nữa - giữ nguyên thứ tự từ BE
             List<ChatMessage> messages = contentList.stream()
                     .map(ChatApi::mapWorldMessageToChatMessage)
                     .collect(Collectors.toList());
@@ -53,7 +50,7 @@ public class ChatApi {
      * Fetch private chat history between current user and another user
      * GET /api/chat/private/{otherUserId}?page=0&size=100
      * 
-     * @param otherUserId ID của người chat cùng
+     * @param otherUserId Other user ID
      * @return List of ChatMessage for private channel
      */
     public static List<ChatMessage> fetchPrivateHistory(long otherUserId) {
@@ -63,16 +60,15 @@ public class ChatApi {
     /**
      * Fetch private chat history with pagination
      * 
-     * @param otherUserId ID của người chat cùng
-     * @param page page number (0-based)
-     * @param size messages per page (max 100)
+     * @param otherUserId Other user ID
+     * @param page Page number (0-based)
+     * @param size Messages per page (max 100)
      * @return List of ChatMessage for private channel
      */
     public static List<ChatMessage> fetchPrivateHistory(long otherUserId, int page, int size) {
         try {
             String json = ApiClient.getAuth("/api/chat/private/" + otherUserId + "?page=" + page + "&size=" + size);
             
-            // BE returns Page<PrivateMessageResponse>; extract content array
             Map<String, Object> pageData = MAPPER.readValue(json, new TypeReference<Map<String, Object>>(){});
             Object contentObj = pageData.get("content");
             if (contentObj == null) return Collections.emptyList();
@@ -80,7 +76,6 @@ public class ChatApi {
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> contentList = (List<Map<String, Object>>) contentObj;
 
-            // BE trả về ASC (cũ nhất trước), giữ nguyên thứ tự để ChatComponent tự sort
             List<ChatMessage> messages = contentList.stream()
                     .map(m -> mapPrivateMessageToChatMessage(m, otherUserId))
                     .filter(msg -> msg != null)
@@ -96,13 +91,13 @@ public class ChatApi {
     /**
      * Fetch all private chat history by fetching multiple pages if needed
      * 
-     * @param otherUserId ID của người chat cùng
+     * @param otherUserId Other user ID
      * @return List of ChatMessage for private channel (all messages)
      */
     public static List<ChatMessage> fetchAllPrivateHistory(long otherUserId) {
         List<ChatMessage> allMessages = new ArrayList<>();
         int page = 0;
-        int size = 100; // Maximum size per request
+        int size = 100;
         
         try {
             while (true) {
@@ -125,7 +120,6 @@ public class ChatApi {
                 
                 allMessages.addAll(pageMessages);
                 
-                // Check if there are more pages
                 Object totalPagesObj = pageData.get("totalPages");
                 Object totalElementsObj = pageData.get("totalElements");
                 boolean hasMore = false;
@@ -134,10 +128,8 @@ public class ChatApi {
                     int totalPages = ((Number) totalPagesObj).intValue();
                     hasMore = (page + 1) < totalPages;
                 } else if (totalElementsObj instanceof Number) {
-                    // If we got less than requested, we're done
                     hasMore = pageMessages.size() >= size;
                 } else {
-                    // Fallback: if we got a full page, try next page
                     hasMore = pageMessages.size() >= size;
                 }
                 
@@ -145,22 +137,20 @@ public class ChatApi {
                 page++;
             }
             
-            // BE trả về ASC (cũ nhất trước), nhưng trong ChatComponent sẽ sort lại
-            // Không reverse ở đây, để ChatComponent tự sort theo timestamp
             System.out.println("[ChatApi] Fetched " + allMessages.size() + " messages from history");
             return allMessages;
         } catch (Exception e) {
             System.err.println("[ChatApi] Failed to fetch all private history: " + e.getMessage());
             e.printStackTrace();
-            return allMessages; // Return what we have so far
+            return allMessages;
         }
     }
 
     /**
-     * Fetch conversation list (users với tin nhắn cuối cùng)
+     * Fetch conversation list (users with last message)
      * GET /api/chat/private/conversations/{userId}
      * 
-     * @param currentUserId ID của user hiện tại
+     * @param currentUserId Current user ID
      * @return List of ConversationPreview (otherUser info + last message)
      */
     public static List<ConversationPreview> fetchConversationList(long currentUserId) {
@@ -182,7 +172,7 @@ public class ChatApi {
      * Fetch all friends with conversation info (including those without messages)
      * GET /api/chat/private/friends-with-conversations/{userId}
      * 
-     * @param currentUserId ID của user hiện tại
+     * @param currentUserId Current user ID
      * @return List of ConversationPreview (all friends + conversations)
      */
     public static List<ConversationPreview> fetchFriendsWithConversations(long currentUserId) {
@@ -215,7 +205,7 @@ public class ChatApi {
                 sender.id = ((Number) senderIdObj).longValue();
             }
             sender.displayName = String.valueOf(m.getOrDefault("senderName", ""));
-            sender.username = sender.displayName; // fallback
+            sender.username = sender.displayName;
             Object avatarObj = m.get("avatarUrl");
             if (avatarObj != null && !avatarObj.toString().isBlank()) {
                 sender.avatarUrl = avatarObj.toString();
@@ -239,14 +229,12 @@ public class ChatApi {
                 if (stickerPathObj != null) stickerPath = stickerPathObj.toString();
             }
 
-            // Timestamp (createdAt from BE can be epoch millis, Instant object, or string) - same logic as private messages
             LocalDateTime ts = null;
             Object createdAtObj = m.get("createdAt");
             
             if (createdAtObj instanceof Number) {
                 ts = LocalDateTime.ofInstant(Instant.ofEpochMilli(((Number) createdAtObj).longValue()), ZoneId.systemDefault());
             } else if (createdAtObj instanceof Map) {
-                // Jackson may serialize Instant as {epochSecond: xxx, nano: yyy}
                 @SuppressWarnings("unchecked")
                 Map<String, Object> instantMap = (Map<String, Object>) createdAtObj;
                 Object epochSecondObj = instantMap.get("epochSecond");
@@ -257,14 +245,11 @@ public class ChatApi {
                     ts = LocalDateTime.ofInstant(Instant.ofEpochSecond(epochSecond, nano), ZoneId.systemDefault());
                 }
             } else if (createdAtObj instanceof String) {
-                // Try parsing as ISO string or epoch millis string
                 String timeStr = (String) createdAtObj;
                 try {
-                    // Try epoch millis first
                     long epochMillis = Long.parseLong(timeStr);
                     ts = LocalDateTime.ofInstant(Instant.ofEpochMilli(epochMillis), ZoneId.systemDefault());
                 } catch (NumberFormatException e) {
-                    // Try ISO format (e.g., "2025-11-08T03:34:31.168Z")
                     try {
                         Instant instant = Instant.parse(timeStr);
                         ts = LocalDateTime.ofInstant(instant, ZoneId.systemDefault());
@@ -306,22 +291,17 @@ public class ChatApi {
             Object toObj = m.get("toUserId");
             if (toObj instanceof Number) toUserId = ((Number) toObj).longValue();
 
-            // Determine sender (fromUserId) and fetch full user info
-            // BE doesn't return full sender details in PrivateMessageResponse, so fetch from UserApi
             UserSummary sender = new UserSummary();
             if (fromUserId != null) {
                 sender.id = fromUserId;
-                // Fetch full user info to get displayName/username
                 try {
                     UserSummary fullSender = com.example.memorygame.utils.UserApi.getUserById(fromUserId);
                     if (fullSender != null) {
                         sender = fullSender;
                     } else {
-                        // Fallback: use ID only, displayName will be empty
                         sender.username = "User#" + fromUserId;
                     }
                 } catch (Exception e) {
-                    // Fallback on fetch error
                     sender.username = "User#" + fromUserId;
                 }
             }
@@ -344,14 +324,13 @@ public class ChatApi {
                 if (stickerPathObj != null) stickerPath = stickerPathObj.toString();
             }
 
-            // Timestamp (createdAt from BE can be epoch millis, Instant object, or string)
+            // Timestamp parsing
             LocalDateTime ts = null;
             Object createdAtObj = m.get("createdAt");
             
             if (createdAtObj instanceof Number) {
                 ts = LocalDateTime.ofInstant(Instant.ofEpochMilli(((Number) createdAtObj).longValue()), ZoneId.systemDefault());
             } else if (createdAtObj instanceof Map) {
-                // Jackson may serialize Instant as {epochSecond: xxx, nano: yyy}
                 @SuppressWarnings("unchecked")
                 Map<String, Object> instantMap = (Map<String, Object>) createdAtObj;
                 Object epochSecondObj = instantMap.get("epochSecond");
@@ -362,14 +341,11 @@ public class ChatApi {
                     ts = LocalDateTime.ofInstant(Instant.ofEpochSecond(epochSecond, nano), ZoneId.systemDefault());
                 }
             } else if (createdAtObj instanceof String) {
-                // Try parsing as ISO string or epoch millis string
                 String timeStr = (String) createdAtObj;
                 try {
-                    // Try epoch millis first
                     long epochMillis = Long.parseLong(timeStr);
                     ts = LocalDateTime.ofInstant(Instant.ofEpochMilli(epochMillis), ZoneId.systemDefault());
                 } catch (NumberFormatException e) {
-                    // Try ISO format (e.g., "2025-11-08T03:34:31.168Z")
                     try {
                         Instant instant = Instant.parse(timeStr);
                         ts = LocalDateTime.ofInstant(instant, ZoneId.systemDefault());
@@ -392,7 +368,6 @@ public class ChatApi {
             cm.setStickerPath(stickerPath);
             cm.setTimestamp(ts);
 
-            // Set receiver if needed (for private chat display)
             if (toUserId != null) {
                 UserSummary receiver = new UserSummary();
                 receiver.id = toUserId;
@@ -429,15 +404,47 @@ public class ChatApi {
             if (lastMsgIdObj instanceof Number) conv.lastMessageId = ((Number) lastMsgIdObj).longValue();
 
             conv.lastMessageText = String.valueOf(m.getOrDefault("lastMessageText", ""));
-
-            String msgTypeStr = String.valueOf(m.getOrDefault("lastMessageType", "TEXT"));
-            try { conv.lastMessageType = MessageType.valueOf(msgTypeStr); } catch (Exception ignored) { conv.lastMessageType = MessageType.TEXT; }
-
-            Object lastMsgTimeObj = m.get("lastMessageTime");
-            if (lastMsgTimeObj instanceof Number) {
-                conv.lastMessageTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(((Number) lastMsgTimeObj).longValue()), ZoneId.systemDefault());
+            
+            String lastMsgTypeStr = String.valueOf(m.getOrDefault("lastMessageType", "TEXT"));
+            try {
+                conv.lastMessageType = MessageType.valueOf(lastMsgTypeStr);
+            } catch (Exception ignored) {
+                conv.lastMessageType = MessageType.TEXT;
             }
 
+            LocalDateTime lastMsgTime = null;
+            Object lastMsgTimeObj = m.get("lastMessageTime");
+            if (lastMsgTimeObj instanceof Number) {
+                long epochMillis = ((Number) lastMsgTimeObj).longValue();
+                lastMsgTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(epochMillis), ZoneId.systemDefault());
+            } else if (lastMsgTimeObj instanceof String) {
+                String timeStr = (String) lastMsgTimeObj;
+                try {
+                    long v = Long.parseLong(timeStr);
+                    lastMsgTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(v), ZoneId.systemDefault());
+                } catch (NumberFormatException e) {
+                    try {
+                        if (timeStr.endsWith("Z")) {
+                            String withoutZ = timeStr.substring(0, timeStr.length() - 1);
+                            lastMsgTime = LocalDateTime.parse(withoutZ);
+                        } else {
+                            lastMsgTime = LocalDateTime.parse(timeStr);
+                        }
+                    } catch (Exception e2) {
+                        try {
+                            Instant instant = Instant.parse(timeStr);
+                            lastMsgTime = LocalDateTime.ofInstant(instant, ZoneId.systemDefault());
+                        } catch (Exception e3) {
+                            System.err.println("[ChatApi] Failed to parse lastMessageTime: " + timeStr);
+                        }
+                    }
+                }
+            } else if (lastMsgTimeObj != null) {
+                System.err.println("[ChatApi] Unknown lastMessageTime type: " + lastMsgTimeObj.getClass().getName());
+            }
+            
+            conv.lastMessageTime = lastMsgTime;
+            
             Object fromSelfObj = m.get("lastMessageFromSelf");
             if (fromSelfObj instanceof Boolean) conv.lastMessageFromSelf = (Boolean) fromSelfObj;
 

@@ -9,6 +9,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.ltm.memorygame.dao.chat.StickerRepository;
 import com.ltm.memorygame.dto.chat.response.StickerResponse;
 import com.ltm.memorygame.mapper.StickerMapper;
+import com.ltm.memorygame.model.chat.Sticker;
+import com.ltm.memorygame.model.chat.StickerType;
 
 import lombok.RequiredArgsConstructor;
 
@@ -24,7 +26,12 @@ public class StickerService {
                 .map(StickerMapper::toResponse)
                 .collect(Collectors.toList());
     }
-    
+
+    @Transactional(readOnly = true)
+    public List<Sticker> getStickersByType(StickerType type) {
+        return stickerRepository.findByType(type);
+    }
+
     @Transactional(readOnly = true)
     public StickerResponse getStickerById(Long stickerId) {
         if (stickerId == null) {

@@ -4,7 +4,8 @@ public enum ChatType {
     PRIVATE(true),    // persistent
     WORLD(false),     // cache only
     MATCH(false),     // temporary
-    LOBBY(false);     // temporary
+    LOBBY(false),     // temporary
+    STICKER_MATCH(false);   // temporary, for in-game stickers
     
     private final boolean persistent;
 

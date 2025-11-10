@@ -10,7 +10,8 @@ public final class StickerMapper {
         if (s == null) return null;
         return StickerResponse.builder()
                 .id(s.getId())
-                .stickerPath(s.getSticker_path())
+                .stickerPath(s.getStickerPath())
+                .type(s.getType())
                 .build();
     }
 }

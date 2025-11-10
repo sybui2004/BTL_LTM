@@ -119,6 +119,7 @@ public class ChatMessage {
                 case PRIVATE -> MAX_PRIVATE_CHAT_LENGTH;
                 case MATCH -> MAX_MATCH_CHAT_LENGTH;
                 case LOBBY -> MAX_LOBBY_CHAT_LENGTH;
+                case STICKER_MATCH -> MAX_MATCH_CHAT_LENGTH; // Use same limit as MATCH
             };
         }
 

@@ -97,10 +97,20 @@ public class MessageCell extends HBox {
     
     private ImageView createAvatar() {
         ImageView avatarView = new ImageView();
+        
+        // Đặt kích thước cố định để đảm bảo hình tròn
         avatarView.setFitWidth(44);
         avatarView.setFitHeight(44);
-        avatarView.setPreserveRatio(true);
         
+        // Không preserve ratio để ảnh fill đầy đủ vùng 44x44
+        // Sau đó sẽ clip bằng circle để tạo hình tròn hoàn hảo
+        avatarView.setPreserveRatio(false);
+        
+        // Tối ưu hiển thị
+        avatarView.setSmooth(true);
+        avatarView.setCache(true);
+        
+        // Tạo clip hình tròn ở center với bán kính 22 (đường kính 44)
         Circle clip = new Circle(22, 22, 22);
         avatarView.setClip(clip);
         

@@ -7,7 +7,6 @@ import java.util.UUID;
 import com.example.memorygame.model.chat.ChatMessage;
 import com.example.memorygame.model.chat.MessageType;
 import com.example.memorygame.model.chat.Sticker;
-// import com.example.memorygame.utils.ScrollService; // Đã loại bỏ
 import com.example.memorygame.utils.SoundManager;
 import com.example.memorygame.utils.TCPClient;
 
@@ -182,24 +181,7 @@ public class ChatComponent extends VBox {
         }
     }
     
-    /**
-     * Scroll ScrollPane to bottom to show latest messages.
-     * This is now primarily for new incoming messages, as the initial
-     * scroll is handled by the heightProperty listener in initialize().
-     * @deprecated This method is no longer needed as scrolling is handled by the heightProperty listener.
-     */
-    private void scrollToBottom() {
-        // The listener handles the initial scroll. For subsequent messages,
-        // the ScrollPane is already visible, so a simple runLater is sufficient.
-        if (scrollPane != null) {
-            System.out.println("[ChatComponent] scrollToBottom called for new message.");
-            // ScrollService.scrollToBottom(scrollPane); // Replaced by listener
-            Platform.runLater(() -> scrollPane.setVvalue(1.0));
-        } else {
-            System.out.println("[ChatComponent] scrollToBottom() called but scrollPane is null!");
-        }
-    }
-    
+
     private void loadFXML() {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/example/memorygame/chat/base_chat.fxml"));
         loader.setRoot(this);

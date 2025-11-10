@@ -465,20 +465,50 @@ public class TCPClient {
                 }
             }
 
-            // Xử lý timestamp
+            // Timestamp (same logic as ChatApi for PrivateChat and WorldChat)
+            // Backend gửi qua TCP dùng "timestamp", nhưng cũng thử "createdAt" để đảm bảo tương thích
             LocalDateTime ts = null;
             Object tObj = m.get("timestamp");
+            if (tObj == null) {
+                tObj = m.get("createdAt"); // Fallback nếu không có "timestamp"
+            }
             
             if (tObj instanceof Number) {
-                ts = LocalDateTime.ofInstant(Instant.ofEpochMilli(((Number) tObj).longValue()), ZoneId.systemDefault());
+                long epochMillis = ((Number) tObj).longValue();
+                ts = LocalDateTime.ofInstant(Instant.ofEpochMilli(epochMillis), ZoneId.systemDefault());
+            } else if (tObj instanceof Map) {
+                // Jackson may serialize Instant as {epochSecond: xxx, nano: yyy}
+                @SuppressWarnings("unchecked")
+                Map<String, Object> instantMap = (Map<String, Object>) tObj;
+                Object epochSecondObj = instantMap.get("epochSecond");
+                Object nanoObj = instantMap.get("nano");
+                if (epochSecondObj instanceof Number) {
+                    long epochSecond = ((Number) epochSecondObj).longValue();
+                    int nano = (nanoObj instanceof Number) ? ((Number) nanoObj).intValue() : 0;
+                    ts = LocalDateTime.ofInstant(Instant.ofEpochSecond(epochSecond, nano), ZoneId.systemDefault());
+                }
             } else if (tObj instanceof String) {
+                // Try parsing as ISO string or epoch millis string
+                String timeStr = (String) tObj;
                 try {
-                    long v = Long.parseLong((String) tObj);
-                    ts = LocalDateTime.ofInstant(Instant.ofEpochMilli(v), ZoneId.systemDefault());
-                } catch (NumberFormatException ignored) {}
+                    // Try epoch millis first
+                    long epochMillis = Long.parseLong(timeStr);
+                    ts = LocalDateTime.ofInstant(Instant.ofEpochMilli(epochMillis), ZoneId.systemDefault());
+                } catch (NumberFormatException e) {
+                    // Try ISO format (e.g., "2025-11-08T03:34:31.168Z")
+                    try {
+                        Instant instant = Instant.parse(timeStr);
+                        ts = LocalDateTime.ofInstant(instant, ZoneId.systemDefault());
+                    } catch (Exception e2) {
+                        System.err.println("[TCPClient] ERROR: Failed to parse timestamp string: " + timeStr + ", error: " + e2.getMessage());
+                    }
+                }
+            } else if (tObj != null) {
+                System.err.println("[TCPClient] WARNING: Unknown timestamp type: " + tObj.getClass().getName() + ", value: " + tObj);
             }
             
             if (ts == null) {
+                System.err.println("[TCPClient] WARNING: Failed to parse timestamp, using now() as fallback");
                 ts = LocalDateTime.now();
             }
 
