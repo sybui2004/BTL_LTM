@@ -34,6 +34,5 @@ module com.example.memorygame {
     exports com.example.memorygame.model.user;
     exports com.example.memorygame.model.chat;
     exports com.example.memorygame.utils to com.fasterxml.jackson.databind;
-    opens com.example.memorygame.view.chat to javafx.fxml;
-    exports com.example.memorygame.view.chat;
+
 }

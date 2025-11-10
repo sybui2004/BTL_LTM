@@ -35,7 +35,7 @@
          <!-- rightPane ở topAnchor="40", rightAnchor="10", maxWidth="350" -->
          <!-- Đặt score ở bên trái rightPane: rightAnchor = 10 + 350 + 10 (spacing) = 370 -->
          <Label fx:id="opponentScoreLabel" text="0" styleClass="player-score" 
-                AnchorPane.topAnchor="10.0" AnchorPane.rightAnchor="370.0" />
+                AnchorPane.topAnchor="70.0" AnchorPane.rightAnchor="370.0" />
 
          <!-- My score - bên phải player header của bản thân (leftPane input area) -->
          <!-- leftPane ở bottomAnchor="10", leftAnchor="10", maxWidth="350" -->

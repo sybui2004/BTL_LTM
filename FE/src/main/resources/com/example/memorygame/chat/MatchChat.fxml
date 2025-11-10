@@ -33,12 +33,15 @@
     <!-- AnchorPane để đặt chat ở các góc màn hình -->
     <AnchorPane fx:id="chatAnchor" styleClass="match-chat-anchor" pickOnBounds="false" mouseTransparent="false" style="-fx-background-color: transparent;" VBox.vgrow="ALWAYS">
         
-        <!-- Góc dưới trái: Panel người gửi (messages + input) -->
-        <VBox fx:id="leftPane" styleClass="left-pane" spacing="0" 
-              AnchorPane.bottomAnchor="10" AnchorPane.leftAnchor="10"
-              maxWidth="350" minWidth="280"
-              prefHeight="350" maxHeight="400"
-              mouseTransparent="false" pickOnBounds="false">
+
+        <!-- Góc dưới trái: Panel người gửi (messages + input) với StackPane overlay animation -->
+<StackPane fx:id="leftPane" styleClass="left-pane"
+    AnchorPane.bottomAnchor="10" AnchorPane.leftAnchor="10"
+    maxWidth="350" minWidth="280"
+    prefHeight="350" maxHeight="400"
+    mouseTransparent="false" pickOnBounds="false">
+    <!-- Góc dưới trái: Panel người gửi (messages + input) -->
+        <VBox spacing="0" StackPane.alignment="TOP_LEFT">
             
             <!-- Khu vực tin nhắn -->
             <ScrollPane fx:id="leftScroll" fitToWidth="true" prefHeight="250" maxHeight="300" 
@@ -68,33 +71,48 @@
                         </graphic>
                     </Button>
                 </VBox>
+                <!-- Sticker Button -->
+                <VBox alignment="BOTTOM_RIGHT">
+                <Button fx:id="stickerMatchButton" styleClass="sticker-match-button">
+                    <graphic>
+                        <ImageView fitWidth="32" fitHeight="32" preserveRatio="true">
+                            <Image url="@../assets/images/icon/sticker_match.png"/>
+                        </ImageView>
+                    </graphic>
+                </Button>
+                </VBox>
             </HBox>
         </VBox>
+    <AnchorPane fx:id="leftAnimationLayer" pickOnBounds="false" mouseTransparent="true"
+        style="-fx-background-color: transparent;" />
+</StackPane>
 
-        <!-- Góc trên phải: Panel đối thủ (chỉ tin nhắn) -->
-        <VBox fx:id="rightPane" styleClass="right-pane" spacing="6"
-              AnchorPane.topAnchor="40" AnchorPane.rightAnchor="10"
-              maxWidth="350" minWidth="280"
-              prefHeight="350" maxHeight="400"
-              mouseTransparent="false" pickOnBounds="false">
-            
-            <!-- Header người chơi: avatar + tên -->
-            <HBox styleClass="player-header" alignment="CENTER_RIGHT" spacing="8">
-                <padding>
-                    <Insets top="8.0" right="8.0" bottom="8.0" left="8.0"/>
-                </padding>
-                <Label fx:id="rightPlayerName" text="Opponent" styleClass="player-header-name" />
-                <ImageView fx:id="rightPlayerAvatar" fitWidth="48" fitHeight="48" preserveRatio="true" styleClass="player-header-avatar" />
-            </HBox>
-            
-            <!-- Khu vực tin nhắn -->
-            <ScrollPane fx:id="rightScroll" fitToWidth="true" prefHeight="300" maxHeight="350" 
-                        VBox.vgrow="ALWAYS" styleClass="chat-scroll-pane"
-                        style="-fx-background-color: transparent; -fx-padding: 0;">
-                <VBox fx:id="rightMessageContainer" spacing="8" styleClass="message-container right-messages"
-                      style="-fx-padding: 2 0 2 0; -fx-alignment: TOP_RIGHT;"/>
-            </ScrollPane>
-        </VBox>
+        <!-- Góc trên phải: Panel đối thủ (chỉ tin nhắn) với StackPane overlay animation -->
+<StackPane fx:id="rightPane" styleClass="right-pane"
+    AnchorPane.topAnchor="40" AnchorPane.rightAnchor="10"
+    maxWidth="350" minWidth="280"
+    prefHeight="350" maxHeight="400"
+    mouseTransparent="false" pickOnBounds="false">
+    <VBox spacing="6" StackPane.alignment="TOP_RIGHT">
+        <!-- Header người chơi: avatar + tên -->
+        <HBox styleClass="player-header" alignment="CENTER_RIGHT" spacing="8">
+            <padding>
+                <Insets top="8.0" right="8.0" bottom="8.0" left="8.0"/>
+            </padding>
+            <Label fx:id="rightPlayerName" text="Opponent" styleClass="player-header-name" />
+            <ImageView fx:id="rightPlayerAvatar" fitWidth="48" fitHeight="48" preserveRatio="true" styleClass="player-header-avatar" />
+        </HBox>
+        <!-- Khu vực tin nhắn -->
+        <ScrollPane fx:id="rightScroll" fitToWidth="true" prefHeight="300" maxHeight="350" 
+                    VBox.vgrow="ALWAYS" styleClass="chat-scroll-pane"
+                    style="-fx-background-color: transparent; -fx-padding: 0;">
+            <VBox fx:id="rightMessageContainer" spacing="8" styleClass="message-container right-messages"
+                  style="-fx-padding: 2 0 2 0; -fx-alignment: TOP_RIGHT;"/>
+        </ScrollPane>
+    </VBox>
+    <AnchorPane fx:id="rightAnimationLayer" pickOnBounds="false" mouseTransparent="true"
+        style="-fx-background-color: transparent;" />
+</StackPane>
     </AnchorPane>
     
     

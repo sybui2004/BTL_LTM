@@ -1,6 +1,7 @@
 package com.example.memorygame.controller.main;
 
 import com.example.memorygame.utils.FriendApi;
+import com.example.memorygame.utils.SoundManager;
 import javafx.application.Platform;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -50,7 +51,16 @@ public class NotificationManager {
 
     private void updateNotificationBadge(int count) {
         if (notificationBadge != null) {
-            notificationBadge.setVisible(count > 0);
+            // Phát âm thanh khi badge chuyển từ ẩn sang hiện (lần đầu có friend request)
+            boolean wasVisible = notificationBadge.isVisible();
+            boolean shouldBeVisible = count > 0;
+            
+            if (!wasVisible && shouldBeVisible) {
+                // Badge chuyển từ ẩn sang hiện - phát âm thanh thông báo
+                SoundManager.playSound("friend_noti.mp3");
+            }
+            
+            notificationBadge.setVisible(shouldBeVisible);
         }
     }
 

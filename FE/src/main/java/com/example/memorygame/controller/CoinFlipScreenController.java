@@ -263,7 +263,7 @@ public class CoinFlipScreenController {
         coinImageView.setImage(initialCoin);
         
         // Play coin toss sound
-        SoundManager.playSound("coin_toss.mp3");
+        SoundManager.playSound("coin_toss_2.mp3");
         
         // Animate coin flipping
         animateCoinFlip();

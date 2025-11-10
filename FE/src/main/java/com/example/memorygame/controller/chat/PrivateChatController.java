@@ -41,6 +41,8 @@ public class PrivateChatController {
     private final Map<Long, ChatComponent> chatComponentCache = new HashMap<>();
     // Danh sách đầy đủ để filter theo search
     private final List<ConversationItem> allConversations = new ArrayList<>();
+    // Map lưu status của các user (được cập nhật từ TCP)
+    private final Map<Long, String> userStatusMap = new HashMap<>();
 
     public PrivateChatController() {
         this.tcpClient = TCPClient.getInstance();
@@ -131,6 +133,9 @@ public class PrivateChatController {
                     allConversations.set(i, oldItem.updateRelativeTime());
                 }
             }
+            
+            // Refresh list view để cell được render lại với relative time mới
+            conversationList.refresh();
         });
     }
 
@@ -155,23 +160,36 @@ public class PrivateChatController {
                     
                     previewLbl = new javafx.scene.control.Label();
                     previewLbl.setStyle("-fx-text-fill: #6b7280; -fx-font-size: 11px;");
-                    previewLbl.setWrapText(true);
+                    previewLbl.setWrapText(false); // Không wrap để tránh cell mở rộng
+                    previewLbl.setMaxWidth(Double.MAX_VALUE); // Cho phép truncate
+                    previewLbl.setEllipsisString("..."); // Thêm ellipsis khi text quá dài
                     
                     selectedProperty().addListener((obs, wasSelected, isSelected) -> {
-                        if (nameLbl != null && previewLbl != null) {
-                            if (isSelected) {
-                                nameLbl.setStyle("-fx-font-weight: bold; -fx-text-fill: #0A4A6B; -fx-font-size: 14px;");
-                                previewLbl.setStyle("-fx-text-fill: #1E7BA8; -fx-font-size: 11px; -fx-font-weight: 500;");
-                            } else {
-                                nameLbl.setStyle("-fx-font-weight: bold; -fx-text-fill: #111827;");
-                                previewLbl.setStyle("-fx-text-fill: #6b7280; -fx-font-size: 11px;");
-                            }
-                        }
+                        updateCellStyle(isSelected);
                     });
+                }
+                
+                // Helper method để cập nhật style
+                private void updateCellStyle(boolean isSelected) {
+                    if (nameLbl != null && previewLbl != null) {
+                        if (isSelected) {
+                            // Background đậm hơn cho cell
+                            setStyle("-fx-background-color: #E3F2FD; -fx-background-radius: 4px;");
+                            nameLbl.setStyle("-fx-font-weight: bold; -fx-text-fill: #0A4A6B; -fx-font-size: 14px;");
+                            previewLbl.setStyle("-fx-text-fill: #1E7BA8; -fx-font-size: 11px; -fx-font-weight: bold;");
+                        } else {
+                            // Background trong suốt
+                            setStyle("-fx-background-color: transparent;");
+                            nameLbl.setStyle("-fx-font-weight: bold; -fx-text-fill: #111827;");
+                            previewLbl.setStyle("-fx-text-fill: #6b7280; -fx-font-size: 11px; -fx-font-weight: normal;");
+                        }
+                    }
                 }
                 
                 private javafx.scene.image.ImageView avatarView;
                 private javafx.scene.shape.Circle avatarClip;
+                private javafx.scene.layout.StackPane avatarContainer;
+                private javafx.scene.shape.Circle statusDot;
                 
                 {
                     avatarView = new javafx.scene.image.ImageView();
@@ -180,6 +198,16 @@ public class PrivateChatController {
                     avatarView.setPreserveRatio(true);
                     avatarClip = new javafx.scene.shape.Circle(18, 18, 18);
                     avatarView.setClip(avatarClip);
+                    
+                    // Status dot
+                    statusDot = new javafx.scene.shape.Circle(5);
+                    statusDot.getStyleClass().add("status-offline");
+                    
+                    // Avatar container với status dot
+                    avatarContainer = new javafx.scene.layout.StackPane();
+                    avatarContainer.getChildren().addAll(avatarView, statusDot);
+                    javafx.scene.layout.StackPane.setAlignment(statusDot, javafx.geometry.Pos.BOTTOM_RIGHT);
+                    javafx.scene.layout.StackPane.setMargin(statusDot, new javafx.geometry.Insets(0, 0, 2, 0));
                 }
                 
                 @Override
@@ -191,7 +219,23 @@ public class PrivateChatController {
                         if (avatarView != null) {
                             avatarView.setImage(null);
                         }
+                        if (statusDot != null) {
+                            statusDot.setVisible(false);
+                        }
                         return;
+                    }
+                    
+                    // Hiển thị status dot - lấy từ userStatusMap
+                    if (statusDot != null) {
+                        String status = item.getStatus();
+                        // Nếu chưa có trong item, lấy từ userStatusMap
+                        if (status == null) {
+                            status = userStatusMap.get(item.getUserId());
+                        }
+                        String statusClass = getStatusDotClass(status);
+                        statusDot.getStyleClass().clear();
+                        statusDot.getStyleClass().add(statusClass);
+                        statusDot.setVisible(true);
                     }
 
                     // Sử dụng avatar cache để tối ưu hiệu suất
@@ -222,28 +266,66 @@ public class PrivateChatController {
                     // Xử lý preview tin nhắn cuối
                     String lastMessageType = item.getLastMessageType();
                     String lastMessage = item.getLastMessageText();
+                    String messageText = "";
                     
                     if (lastMessageType != null && "STICKER".equalsIgnoreCase(lastMessageType.trim())) {
-                        previewLbl.setText("📷 Sticker");
+                        messageText = "📷 Sticker";
                     } else if (lastMessage == null || lastMessage.trim().isEmpty() || "null".equalsIgnoreCase(lastMessage.trim())) {
-                        previewLbl.setText("No conversation yet");
+                        messageText = "No conversation yet";
                     } else {
-                        previewLbl.setText(lastMessage);
+                        messageText = lastMessage;
                     }
                     
-                    boolean selected = isSelected();
-                    if (selected) {
-                        nameLbl.setStyle("-fx-font-weight: bold; -fx-text-fill: #0A4A6B; -fx-font-size: 14px;");
-                        previewLbl.setStyle("-fx-text-fill: #1E7BA8; -fx-font-size: 11px; -fx-font-weight: 500;");
-                    } else {
-                        nameLbl.setStyle("-fx-font-weight: bold; -fx-text-fill: #111827;");
-                        previewLbl.setStyle("-fx-text-fill: #6b7280; -fx-font-size: 11px;");
+                    // Lấy relative time trước để tính toán độ dài
+                    String relativeTime = "";
+                    if (!messageText.equals("No conversation yet")) {
+                        java.time.LocalDateTime timestamp = item.getLastMessageTimestamp();
+                        if (timestamp != null) {
+                            try {
+                                relativeTime = TimestampUtil.getRelativeTimeForConversation(timestamp);
+                                if (relativeTime == null || relativeTime.isEmpty()) {
+                                    relativeTime = "";
+                                }
+                            } catch (Exception e) {
+                                System.err.println("[ConversationCell] Lỗi tính relative time: " + e.getMessage());
+                                e.printStackTrace();
+                            }
+                        }
                     }
+                    
+                    // Tạo preview text với relative time và truncate
+                    String previewText = messageText;
+                    if (!relativeTime.isEmpty() && !messageText.equals("No conversation yet")) {
+                        String fullText = messageText + " · " + relativeTime;
+                        
+                        // Truncate nếu quá dài (ước tính ~35-40 ký tự cho cell width, trừ đi phần " · X phút trước")
+                        int maxMessageLength = 35 - relativeTime.length() - 3; // 3 cho " · "
+                        if (maxMessageLength < 5) maxMessageLength = 5; // Tối thiểu 5 ký tự
+                        
+                        if (messageText.length() > maxMessageLength) {
+                            messageText = messageText.substring(0, maxMessageLength - 3) + "...";
+                            previewText = messageText + " · " + relativeTime;
+                        } else {
+                            previewText = fullText;
+                        }
+                    } else if (!messageText.equals("No conversation yet") && messageText.length() > 35) {
+                        // Truncate ngay cả khi không có relative time
+                        previewText = messageText.substring(0, 32) + "...";
+                    }
+                    
+                    previewLbl.setText(previewText);
+                    
+                    // Cập nhật style dựa trên selected state
+                    updateCellStyle(isSelected());
 
                     javafx.scene.layout.VBox textBox = new javafx.scene.layout.VBox(2, nameLbl, previewLbl);
-                    javafx.scene.layout.HBox row = new javafx.scene.layout.HBox(10, avatarView, textBox);
+                    textBox.setMaxWidth(Double.MAX_VALUE); // Cho phép truncate
+                    javafx.scene.layout.HBox.setHgrow(textBox, javafx.scene.layout.Priority.ALWAYS);
+                    
+                    javafx.scene.layout.HBox row = new javafx.scene.layout.HBox(10, avatarContainer, textBox);
                     row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
                     row.setPadding(new javafx.geometry.Insets(8, 10, 8, 10));
+                    row.setMaxWidth(Double.MAX_VALUE); // Đảm bảo không mở rộng quá
 
                     setText(null);
                     setGraphic(row);
@@ -270,8 +352,19 @@ public class PrivateChatController {
                     com.example.memorygame.utils.AvatarCacheManager.getInstance();
                 
                 for (com.example.memorygame.utils.ChatApi.ConversationPreview conv : conversations) {
-                    String relativeTime = TimestampUtil.getRelativeTime(conv.lastMessageTime);
-                    items.add(new ConversationItem(
+                    String relativeTime = conv.lastMessageTime != null 
+                        ? TimestampUtil.getRelativeTimeForConversation(conv.lastMessageTime) 
+                        : "";
+                    
+                    if (conv.lastMessageTime == null) {
+                        System.err.println("[PrivateChatController] WARNING: lastMessageTime is null for user " + conv.otherUserId + 
+                            ", lastMessageText: " + conv.lastMessageText);
+                    }
+                    
+                    // Lấy status từ userStatusMap (đã được cập nhật từ TCP hoặc context)
+                    String userStatus = userStatusMap.get(conv.otherUserId);
+                    
+                    ConversationItem item = new ConversationItem(
                         conv.otherUserId,
                         conv.otherUsername,
                         conv.otherDisplayName,
@@ -279,8 +372,11 @@ public class PrivateChatController {
                         conv.lastMessageText,
                         String.valueOf(conv.lastMessageType),
                         relativeTime, // Use relative time instead of raw timestamp
-                        conv.lastMessageTime // Keep original timestamp for updates
-                    ));
+                        conv.lastMessageTime, // Keep original timestamp for updates (can be null)
+                        userStatus // Status của user
+                    );
+                    
+                    items.add(item);
                     
                     // Preload avatar for faster display
                     if (conv.otherAvatarUrl != null) {
@@ -405,7 +501,7 @@ public class PrivateChatController {
         if (!exists) {
             ConversationItem item = new ConversationItem(
                 otherUser.id, otherUser.username, otherUser.displayName, otherUser.avatarUrl,
-                "", null, "", null
+                "", null, "", null, otherUser.status
             );
             allConversations.add(0, item);
             conversationList.getItems().add(0, item);
@@ -443,6 +539,11 @@ public class PrivateChatController {
         }
 
         currentContext = context;
+        
+        // Lưu status vào userStatusMap
+        if (otherUser.status != null) {
+            userStatusMap.put(otherUser.id, otherUser.status);
+        }
         
         // Sử dụng cache ChatComponent để tránh reload
         currentChatComponent = chatComponentCache.get(otherUser.id);
@@ -485,6 +586,9 @@ public class PrivateChatController {
         final PrivateChatContext finalContext = context;
         if (statusLabel != null && otherUser != null && otherUser.id > 0) {
             if (otherUser.status != null && !otherUser.status.trim().isEmpty()) {
+                // Lưu status vào userStatusMap để dùng cho conversation list
+                userStatusMap.put(otherUser.id, otherUser.status);
+                
                 String statusText = mapStatus(otherUser.status);
                 statusLabel.setText(statusText);
                 statusLabel.getStyleClass().removeAll("friend-status", "status-online", "status-offline", "status-busy");
@@ -501,6 +605,8 @@ public class PrivateChatController {
                             com.example.memorygame.utils.UserApi.getUserById(otherUser.id);
                         if (userInfo != null && userInfo.status != null) {
                             finalContext.getOtherUser().status = userInfo.status;
+                            // Lưu vào userStatusMap để dùng cho conversation list
+                            userStatusMap.put(otherUser.id, userInfo.status);
                             
                             javafx.application.Platform.runLater(() -> {
                                 if (currentContext == finalContext && statusLabel != null) {
@@ -508,6 +614,10 @@ public class PrivateChatController {
                                     statusLabel.setText(statusText);
                                     statusLabel.getStyleClass().removeAll("friend-status", "status-online", "status-offline", "status-busy");
                                     statusLabel.getStyleClass().addAll("friend-status", getStatusTextClass(userInfo.status));
+                                }
+                                // Refresh conversation list để hiển thị status dot
+                                if (conversationList != null) {
+                                    conversationList.refresh();
                                 }
                             });
                         }
@@ -571,6 +681,7 @@ public class PrivateChatController {
         // Tìm và cập nhật conversation item
         for (ConversationItem item : allConversations) {
             if (item.getUserId() == otherUserId) {
+                // Lấy lastMessage từ message (giống như logic hiện tại)
                 String lastText = "";
                 if (msg.getMessageType() == com.example.memorygame.model.chat.MessageType.STICKER) {
                     lastText = "📷 Sticker";
@@ -578,13 +689,23 @@ public class PrivateChatController {
                     lastText = msg.getContent() != null ? msg.getContent() : "";
                 }
                 
-                // Chỉ cập nhật nếu message thay đổi
-                if (lastText.equals(item.getLastMessageText())) {
+                // Lấy timestamp từ message (hoặc now() nếu null) - cùng logic đơn giản như lastMessage
+                java.time.LocalDateTime msgTime = msg.getTimestamp();
+                if (msgTime == null) {
+                    msgTime = java.time.LocalDateTime.now();
+                }
+                
+                // Kiểm tra xem có thay đổi không (text hoặc timestamp mới hơn)
+                java.time.LocalDateTime oldTimestamp = item.getLastMessageTimestamp();
+                boolean textChanged = !lastText.equals(item.getLastMessageText());
+                boolean timestampNewer = oldTimestamp == null || msgTime.isAfter(oldTimestamp);
+                
+                // Nếu không có gì thay đổi, không cần cập nhật
+                if (!textChanged && !timestampNewer) {
                     return;
                 }
                 
-                java.time.LocalDateTime msgTime = msg.getTimestamp() != null ? msg.getTimestamp() : java.time.LocalDateTime.now();
-                String relativeTime = TimestampUtil.getRelativeTime(msgTime);
+                String relativeTime = TimestampUtil.getRelativeTimeForConversation(msgTime);
                 ConversationItem updatedItem = new ConversationItem(
                     item.getUserId(),
                     item.getUsername(),
@@ -593,7 +714,8 @@ public class PrivateChatController {
                     lastText,
                     String.valueOf(msg.getMessageType()),
                     relativeTime,
-                    msgTime
+                    msgTime,
+                    item.getStatus() // Giữ nguyên status
                 );
                 
                 int index = allConversations.indexOf(item);
@@ -631,6 +753,9 @@ public class PrivateChatController {
                         } else {
                             conversationList.getItems().add(0, updatedItem);
                         }
+                        
+                        // Refresh để cell render lại với relative time mới
+                        conversationList.refresh();
                         
                         if (currentOpenUserId != null && currentOpenUserId == updatedItem.getUserId()) {
                             if (conversationList.getItems().size() > 0 && 
@@ -696,6 +821,9 @@ public class PrivateChatController {
         final Long userId = foundUserId;
         final String finalStatus = status;
         if (userId != null) {
+            // Lưu status vào map
+            userStatusMap.put(userId, finalStatus);
+            
             if (currentContext != null && currentContext.getOtherUser() != null 
                 && currentContext.getOtherUser().id == userId) {
                 currentContext.getOtherUser().status = finalStatus;
@@ -703,6 +831,43 @@ public class PrivateChatController {
             
             javafx.application.Platform.runLater(() -> {
                 updateUserStatus(userId, finalStatus);
+                
+                // Cập nhật ConversationItem trong allConversations với status mới
+                for (int i = 0; i < allConversations.size(); i++) {
+                    ConversationItem item = allConversations.get(i);
+                    if (item.getUserId() == userId) {
+                        // Tạo ConversationItem mới với status được cập nhật
+                        ConversationItem updatedItem = new ConversationItem(
+                            item.getUserId(),
+                            item.getUsername(),
+                            item.getDisplayName(),
+                            item.getAvatarUrl(),
+                            item.getLastMessageText(),
+                            item.getLastMessageType(),
+                            item.getLastMessageTime(),
+                            item.getLastMessageTimestamp(),
+                            finalStatus // Cập nhật status mới
+                        );
+                        allConversations.set(i, updatedItem);
+                        
+                        // Cập nhật trong conversationList nếu có
+                        if (conversationList != null) {
+                            for (int j = 0; j < conversationList.getItems().size(); j++) {
+                                ConversationItem listItem = conversationList.getItems().get(j);
+                                if (listItem.getUserId() == userId) {
+                                    conversationList.getItems().set(j, updatedItem);
+                                    break;
+                                }
+                            }
+                        }
+                        break;
+                    }
+                }
+                
+                // Refresh conversation list để hiển thị status dot mới
+                if (conversationList != null) {
+                    conversationList.refresh();
+                }
             });
         }
     }
@@ -734,6 +899,20 @@ public class PrivateChatController {
      * Lấy style class cho status text
      */
     private String getStatusTextClass(String status) {
+        if (status == null)
+            return "status-offline";
+        String s = status.trim().toUpperCase();
+        return switch (s) {
+            case "ONLINE" -> "status-online";
+            case "BUSY", "IN_GAME" -> "status-busy";
+            default -> "status-offline";
+        };
+    }
+    
+    /**
+     * Lấy style class cho status dot (Circle)
+     */
+    private String getStatusDotClass(String status) {
         if (status == null)
             return "status-offline";
         String s = status.trim().toUpperCase();
@@ -780,15 +959,22 @@ public class PrivateChatController {
         private final String lastMessageType;
         private final String lastMessageTime;
         private final java.time.LocalDateTime lastMessageTimestamp;
+        private final String status;
 
         public ConversationItem(long userId, String username, String displayName, String avatarUrl,
                                  String lastMessageText, String lastMessageType, String lastMessageTime) {
-            this(userId, username, displayName, avatarUrl, lastMessageText, lastMessageType, lastMessageTime, null);
+            this(userId, username, displayName, avatarUrl, lastMessageText, lastMessageType, lastMessageTime, null, null);
         }
         
         public ConversationItem(long userId, String username, String displayName, String avatarUrl,
                                  String lastMessageText, String lastMessageType, String lastMessageTime, 
                                  java.time.LocalDateTime lastMessageTimestamp) {
+            this(userId, username, displayName, avatarUrl, lastMessageText, lastMessageType, lastMessageTime, lastMessageTimestamp, null);
+        }
+        
+        public ConversationItem(long userId, String username, String displayName, String avatarUrl,
+                                 String lastMessageText, String lastMessageType, String lastMessageTime, 
+                                 java.time.LocalDateTime lastMessageTimestamp, String status) {
             this.userId = userId;
             this.username = username;
             this.displayName = displayName;
@@ -797,6 +983,7 @@ public class PrivateChatController {
             this.lastMessageType = lastMessageType;
             this.lastMessageTime = lastMessageTime;
             this.lastMessageTimestamp = lastMessageTimestamp;
+            this.status = status;
         }
 
         public long getUserId() { return userId; }
@@ -807,6 +994,7 @@ public class PrivateChatController {
         public String getLastMessageType() { return lastMessageType; }
         public String getLastMessageTime() { return lastMessageTime; }
         public java.time.LocalDateTime getLastMessageTimestamp() { return lastMessageTimestamp; }
+        public String getStatus() { return status; }
         public String displayNameOrUsername() {
             return (displayName != null && !displayName.isBlank()) ? displayName : username;
         }
@@ -815,9 +1003,9 @@ public class PrivateChatController {
          * Tạo item mới với thời gian tương đối được cập nhật
          */
         public ConversationItem updateRelativeTime() {
-            String newRelativeTime = TimestampUtil.getRelativeTime(lastMessageTimestamp);
+            String newRelativeTime = TimestampUtil.getRelativeTimeForConversation(lastMessageTimestamp);
             return new ConversationItem(userId, username, displayName, avatarUrl, 
-                                        lastMessageText, lastMessageType, newRelativeTime, lastMessageTimestamp);
+                                        lastMessageText, lastMessageType, newRelativeTime, lastMessageTimestamp, status);
         }
     }
 }

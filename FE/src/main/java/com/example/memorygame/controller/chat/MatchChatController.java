@@ -6,6 +6,8 @@ import com.example.memorygame.controller.chat.contexts.MatchChatContext;
 import com.example.memorygame.controller.room.RoomStateManager;
 import com.example.memorygame.model.chat.ChatMessage;
 import com.example.memorygame.model.chat.ChatType;
+import com.example.memorygame.model.chat.MessageType;
+import com.example.memorygame.model.chat.Sticker;
 import com.example.memorygame.model.game.GameSettings;
 import com.example.memorygame.model.user.UserSummary;
 import com.example.memorygame.utils.SoundManager;
@@ -20,6 +22,8 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 
@@ -34,8 +38,10 @@ public class MatchChatController {
     // Chat panes
     @FXML private VBox rootBox;
     @FXML private javafx.scene.layout.AnchorPane chatAnchor;
-    @FXML private VBox leftPane;
-    @FXML private VBox rightPane;
+    @FXML private StackPane leftPane;
+    @FXML private StackPane rightPane;
+    @FXML private AnchorPane leftAnimationLayer;
+    @FXML private AnchorPane rightAnimationLayer;
     @FXML private ScrollPane leftScroll;
     @FXML private ScrollPane rightScroll;
     @FXML private VBox leftMessageContainer;
@@ -44,6 +50,7 @@ public class MatchChatController {
     // Input (left only)
     @FXML private TextField inputField;
     @FXML private Button sendButton;
+    @FXML private Button stickerMatchButton;
     @FXML private VBox leftPlayerInputContainer;
     @FXML private javafx.scene.layout.HBox leftInputArea;
     
@@ -72,6 +79,7 @@ public class MatchChatController {
     private void initialize() {
         if (sendButton != null) sendButton.setOnAction(e -> sendMessage());
         if (inputField != null) inputField.setOnAction(e -> sendMessage());
+        if (stickerMatchButton != null) stickerMatchButton.setOnAction(e -> showStickerPicker());
 
         // Load fonts
         loadVT323Font();
@@ -517,22 +525,32 @@ public class MatchChatController {
     private void addMessage(ChatMessage msg) {
         if (leftMessageContainer == null || rightMessageContainer == null) return;
 
+        // Nếu là sticker, chỉ thực hiện animation, KHÔNG render vào message area
+        if (msg.getMessageType() == MessageType.STICKER && msg.getStickerId() != null) {
+            boolean mine = isMyMessage(msg);
+            Sticker sticker = new Sticker();
+            sticker.setId(Long.parseLong(msg.getStickerId()));
+            sticker.setStickerPath(msg.getStickerPath());
+            if (mine) {
+                // Sticker của mình: đã được animate khi gửi, không cần render lại
+                return;
+            } else {
+                // Sticker của đối thủ: animate vào panel phải
+                receiveSticker(sticker);
+                return;
+            }
+        }
+
+        // Chỉ render tin nhắn văn bản vào message area
         MessageCell cell;
         boolean mine = isMyMessage(msg);
-        
         if (mine) {
             cell = new MessageCell(msg, context != null ? context.getCurrentUser() : null,
                     MessageCell.LayoutMode.MINE_ON_LEFT, null);
+            leftMessageContainer.getChildren().add(0, cell);
         } else {
             cell = new MessageCell(msg, context != null ? context.getCurrentUser() : null,
                     MessageCell.LayoutMode.OPPONENT_ON_RIGHT, null);
-        }
-
-        if (mine) {
-            // Tin của mình: thêm vào đầu danh sách (tin mới nhất ở trên)
-            leftMessageContainer.getChildren().add(0, cell);
-        } else {
-            // Tin đối thủ: thêm vào cuối danh sách (tin mới nhất ở dưới)
             rightMessageContainer.getChildren().add(cell);
         }
     }
@@ -586,11 +604,168 @@ public class MatchChatController {
         return context; 
     }
 
-    public VBox getLeftPane() {
+    public StackPane getLeftPane() {
         return this.leftPane;
     }
     
-    public VBox getRightPane() {
+    public StackPane getRightPane() {
         return this.rightPane;
+    }
+
+    /**
+     * Hiển thị StickerPicker popup khi click button sticker
+     */
+    private void showStickerPicker() {
+        if (context == null) return;
+
+        StickerPicker picker = new StickerPicker("MATCH");
+        picker.setOnStickerSelected(this::onStickerSelected);
+
+        // Hiển thị popup tại vị trí button
+        if (stickerMatchButton != null && stickerMatchButton.getScene() != null) {
+            javafx.stage.Popup popup = new javafx.stage.Popup();
+            popup.getContent().add(picker);
+            popup.setAutoHide(true);
+
+            // Tính vị trí hiển thị popup
+            double x = stickerMatchButton.localToScreen(stickerMatchButton.getBoundsInLocal()).getMinX();
+            double y = stickerMatchButton.localToScreen(stickerMatchButton.getBoundsInLocal()).getMaxY();
+            popup.show(stickerMatchButton.getScene().getWindow(), x, y);
+        }
+    }
+
+    /**
+     * Xử lý khi chọn sticker từ picker
+     */
+    public void onStickerSelected(Sticker sticker) {
+        if (sticker == null || context == null) return;
+
+        // Phát âm thanh
+        SoundManager.playSound("throw_sticker.mp3");
+
+        // Tạo ImageView cho sticker
+        ImageView stickerView = new ImageView();
+        try {
+            String imageUrl = sticker.getStickerPath();
+            if (imageUrl != null && !imageUrl.isBlank()) {
+                if (!imageUrl.startsWith("http://") && !imageUrl.startsWith("https://")) {
+                    if (imageUrl.startsWith("/static/")) {
+                        imageUrl = "http://localhost:8080" + imageUrl;
+                    } else if (!imageUrl.startsWith("/")) {
+                        imageUrl = "http://localhost:8080/static/sticker_match/" + imageUrl;
+                    } else {
+                        imageUrl = "http://localhost:8080" + imageUrl;
+                    }
+                }
+                Image image = new Image(imageUrl, true);
+                stickerView.setImage(image);
+            }
+        } catch (Exception e) {
+            System.err.println("[MatchChat] Failed to load sticker image: " + e.getMessage());
+            return;
+        }
+
+        stickerView.setFitWidth(70);
+        stickerView.setFitHeight(70);
+        stickerView.setPreserveRatio(true);
+
+        // Đảm bảo animationLayer nằm trên cùng trong leftPane (StackPane)
+        if (leftPane != null && leftAnimationLayer != null) {
+            leftPane.getChildren().remove(leftAnimationLayer);
+            leftPane.getChildren().add(leftAnimationLayer);
+        }
+        // Đảm bảo animation chạy sau khi layout đã render
+        Platform.runLater(() -> {
+            MatchStickerAnimator.animate(
+                stickerView,
+                leftAnimationLayer, // animationLayer
+                stickerMatchButton, // startNode
+                leftMessageContainer, // endNode (điểm đích trong panel)
+                true, // isFromMe
+                v -> {} // onFinish
+            );
+        });
+
+        // Gửi sticker qua TCP
+        sendSticker(sticker);
+    }
+
+    /**
+     * Gửi sticker qua TCP
+     */
+    private void sendSticker(Sticker sticker) {
+        if (context == null || tcpClient == null) return;
+
+        try {
+            // Tạo ChatMessage cho sticker
+            ChatMessage stickerMessage = new ChatMessage(
+                UUID.randomUUID().toString(),
+                "", // content rỗng cho sticker
+                context.getCurrentUser(),
+                context.getChannelId(),
+                ChatType.MATCH
+            );
+            stickerMessage.setStickerId(String.valueOf(sticker.getId()));
+            stickerMessage.setStickerPath(sticker.getStickerPath());
+            stickerMessage.setMessageType(MessageType.STICKER);
+
+            // Gửi qua TCP
+            tcpClient.sendChatMessage(stickerMessage);
+        } catch (Exception e) {
+            System.err.println("[MatchChat] Failed to send sticker: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Nhận sticker từ đối thủ và thực hiện animation
+     */
+    public void receiveSticker(Sticker sticker) {
+        if (sticker == null || context == null) return;
+
+        // Phát âm thanh
+        SoundManager.playSound("throw_sticker.mp3");
+
+        // Tạo ImageView cho sticker
+        ImageView stickerView = new ImageView();
+        try {
+            String imageUrl = sticker.getStickerPath();
+            if (imageUrl != null && !imageUrl.isBlank()) {
+                if (!imageUrl.startsWith("http://") && !imageUrl.startsWith("https://")) {
+                    if (imageUrl.startsWith("/static/")) {
+                        imageUrl = "http://localhost:8080" + imageUrl;
+                    } else if (!imageUrl.startsWith("/")) {
+                        imageUrl = "http://localhost:8080/static/sticker_match/" + imageUrl;
+                    } else {
+                        imageUrl = "http://localhost:8080" + imageUrl;
+                    }
+                }
+                Image image = new Image(imageUrl, true);
+                stickerView.setImage(image);
+            }
+        } catch (Exception e) {
+            System.err.println("[MatchChat] Failed to load sticker image: " + e.getMessage());
+            return;
+        }
+
+        stickerView.setFitWidth(70);
+        stickerView.setFitHeight(70);
+        stickerView.setPreserveRatio(true);
+
+        // Đảm bảo animationLayer nằm trên cùng trong rightPane (StackPane)
+        if (rightPane != null && rightAnimationLayer != null) {
+            rightPane.getChildren().remove(rightAnimationLayer);
+            rightPane.getChildren().add(rightAnimationLayer);
+        }
+        // Đảm bảo animation chạy sau khi layout đã render
+        Platform.runLater(() -> {
+            MatchStickerAnimator.animate(
+                stickerView,
+                rightAnimationLayer, // animationLayer
+                rightPlayerAvatar, // startNode (hoặc rightPlayerName)
+                rightMessageContainer, // endNode
+                false, // isFromMe
+                v -> {} // onFinish
+            );
+        });
     }
 }

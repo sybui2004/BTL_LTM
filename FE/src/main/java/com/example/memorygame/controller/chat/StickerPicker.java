@@ -2,7 +2,6 @@ package com.example.memorygame.controller.chat;
 
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 import com.example.memorygame.model.chat.Sticker;
 import com.example.memorygame.utils.ChatApi;
@@ -32,8 +31,21 @@ public class StickerPicker extends StackPane {
     private final GridPane gridPane;
     private final ScrollPane scrollPane;
     private Consumer<Sticker> onStickerSelected;
-    
+    private final String stickerType;
+
+    /**
+     * Default constructor for NORMAL stickers.
+     */
     public StickerPicker() {
+        this("NORMAL");
+    }
+
+    /**
+     * Constructor that accepts a sticker type.
+     * @param type The type of stickers to display ("NORMAL" or "MATCH").
+     */
+    public StickerPicker(String type) {
+        this.stickerType = type;
         this.setStyle(
             "-fx-background-color: white; " +
             "-fx-background-radius: 8; " +
@@ -63,13 +75,17 @@ public class StickerPicker extends StackPane {
         double prefWidth = (COLUMNS * STICKER_SIZE) + ((COLUMNS - 1) * GAP) + (2 * PADDING);
         double prefHeight = (VISIBLE_ROWS * STICKER_SIZE) + ((VISIBLE_ROWS - 1) * GAP) + (2 * PADDING);
         
-        scrollPane.setPrefWidth(prefWidth);
-        scrollPane.setPrefHeight(prefHeight);
-        scrollPane.setMinWidth(prefWidth);
-        scrollPane.setMinHeight(prefHeight);
-        scrollPane.setMaxWidth(prefWidth);
-        scrollPane.setMaxHeight(prefHeight);
-        
+    scrollPane.setPrefWidth(prefWidth);
+    scrollPane.setPrefHeight(prefHeight);
+    scrollPane.setMinWidth(prefWidth);
+    scrollPane.setMinHeight(prefHeight);
+    scrollPane.setMaxWidth(prefWidth);
+    scrollPane.setMaxHeight(prefHeight);
+
+    this.setPrefSize(prefWidth, prefHeight);
+    this.setMinSize(prefWidth, prefHeight);
+    this.setMaxSize(prefWidth, prefHeight);
+
         this.getChildren().add(scrollPane);
         
         // Load stickers asynchronously
@@ -79,7 +95,7 @@ public class StickerPicker extends StackPane {
     private void loadStickers() {
         // Load stickers in background thread
         new Thread(() -> {
-            List<Sticker> stickers = ChatApi.fetchStickers();
+            List<Sticker> stickers = ChatApi.fetchStickersByType(this.stickerType);
             Platform.runLater(() -> {
                 displayStickers(stickers);
             });
@@ -144,7 +160,9 @@ public class StickerPicker extends StackPane {
                     if (imageUrl.startsWith("/static/")) {
                         imageUrl = "http://localhost:8080" + imageUrl;
                     } else if (!imageUrl.startsWith("/")) {
-                        imageUrl = "http://localhost:8080/static/stickers/" + imageUrl;
+                        // Determine folder based on sticker type
+                        String folder = "MATCH".equalsIgnoreCase(sticker.getType()) ? "sticker_match" : "stickers";
+                        imageUrl = "http://localhost:8080/static/" + folder + "/" + imageUrl;
                     } else {
                         imageUrl = "http://localhost:8080" + imageUrl;
                     }

@@ -285,3 +285,14 @@
 .player-header-avatar {
   -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 3, 0, 0, 1);
 }
+
+.sticker-match-button {
+    -fx-background-color: transparent;
+    -fx-padding: 2;
+    -fx-background-radius: 50%;
+    -fx-cursor: hand;
+}
+
+.sticker-match-button:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.2);
+}
