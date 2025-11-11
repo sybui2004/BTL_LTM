@@ -15,7 +15,7 @@ public class FXMain extends Application {
         Scene scene = new Scene(authController.getScreen().getRoot());
         stage.setTitle("Memory Matching Game");
         stage.setResizable(false);
-        stage.setScene(scene);
+        stage.setScene(scene);aa
         stage.show();
     }
     public static void main(String[] args) {

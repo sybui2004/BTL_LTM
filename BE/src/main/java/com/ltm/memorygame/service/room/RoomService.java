@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -89,7 +90,10 @@ public class RoomService {
     @Transactional
     public RoomResponseDTO joinRoom(Long roomId, Long playerId) {
         Room room = roomRepository.findById(roomId).orElseThrow(() -> new NoSuchElementException("Room not found: " + roomId));
-        
+        // Extra safety: do not allow joining rooms that are soft-deleted or have no host
+        if (room.getStatus() == RoomStatus.DELETED || room.getHost() == null) {
+            throw new IllegalStateException("Room is not available for joining");
+        }
         if (room.getStatus() != RoomStatus.WAITING) {
             throw new IllegalStateException("Room is not available for joining");
         }
@@ -122,7 +126,7 @@ public class RoomService {
     - If host exits, if the room has 2 players, transfer host to guest, otherwise delete the room.
     - If guest exits, the room returns to the WAITING status.
     */
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public RoomResponseDTO exitRoom(Long roomId, Long playerId) {
 
         Room room = roomRepository.findById(roomId)
@@ -132,7 +136,12 @@ public class RoomService {
         if (room.getStatus() == RoomStatus.DELETED || room.getHost() == null) {
             System.out.println("[RoomService] Room " + roomId + " is already deleted or has no host. Returning DELETED status.");
             room.setStatus(RoomStatus.DELETED);
-            return RoomMapper.toDTO(room);
+            try {
+                inviteService.deleteAllByRoomId(roomId);
+            } catch (Exception e) {
+                System.err.println("[RoomService] Error deleting invites for room " + roomId + ": " + e.getMessage());
+            }
+            return RoomMapper.toDTO(roomRepository.save(room));
         }
 
         // Additional safety check: ensure host is not null before accessing getId()
@@ -140,7 +149,12 @@ public class RoomService {
         if (host == null) {
             System.out.println("[RoomService] Room " + roomId + " has null host after initial check. Setting status to DELETED.");
             room.setStatus(RoomStatus.DELETED);
-            return RoomMapper.toDTO(room);
+            try {
+                inviteService.deleteAllByRoomId(roomId);
+            } catch (Exception e) {
+                System.err.println("[RoomService] Error deleting invites for room " + roomId + ": " + e.getMessage());
+            }
+            return RoomMapper.toDTO(roomRepository.save(room));
         }
 
         if (host.getId().equals(playerId)) {

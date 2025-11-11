@@ -85,6 +85,14 @@ public class InviteFacadeService {
 		RoomInvite invite = inviteService.findPendingByRoomAndReceiver(roomId, receiverId)
 				.orElseThrow(() -> new NoSuchElementException("No pending invite found!"));
 
+		// Validate room is still usable (e.g., not soft-deleted after previous match)
+		Room targetRoom = invite.getRoom();
+		if (targetRoom == null || targetRoom.getHost() == null || targetRoom.getStatus() == RoomStatus.DELETED) {
+			invite.setStatus(InviteStatus.REJECTED);
+			inviteService.save(invite);
+			throw new IllegalStateException("Room is no longer available");
+		}
+
 		// Exit from current room if player is in another room
 		try {
 			java.util.List<Room> currentRooms = roomService.findRoomsByPlayer(receiverId);
