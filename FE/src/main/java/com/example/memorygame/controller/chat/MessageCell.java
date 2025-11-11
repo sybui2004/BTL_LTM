@@ -31,12 +31,18 @@ public class MessageCell extends HBox {
     private final UserSummary currentUser;
     private final LayoutMode layoutMode;
     private final ChatMessage previousMessage;
+    private final ChatContext context;
     
     public MessageCell(ChatMessage message, UserSummary currentUser, LayoutMode layoutMode, ChatMessage previousMessage) {
+        this(message, currentUser, layoutMode, previousMessage, null);
+    }
+    
+    public MessageCell(ChatMessage message, UserSummary currentUser, LayoutMode layoutMode, ChatMessage previousMessage, ChatContext context) {
         this.message = message;
         this.currentUser = currentUser;
         this.layoutMode = layoutMode != null ? layoutMode : LayoutMode.DEFAULT;
         this.previousMessage = previousMessage;
+        this.context = context;
         
         setupLayout();
         buildUI();
@@ -122,7 +128,67 @@ public class MessageCell extends HBox {
         // ImageView tự động cập nhật khi Image tải trong nền.
         // AvatarCacheManager xử lý lỗi và trả về ảnh mặc định.
         
+        // Thêm click handler để mở profile (chỉ cho world chat và không phải tin nhắn của mình)
+        if (context != null && context.getType() == com.example.memorygame.model.chat.ChatType.WORLD && !isMyMessage()) {
+            avatarView.setCursor(javafx.scene.Cursor.HAND);
+            avatarView.setOnMouseClicked(e -> {
+                UserSummary sender = message.getSender();
+                if (sender != null && sender.id > 0) {
+                    openProfile(sender.id);
+                }
+            });
+        }
+        
         return avatarView;
+    }
+    
+    /**
+     * Mở profile screen cho user
+     */
+    private void openProfile(Long userId) {
+        if (userId == null || userId <= 0) {
+            return;
+        }
+        
+        try {
+            javafx.application.Platform.runLater(() -> {
+                try {
+                    com.example.memorygame.controller.ProfileScreenController profileController = 
+                        new com.example.memorygame.controller.ProfileScreenController(userId);
+                    javafx.scene.Scene profileScene = new javafx.scene.Scene(profileController.getScreen().getRoot());
+                    
+                    // Lấy stage từ scene hiện tại
+                    javafx.scene.Node node = this;
+                    javafx.stage.Stage stage = null;
+                    while (node != null && stage == null) {
+                        if (node.getScene() != null && node.getScene().getWindow() instanceof javafx.stage.Stage) {
+                            stage = (javafx.stage.Stage) node.getScene().getWindow();
+                            break;
+                        }
+                        node = node.getParent();
+                    }
+                    
+                    if (stage != null) {
+                        // Preserve current stage size
+                        double currentWidth = stage.getWidth();
+                        double currentHeight = stage.getHeight();
+                        if (currentWidth > 0 && currentHeight > 0) {
+                            stage.setWidth(currentWidth);
+                            stage.setHeight(currentHeight);
+                        } else {
+                            stage.setWidth(1024);
+                            stage.setHeight(720);
+                        }
+                        stage.setScene(profileScene);
+                    }
+                } catch (Exception ex) {
+                    System.err.println("[MessageCell] Failed to open profile: " + ex.getMessage());
+                    ex.printStackTrace();
+                }
+            });
+        } catch (Exception e) {
+            System.err.println("[MessageCell] Error opening profile: " + e.getMessage());
+        }
     }
     
     /**

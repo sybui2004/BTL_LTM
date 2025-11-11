@@ -1,7 +1,6 @@
 package com.example.memorygame.controller;
 
 import java.text.SimpleDateFormat;
-import java.util.Objects;
 
 import com.example.memorygame.model.game.MatchHistoryDTO;
 import com.example.memorygame.model.game.MatchHistoryRow;
@@ -152,6 +151,36 @@ public class ProfileScreenController {
         resultColumn.setCellValueFactory(new PropertyValueFactory<>("result"));
         eloChangeColumn.setCellValueFactory(new PropertyValueFactory<>("eloChange"));
         dateColumn.setCellValueFactory(new PropertyValueFactory<>("date"));
+
+        // Set header alignment for Opponent column sau khi table được render
+        javafx.application.Platform.runLater(() -> {
+            javafx.scene.Node headerNode = opponentColumn.getStyleableNode();
+            if (headerNode != null) {
+                javafx.scene.Node labelNode = headerNode.lookup(".label");
+                if (labelNode != null) {
+                    labelNode.setStyle("-fx-alignment: center-left; -fx-padding: 10 10 10 10;");
+                }
+            }
+        });
+
+        // Custom cell factory for Opponent column - căn trái để thẳng hàng với header
+        opponentColumn.setCellFactory(column -> new TableCell<MatchHistoryRow, String>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setGraphic(null);
+                    setStyle("");
+                    setAlignment(null);
+                } else {
+                    setText(item);
+                    setAlignment(Pos.CENTER_LEFT); // Căn trái
+                    // Padding trái 10px để match với header
+                    setStyle("-fx-alignment: center-left; -fx-padding: 10 10 10 10;");
+                }
+            }
+        });
 
         // Custom cell factories for styling and alignment - Căn giữa các cột Result,
         // Elo, Date
@@ -880,7 +909,34 @@ public class ProfileScreenController {
     private void displayProfile(UserProfileDTO profile, Integer elo, int friendsCount, String username, String email) {
         // Avatar
         if (avatarImageView != null) {
+            System.out.println("[Profile] Loading avatar for profile - avatarUrl: " + profile.avatarUrl);
             Image avatar = loadUserAvatarOrFallback(profile.avatarUrl);
+            
+            // Set up error handler for failed loads
+            avatar.errorProperty().addListener((obs, wasError, isError) -> {
+                if (isError) {
+                    System.err.println("[Profile] Failed to load avatar from: " + profile.avatarUrl);
+                    if (avatar.getException() != null) {
+                        System.err.println("[Profile] Avatar load error: " + avatar.getException().getMessage());
+                    }
+                    // Try fallback
+                    Image fallbackAvatar = loadUserAvatarOrFallback(null);
+                    if (avatarImageView != null) {
+                        avatarImageView.setImage(fallbackAvatar);
+                    }
+                }
+            });
+            
+            // Set image when loaded
+            avatar.progressProperty().addListener((obs, oldProgress, newProgress) -> {
+                if (newProgress.doubleValue() >= 1.0 && !avatar.isError()) {
+                    System.out.println("[Profile] Avatar loaded successfully");
+                    if (avatarImageView != null) {
+                        avatarImageView.setImage(avatar);
+                    }
+                }
+            });
+            
             avatarImageView.setImage(avatar);
             avatarImageView.setFitWidth(150);
             avatarImageView.setFitHeight(150);
@@ -939,18 +995,35 @@ public class ProfileScreenController {
             matchHistoryData.clear();
 
             for (MatchHistoryDTO match : profile.matchHistory) {
-                String opponent = match.opponentUsername != null ? match.opponentUsername : "Unknown";
-                String result = "WIN".equals(match.result) ? "WIN" : ("LOSE".equals(match.result) ? "LOSE" : "DRAW");
+                // Use displayName if available, fallback to username
+                String opponent = match.opponentDisplayName != null && !match.opponentDisplayName.isBlank()
+                        ? match.opponentDisplayName
+                        : (match.opponentUsername != null ? match.opponentUsername : "Unknown");
+                
+                String result = match.result != null ? match.result : "DRAW";
+                if (!"WIN".equals(result) && !"LOSE".equals(result) && !"DRAW".equals(result)) {
+                    result = "DRAW";
+                }
 
-                // Calculate Elo change based on scores (if available)
-                // Default: +10 for win, -10 for loss, 0 for draw
+                // Use rankPointsChange from backend (already calculated correctly)
                 String eloChange;
-                if (match.userScore > match.opponentScore) {
-                    eloChange = "+" + (match.userScore - match.opponentScore);
-                } else if (match.userScore < match.opponentScore) {
-                    eloChange = "-" + (match.opponentScore - match.userScore);
+                if (match.rankPointsChange != null) {
+                    if (match.rankPointsChange > 0) {
+                        eloChange = "+" + match.rankPointsChange;
+                    } else if (match.rankPointsChange < 0) {
+                        eloChange = String.valueOf(match.rankPointsChange); // Already negative
+                    } else {
+                        eloChange = "0";
+                    }
                 } else {
-                    eloChange = "0";
+                    // Fallback: calculate from scores if not available
+                    if (match.userScore > match.opponentScore) {
+                        eloChange = "+" + (match.userScore - match.opponentScore);
+                    } else if (match.userScore < match.opponentScore) {
+                        eloChange = "-" + (match.opponentScore - match.userScore);
+                    } else {
+                        eloChange = "0";
+                    }
                 }
 
                 // Format date as dd/MM/yyyy
@@ -962,32 +1035,64 @@ public class ProfileScreenController {
     }
 
     private Image loadUserAvatarOrFallback(String candidateUrl) {
-        String fallbackResource = "/com/example/memorygame/assets/images/name.png";
+        // Default avatar URL from server using ApiClient base URL
+        String serverDefaultAvatarUrl = com.example.memorygame.utils.ApiClient.getBaseUrl() + "/static/avatars/default_avatar.png";
+        
         try {
             if (candidateUrl != null) {
                 String trimmed = candidateUrl.trim();
                 if (!trimmed.isEmpty()) {
                     String lower = trimmed.toLowerCase();
                     // Check if it's a resource path (starts with /)
-                    if (lower.startsWith("/")) {
+                    if (lower.startsWith("/") && !lower.startsWith("/static/")) {
                         var resourceUrl = getClass().getResource(trimmed);
                         if (resourceUrl != null) {
+                            System.out.println("[Profile] Loading avatar from resource: " + trimmed);
                             return new Image(resourceUrl.toExternalForm(), true);
                         }
                     } else if (lower.startsWith("http://") || lower.startsWith("https://")) {
+                        System.out.println("[Profile] Loading avatar from full URL: " + trimmed);
                         return new Image(trimmed, true);
+                    } else {
+                        // Build full URL using ApiClient base URL
+                        String imageUrl;
+                        if (trimmed.startsWith("/static/")) {
+                            imageUrl = com.example.memorygame.utils.ApiClient.getBaseUrl() + trimmed;
+                        } else if (trimmed.startsWith("/")) {
+                            imageUrl = com.example.memorygame.utils.ApiClient.getBaseUrl() + trimmed;
+                        } else {
+                            // Nếu không có / ở đầu, coi như là filename trong /static/avatars/
+                            imageUrl = com.example.memorygame.utils.ApiClient.getBaseUrl() + "/static/avatars/" + trimmed;
+                        }
+                        System.out.println("[Profile] Loading avatar from server: " + imageUrl);
+                        return new Image(imageUrl, true);
                     }
                 }
             }
-        } catch (IllegalArgumentException ignored) {
+        } catch (IllegalArgumentException e) {
+            System.err.println("[Profile] Failed to load avatar: " + e.getMessage());
         }
 
-        var url = getClass().getResource(fallbackResource);
-        if (url == null) {
-            // Try alternative path in main directory
-            url = getClass().getResource("/com/example/memorygame/name.png");
+        // Try multiple fallback paths
+        String[] fallbackPaths = {
+            "/com/example/memorygame/assets/images/name.png",
+            "/com/example/memorygame/assets/images/avt1.png",
+            "/com/example/memorygame/assets/images/avatar/avatar2.png",
+            "/com/example/memorygame/assets/images/default_avatar.png",
+            "/com/example/memorygame/name.png"
+        };
+        
+        for (String fallbackPath : fallbackPaths) {
+            var url = getClass().getResource(fallbackPath);
+            if (url != null) {
+                System.out.println("[Profile] Using fallback avatar from resource: " + fallbackPath);
+                return new Image(url.toExternalForm(), true);
+            }
         }
-        return new Image(Objects.requireNonNull(url).toExternalForm(), true);
+        
+        // If all fallbacks fail, use server default avatar
+        System.err.println("[Profile] All fallback avatar resources not found, using server default: " + serverDefaultAvatarUrl);
+        return new Image(serverDefaultAvatarUrl, true);
     }
 
     private void goBack() {

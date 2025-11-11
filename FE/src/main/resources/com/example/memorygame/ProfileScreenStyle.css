@@ -132,6 +132,16 @@
     -fx-padding: 10;
 }
 
+/* Đảm bảo header label của cột Opponent căn trái */
+.history-table .column-header:first-child {
+    -fx-alignment: center-left;
+}
+
+.history-table .column-header:first-child .label {
+    -fx-alignment: center-left;
+    -fx-padding: 10 10 10 10;
+}
+
 .history-table .table-row-cell {
     -fx-background-color: white;
     -fx-border-color: transparent;
@@ -156,11 +166,23 @@
     -fx-font-size: 13px;
 }
 
+/* Căn trái header cho cột Opponent */
+.history-table .column-header:nth-child(1) .label {
+    -fx-alignment: center-left;
+    -fx-padding: 10 10 10 10;
+}
+
 /* Căn giữa header cho các cột Result, Elo, Date */
 .history-table .column-header:nth-child(2) .label,
 .history-table .column-header:nth-child(3) .label,
 .history-table .column-header:nth-child(4) .label {
     -fx-alignment: center;
+}
+
+/* Căn trái dữ liệu cho cột Opponent - match padding với header */
+.history-table .table-column:nth-child(1) .table-cell {
+    -fx-alignment: center-left;
+    -fx-padding: 10 10 10 10;
 }
 
 /* Căn giữa dữ liệu cho các cột Result, Elo, Date */

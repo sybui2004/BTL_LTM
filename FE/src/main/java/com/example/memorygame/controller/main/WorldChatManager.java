@@ -137,11 +137,19 @@ public class WorldChatManager {
         avatarView.setClip(clip);
         avatarView.getStyleClass().add("chat-message-avatar");
 
-        // Message content (username + message)
+        // Message content (displayName + message)
         VBox contentBox = new VBox(3);
         
-        // Username with colon
-        Label senderLabel = new Label(sender + ":");
+        // Display name with colon - ưu tiên displayName, fallback về username
+        String displayName = sender;
+        if (senderUser != null) {
+            if (senderUser.displayName != null && !senderUser.displayName.isBlank()) {
+                displayName = senderUser.displayName;
+            } else if (senderUser.username != null && !senderUser.username.isBlank()) {
+                displayName = senderUser.username;
+            }
+        }
+        Label senderLabel = new Label(displayName + ":");
         senderLabel.getStyleClass().add("chat-sender");
         
         // Message text

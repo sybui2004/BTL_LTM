@@ -105,6 +105,7 @@ public class InviteFacadeService {
 		room.setGuest(invite.getReceiver());
 		room.setStatus(RoomStatus.READY);
 		RoomResponseDTO result = roomService.updateAndMap(room);
+		System.out.println("[Invite] Room " + room.getId() + " set to READY after invite accepted by user " + receiverId);
 		
 		User host = room.getHost();
 		User guest = room.getGuest();

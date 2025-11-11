@@ -13,4 +13,6 @@ public class FinishedMatchRequest {
     private int player1Score;
     @Min(0)
     private int player2Score;
+    private Integer player1RankPointsChange;
+    private Integer player2RankPointsChange;
 }

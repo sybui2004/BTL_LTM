@@ -79,6 +79,14 @@ public class MatchService {
         match.setPlayer2Score(request.getPlayer2Score());
         match.setEndTime(new Date());
         
+        // Save rank points change if provided
+        if (request.getPlayer1RankPointsChange() != null) {
+            match.setPlayer1RankPointsChange(request.getPlayer1RankPointsChange());
+        }
+        if (request.getPlayer2RankPointsChange() != null) {
+            match.setPlayer2RankPointsChange(request.getPlayer2RankPointsChange());
+        }
+        
         Long hostId = match.getRoom().getHost().getId();
         boolean hostIsPlayer1 = match.getPlayer1().getId().equals(hostId);
         int hostScore = hostIsPlayer1 ? request.getPlayer1Score() : request.getPlayer2Score();

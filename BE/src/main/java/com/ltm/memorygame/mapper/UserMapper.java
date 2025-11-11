@@ -30,17 +30,69 @@ public class UserMapper {
     }
 
     public MatchHistoryDTO toMatchHistoryDTO(User user, Match match) {
-        MatchStatus resultStatus = match.getResultFor(user);
-        String result = resultStatus != null ? resultStatus.name() : "PLAYING";
+        User opponent = match.getOpponent(user);
+        int userScore = match.getScoreFor(user);
+        int opponentScore = match.getScoreFor(opponent);
+        
+        // Get rank points change from database (if available)
+        Integer rankPointsChange = match.getRankPointsChangeFor(user);
+        
+        // Calculate rankPointsChange if not stored in DB
+        if (rankPointsChange == null) {
+            Long winnerId = match.getWinnerId();
+            if (winnerId == null) {
+                // Draw - both get 0
+                rankPointsChange = 0;
+            } else if (winnerId.equals(user.getId())) {
+                // User won
+                rankPointsChange = calculateWinnerRankPoints(userScore, opponentScore);
+            } else {
+                // User lost
+                int loserPoints = calculateLoserRankPoints(opponentScore, userScore);
+                rankPointsChange = -loserPoints;
+            }
+        }
+        
+        // Determine result based on rankPointsChange: positive = WIN, negative = LOSE, 0 = LOSE (no DRAW)
+        String result;
+        if (rankPointsChange > 0) {
+            result = "WIN";
+        } else {
+            result = "LOSE";
+        }
 
         return MatchHistoryDTO.builder()
                 .matchId(match.getId())
-                .opponentUsername(match.getOpponent(user).getUsername())
-                .userScore(match.getScoreFor(user))
-                .opponentScore(match.getScoreFor(match.getOpponent(user)))
+                .opponentUsername(opponent.getUsername())
+                .opponentDisplayName(opponent.getDisplayName())
+                .userScore(userScore)
+                .opponentScore(opponentScore)
                 .result(result)
+                .rankPointsChange(rankPointsChange)
                 .playedAt(match.getStartTime())
                 .build();
+    }
+    
+    /**
+     * Calculate winner rank points: [(winnerPairs + 2) / (loserPairs + 1)] * 10
+     */
+    private int calculateWinnerRankPoints(int winnerPairs, int loserPairs) {
+        if (loserPairs < 0) loserPairs = 0;
+        if (winnerPairs < 0) winnerPairs = 0;
+        double points = ((double) (winnerPairs + 2)) / (loserPairs + 1);
+        int result = (int) Math.floor(points * 10.0);
+        return Math.max(0, result);
+    }
+    
+    /**
+     * Calculate loser rank points: ⌈(winnerPairs + 1) / (loserPairs + 1) - 1⌉ * 10
+     */
+    private int calculateLoserRankPoints(int winnerPairs, int loserPairs) {
+        if (loserPairs < 0) loserPairs = 0;
+        if (winnerPairs < 0) winnerPairs = 0;
+        double result = ((double)(winnerPairs + 1) / (loserPairs + 1)) - 1;
+        int points = (int) Math.ceil(result) * 10;
+        return Math.max(0, points);
     }
     public UserResponseDTO toUserResponseDTO(User user) {
         return UserResponseDTO.builder()

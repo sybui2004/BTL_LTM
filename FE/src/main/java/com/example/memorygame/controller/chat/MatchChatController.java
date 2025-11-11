@@ -546,11 +546,11 @@ public class MatchChatController {
         boolean mine = isMyMessage(msg);
         if (mine) {
             cell = new MessageCell(msg, context != null ? context.getCurrentUser() : null,
-                    MessageCell.LayoutMode.MINE_ON_LEFT, null);
+                    MessageCell.LayoutMode.MINE_ON_LEFT, null, context);
             leftMessageContainer.getChildren().add(0, cell);
         } else {
             cell = new MessageCell(msg, context != null ? context.getCurrentUser() : null,
-                    MessageCell.LayoutMode.OPPONENT_ON_RIGHT, null);
+                    MessageCell.LayoutMode.OPPONENT_ON_RIGHT, null, context);
             rightMessageContainer.getChildren().add(cell);
         }
     }

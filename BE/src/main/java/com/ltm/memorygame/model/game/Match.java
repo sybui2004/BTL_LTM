@@ -47,6 +47,12 @@ public class Match {
     @Column(name = "player2_score")
     private int player2Score;
 
+    @Column(name = "player1_rank_points_change")
+    private Integer player1RankPointsChange;
+
+    @Column(name = "player2_rank_points_change")
+    private Integer player2RankPointsChange;
+
     @ManyToOne
     @JoinColumn(name = "theme_id")
     private Theme theme;
@@ -91,5 +97,12 @@ public class Match {
         Long winnerId = getWinnerId();
         if (winnerId == null) return MatchStatus.PLAYING;
         return winnerId.equals(user.getId()) ? MatchStatus.WIN : MatchStatus.LOSE;
+    }
+
+    public Integer getRankPointsChangeFor(User user) {
+        if (user == null) return null;
+        if (user.equals(player1)) return player1RankPointsChange;
+        if (user.equals(player2)) return player2RankPointsChange;
+        return null;
     }
 }

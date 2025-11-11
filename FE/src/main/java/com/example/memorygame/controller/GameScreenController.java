@@ -836,12 +836,36 @@ public class GameScreenController {
                                     SoundManager.playSound("match.wav");
                                     Thread.sleep(800); // wait remaining time to let second card finish flip and be visible (total 1s)
                                     Platform.runLater(() -> {
+                                        // Mark cards as matched first
                                         if (savedCard1 != null) {
-                                            savedCard1.setVisible(false);
+                                            savedCard1.markAsMatched();
                                         }
                                         if (savedCard2 != null) {
-                                            savedCard2.setVisible(false);
+                                            savedCard2.markAsMatched();
                                         }
+                                        
+                                        // Fade out and hide cards with animation
+                                        if (savedCard1 != null) {
+                                            javafx.animation.FadeTransition fadeOut = new javafx.animation.FadeTransition(javafx.util.Duration.millis(300), savedCard1);
+                                            fadeOut.setFromValue(1.0);
+                                            fadeOut.setToValue(0.0);
+                                            fadeOut.setOnFinished(e -> {
+                                                savedCard1.setVisible(false);
+                                                savedCard1.setManaged(false); // Remove from layout
+                                            });
+                                            fadeOut.play();
+                                        }
+                                        if (savedCard2 != null) {
+                                            javafx.animation.FadeTransition fadeOut = new javafx.animation.FadeTransition(javafx.util.Duration.millis(300), savedCard2);
+                                            fadeOut.setFromValue(1.0);
+                                            fadeOut.setToValue(0.0);
+                                            fadeOut.setOnFinished(e -> {
+                                                savedCard2.setVisible(false);
+                                                savedCard2.setManaged(false); // Remove from layout
+                                            });
+                                            fadeOut.play();
+                                        }
+                                        
                                         // Update scores
                                         if (player1Score != null) this.player1Score = player1Score;
                                         if (player2Score != null) this.player2Score = player2Score;
@@ -859,8 +883,8 @@ public class GameScreenController {
                         } else {
                             // Cards don't match (or isMatch is null) - play miss match sound with delay and flip them back after 1s delay
                             System.out.println("[GameScreen] Cards don't match (isMatch=" + isMatch + ") - starting flip back process");
-                            System.out.println("[GameScreen] Card1 flipped state: " + (savedCard1 != null ? savedCard1.isFlipped() : "null") +
-                                              ", Card2 flipped state: " + (savedCard2 != null ? savedCard2.isFlipped() : "null"));
+                            System.out.println("[GameScreen] Card1: " + (savedCard1 != null ? "exists, flipped=" + savedCard1.isFlipped() + ", matched=" + savedCard1.isMatched() : "null") +
+                                              ", Card2: " + (savedCard2 != null ? "exists, flipped=" + savedCard2.isFlipped() + ", matched=" + savedCard2.isMatched() : "null"));
                             new Thread(() -> {
                                 try {
                                     Thread.sleep(200); // Delay 0.2s for sound to match animation
@@ -869,41 +893,113 @@ public class GameScreenController {
                                     Platform.runLater(() -> {
                                         System.out.println("[GameScreen] Flipping back cards after 1s delay");
                                         
-                                        // Flip back both cards if they are flipped
-                                        if (savedCard1 != null && savedCard1.isFlipped()) {
-                                            System.out.println("[GameScreen] Flipping back card 1");
+                                        // Track flip back completion using AtomicInteger for thread safety
+                                        final java.util.concurrent.atomic.AtomicInteger completedCount = new java.util.concurrent.atomic.AtomicInteger(0);
+                                        
+                                        // Count cards that need to be flipped back (must exist, not matched, and currently flipped)
+                                        final int totalCards = (savedCard1 != null && !savedCard1.isMatched() && savedCard1.isFlipped() ? 1 : 0) +
+                                                              (savedCard2 != null && !savedCard2.isMatched() && savedCard2.isFlipped() ? 1 : 0);
+                                        
+                                        System.out.println("[GameScreen] Total cards to flip back: " + totalCards);
+                                        
+                                        // If no cards need flipping, complete immediately
+                                        if (totalCards == 0) {
+                                            System.out.println("[GameScreen] No cards need flipping back - completing immediately");
+                                            resetFlippedCards();
+                                            if (shouldSwitchTurn != null && shouldSwitchTurn) {
+                                                isMyTurn = !isMyTurn;
+                                                updateTurnIndicator();
+                                                resetTurnTimer();
+                                            }
+                                            isResolving = false;
+                                            return;
+                                        }
+                                        
+                                        // Helper to check if all flips are complete
+                                        Runnable checkComplete = () -> {
+                                            int current = completedCount.incrementAndGet();
+                                            System.out.println("[GameScreen] Flip back progress: " + current + "/" + totalCards);
+                                            if (current >= totalCards) {
+                                                Platform.runLater(() -> {
+                                                    System.out.println("[GameScreen] All cards finished flipping back");
+                                                    resetFlippedCards();
+                                                    if (shouldSwitchTurn != null && shouldSwitchTurn) {
+                                                        isMyTurn = !isMyTurn;
+                                                        updateTurnIndicator();
+                                                        resetTurnTimer();
+                                                    }
+                                                    isResolving = false;
+                                                });
+                                            }
+                                        };
+                                        
+                                        // Flip back card 1 if it exists and is not matched
+                                        // Always try to flip back, flipToBack() will handle state correctly
+                                        if (savedCard1 != null && !savedCard1.isMatched()) {
+                                            boolean wasFlipped = savedCard1.isFlipped();
+                                            System.out.println("[GameScreen] Flipping back card 1 (index: " + cardIndex1 + 
+                                                              ", wasFlipped: " + wasFlipped + ")");
+                                            
+                                            // Always call flipToBack - it will handle the state correctly
                                             savedCard1.flipToBack();
-                                        } else if (savedCard1 != null) {
-                                            System.out.println("[GameScreen] Card 1 is not flipped, skipping");
+                                            
+                                            // If card was flipped, wait for animation; otherwise complete immediately
+                                            if (wasFlipped) {
+                                                // Wait for animation to complete (600ms total: 300ms flip + 300ms complete)
+                                                new Thread(() -> {
+                                                    try {
+                                                        Thread.sleep(650);
+                                                        checkComplete.run();
+                                                    } catch (InterruptedException e) {
+                                                        Thread.currentThread().interrupt();
+                                                        checkComplete.run(); // Still call to ensure state is reset
+                                                    }
+                                                }).start();
+                                            } else {
+                                                // Card was already back, complete immediately
+                                                System.out.println("[GameScreen] Card 1 was already back, completing immediately");
+                                                checkComplete.run();
+                                            }
                                         } else {
-                                            System.out.println("[GameScreen] Card 1 is null, cannot flip back");
+                                            System.out.println("[GameScreen] Card 1 skipped - null: " + (savedCard1 == null) + 
+                                                              ", matched: " + (savedCard1 != null ? savedCard1.isMatched() : "N/A"));
+                                            // If card is null or matched, still count it as complete
+                                            checkComplete.run();
                                         }
                                         
-                                        if (savedCard2 != null && savedCard2.isFlipped()) {
-                                            System.out.println("[GameScreen] Flipping back card 2");
+                                        // Flip back card 2 if it exists and is not matched
+                                        // Always try to flip back, flipToBack() will handle state correctly
+                                        if (savedCard2 != null && !savedCard2.isMatched()) {
+                                            boolean wasFlipped = savedCard2.isFlipped();
+                                            System.out.println("[GameScreen] Flipping back card 2 (index: " + cardIndex2 + 
+                                                              ", wasFlipped: " + wasFlipped + ")");
+                                            
+                                            // Always call flipToBack - it will handle the state correctly
                                             savedCard2.flipToBack();
-                                        } else if (savedCard2 != null) {
-                                            System.out.println("[GameScreen] Card 2 is not flipped, skipping");
+                                            
+                                            // If card was flipped, wait for animation; otherwise complete immediately
+                                            if (wasFlipped) {
+                                                // Wait for animation to complete (600ms total: 300ms flip + 300ms complete)
+                                                new Thread(() -> {
+                                                    try {
+                                                        Thread.sleep(650);
+                                                        checkComplete.run();
+                                                    } catch (InterruptedException e) {
+                                                        Thread.currentThread().interrupt();
+                                                        checkComplete.run(); // Still call to ensure state is reset
+                                                    }
+                                                }).start();
+                                            } else {
+                                                // Card was already back, complete immediately
+                                                System.out.println("[GameScreen] Card 2 was already back, completing immediately");
+                                                checkComplete.run();
+                                            }
                                         } else {
-                                            System.out.println("[GameScreen] Card 2 is null, cannot flip back");
+                                            System.out.println("[GameScreen] Card 2 skipped - null: " + (savedCard2 == null) + 
+                                                              ", matched: " + (savedCard2 != null ? savedCard2.isMatched() : "N/A"));
+                                            // If card is null or matched, still count it as complete
+                                            checkComplete.run();
                                         }
-                                        
-                                        // Reset state AFTER flip-back completes
-                                        resetFlippedCards();
-                                        
-                                        // Switch turn if needed
-                                        if (shouldSwitchTurn != null && shouldSwitchTurn) {
-                                            System.out.println("[GameScreen] Switching turn - was my turn: " + isMyTurn);
-                                            isMyTurn = !isMyTurn;
-                                            System.out.println("[GameScreen] Turn switched via server. Is my turn: " + isMyTurn);
-                                            updateTurnIndicator();
-                                            resetTurnTimer(); // Reset timer for the new turn
-                                        } else {
-                                            System.out.println("[GameScreen] No turn switch needed - shouldSwitchTurn: " + shouldSwitchTurn);
-                                        }
-                                        
-                                        isResolving = false; // Unlock input
-                                        System.out.println("[GameScreen] Cards don't match - flipped back and state reset");
                                     });
                                 } catch (InterruptedException e) {
                                     Thread.currentThread().interrupt();
@@ -1544,23 +1640,59 @@ public class GameScreenController {
         // Play miss match sound for timeout case
         SoundManager.playSound("miss_match.wav");
         
-        if (firstFlippedCard != null && firstFlippedCard.isFlipped()) {
-            firstFlippedCard.flipToBack();
-            System.out.println("[GameScreen] Flipped back first card due to timeout");
-        }
-        if (secondFlippedCard != null && secondFlippedCard.isFlipped()) {
-            secondFlippedCard.flipToBack();
-            System.out.println("[GameScreen] Flipped back second card due to timeout");
+        final MemoryCard savedCard1 = firstFlippedCard;
+        final MemoryCard savedCard2 = secondFlippedCard;
+        
+        // Track flip back completion
+        final java.util.concurrent.atomic.AtomicInteger completedCount = new java.util.concurrent.atomic.AtomicInteger(0);
+        final int totalCards = (savedCard1 != null && savedCard1.isFlipped() && !savedCard1.isMatched() ? 1 : 0) +
+                              (savedCard2 != null && savedCard2.isFlipped() && !savedCard2.isMatched() ? 1 : 0);
+        
+        if (totalCards == 0) {
+            resetFlippedCards();
+            isResolving = false;
+            isMyTurn = !isMyTurn;
+            updateTurnIndicator();
+            resetTurnTimer();
+            return;
         }
         
-        resetFlippedCards();
-        isResolving = false;
+        Runnable checkComplete = () -> {
+            if (completedCount.incrementAndGet() >= totalCards) {
+                Platform.runLater(() -> {
+                    resetFlippedCards();
+                    isResolving = false;
+                    isMyTurn = !isMyTurn;
+                    updateTurnIndicator();
+                    resetTurnTimer();
+                    System.out.println("[GameScreen] Match timeout - flipped back and switched turn");
+                });
+            }
+        };
         
-        // Switch turn since cards don't match
-        isMyTurn = !isMyTurn;
-        updateTurnIndicator();
-        resetTurnTimer();
-        System.out.println("[GameScreen] Match timeout - flipped back and switched turn");
+        if (savedCard1 != null && savedCard1.isFlipped() && !savedCard1.isMatched()) {
+            savedCard1.flipToBack();
+            new Thread(() -> {
+                try {
+                    Thread.sleep(650);
+                    checkComplete.run();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }).start();
+        }
+        
+        if (savedCard2 != null && savedCard2.isFlipped() && !savedCard2.isMatched()) {
+            savedCard2.flipToBack();
+            new Thread(() -> {
+                try {
+                    Thread.sleep(650);
+                    checkComplete.run();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }).start();
+        }
     }
     
     private void flipCardAtPosition(int cardIndex, int row, int col) {

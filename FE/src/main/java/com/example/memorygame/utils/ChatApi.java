@@ -204,8 +204,13 @@ public class ChatApi {
             if (senderIdObj instanceof Number) {
                 sender.id = ((Number) senderIdObj).longValue();
             }
-            sender.displayName = String.valueOf(m.getOrDefault("senderName", ""));
-            sender.username = sender.displayName;
+            // Lấy displayName từ senderName (backend trả về displayName trong senderName)
+            Object senderNameObj = m.get("senderName");
+            if (senderNameObj != null && !senderNameObj.toString().isBlank()) {
+                sender.displayName = senderNameObj.toString();
+            }
+            // Username sẽ được lấy từ UserSummary nếu cần, không set ở đây
+            // Nếu không có displayName, sẽ fallback về username trong getDisplayName()
             Object avatarObj = m.get("avatarUrl");
             if (avatarObj != null && !avatarObj.toString().isBlank()) {
                 sender.avatarUrl = avatarObj.toString();

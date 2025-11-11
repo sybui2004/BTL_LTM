@@ -153,6 +153,11 @@ public class TCPMessageHandler {
                             onSendCurrentSettings.run();
                         }
                         
+                        // Refresh invite list to remove accepted invite
+                        if (onLoadInvites != null) {
+                            onLoadInvites.run();
+                        }
+                        
                         onRefreshTab.run();
                         showAlert(guestDisplayName + " joined the room!");
                     });
@@ -212,6 +217,11 @@ public class TCPMessageHandler {
                             String myDisplayName = currentUser.displayName != null && !currentUser.displayName.isBlank() 
                                 ? currentUser.displayName : currentUser.username;
                             uiUpdater.updateGuestInfo(myDisplayName, currentUser.avatarUrl);
+                        }
+                        
+                        // Refresh invite list to remove accepted invite
+                        if (onLoadInvites != null) {
+                            onLoadInvites.run();
                         }
 
                         // I am guest, disable play button

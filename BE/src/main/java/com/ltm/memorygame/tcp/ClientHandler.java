@@ -956,13 +956,18 @@ private void handleSetStatus(TCPMessage message) {
                 return;
             }
             
+            log.info("[TCP] Room {} found - Status: {}, Host: {}, Guest: {}", 
+                roomId, room.getStatus(), 
+                room.getHost() != null ? room.getHost().getUsername() : "null",
+                room.getGuest() != null ? room.getGuest().getUsername() : "null");
+            
             if (room.getHost() == null) {
                 log.error("[TCP] Room {} has no host", roomId);
                 return;
             }
             
             if (room.getGuest() == null) {
-                log.error("[TCP] Room {} has no guest", roomId);
+                log.error("[TCP] Room {} has no guest - cannot flip coin", roomId);
                 return;
             }
             
@@ -971,7 +976,8 @@ private void handleSetStatus(TCPMessage message) {
             
             // Only host can request coin flip
             if (!username.equals(hostUsername)) {
-                log.warn("[TCP] Non-host user {} tried to request coin flip for room {}", username, roomId);
+                log.warn("[TCP] Non-host user {} tried to request coin flip for room {} (host is {})", 
+                    username, roomId, hostUsername);
                 return;
             }
             
@@ -1001,19 +1007,21 @@ private void handleSetStatus(TCPMessage message) {
             ClientHandler hostHandler = onlineClients.get(hostUsername);
             if (hostHandler != null) {
                 hostHandler.sendMessage(resultMessage);
-                log.info("[TCP] Sent COIN_FLIP_RESULT to host: {}", hostUsername);
+                log.info("[TCP] ✓ Sent COIN_FLIP_RESULT to host: {} (result: {})", hostUsername, coinResult);
             } else {
-                log.warn("[TCP] Host {} not online", hostUsername);
+                log.error("[TCP] ✗ Host {} not online - cannot send coin flip result", hostUsername);
             }
             
             // Send to guest
             ClientHandler guestHandler = onlineClients.get(guestUsername);
             if (guestHandler != null) {
                 guestHandler.sendMessage(resultMessage);
-                log.info("[TCP] Sent COIN_FLIP_RESULT to guest: {}", guestUsername);
+                log.info("[TCP] ✓ Sent COIN_FLIP_RESULT to guest: {} (result: {})", guestUsername, coinResult);
             } else {
-                log.warn("[TCP] Guest {} not online", guestUsername);
+                log.error("[TCP] ✗ Guest {} not online - cannot send coin flip result", guestUsername);
             }
+            
+            log.info("[TCP] ===== COIN_FLIP_REQUEST completed for room {} =====", roomId);
             
         } catch (Exception e) {
             log.error("[TCP] Error handling coin flip request: {}", e.getMessage());

@@ -427,29 +427,38 @@ public class TCPClient {
                 Map<String, Object> senderMap = (Map<String, Object>) senderObj;
                 sender = mapToUserSummary(senderMap);
             } else {
-                // Với PRIVATE_CHAT_MESSAGE, tạo sender từ fromUserId
-                Object fromUserIdObj = m.get("fromUserId");
-                if (fromUserIdObj instanceof Number) {
+                // Với WORLD_CHAT_MESSAGE, lấy từ senderId và senderName
+                Object senderIdObj = m.get("senderId");
+                if (senderIdObj instanceof Number) {
                     sender = new UserSummary();
-                    sender.id = ((Number) fromUserIdObj).longValue();
+                    sender.id = ((Number) senderIdObj).longValue();
                     
                     Object usernameObj = m.get("username");
                     Object displayNameObj = m.get("displayName");
                     Object senderNameObj = m.get("senderName");
                     Object avatarUrlObj = m.get("avatarUrl");
                     
-                    if (displayNameObj instanceof String) {
+                    // Ưu tiên displayName/senderName
+                    if (displayNameObj instanceof String && !((String) displayNameObj).isBlank()) {
                         sender.displayName = (String) displayNameObj;
-                    } else if (senderNameObj instanceof String) {
+                    } else if (senderNameObj instanceof String && !((String) senderNameObj).isBlank()) {
                         sender.displayName = (String) senderNameObj;
-                    } else if (usernameObj instanceof String) {
+                    }
+                    
+                    // Lấy username nếu có
+                    if (usernameObj instanceof String && !((String) usernameObj).isBlank()) {
                         sender.username = (String) usernameObj;
                     } else {
-                        String s = tcpMsg.getSender();
-                        if (s != null) {
-                            sender.username = s;
+                        // Fallback: dùng displayName làm username nếu không có username
+                        if (sender.displayName != null && !sender.displayName.isBlank()) {
+                            sender.username = sender.displayName;
                         } else {
-                            sender.username = "User" + sender.id;
+                            String s = tcpMsg.getSender();
+                            if (s != null) {
+                                sender.username = s;
+                            } else {
+                                sender.username = "User" + sender.id;
+                            }
                         }
                     }
                     
@@ -457,10 +466,46 @@ public class TCPClient {
                         sender.avatarUrl = avatarUrlObj.toString();
                     }
                 } else {
-                    String s = tcpMsg.getSender();
-                    if (s != null) {
+                    // Với PRIVATE_CHAT_MESSAGE, tạo sender từ fromUserId
+                    Object fromUserIdObj = m.get("fromUserId");
+                    if (fromUserIdObj instanceof Number) {
                         sender = new UserSummary();
-                        sender.username = s;
+                        sender.id = ((Number) fromUserIdObj).longValue();
+                        
+                        Object usernameObj = m.get("username");
+                        Object displayNameObj = m.get("displayName");
+                        Object senderNameObj = m.get("senderName");
+                        Object avatarUrlObj = m.get("avatarUrl");
+                        
+                        // Ưu tiên displayName từ displayName hoặc senderName
+                        if (displayNameObj instanceof String && !((String) displayNameObj).isBlank()) {
+                            sender.displayName = (String) displayNameObj;
+                        } else if (senderNameObj instanceof String && !((String) senderNameObj).isBlank()) {
+                            sender.displayName = (String) senderNameObj;
+                        }
+                        
+                        // Set username
+                        if (usernameObj instanceof String && !((String) usernameObj).isBlank()) {
+                            sender.username = (String) usernameObj;
+                        } else {
+                            String s = tcpMsg.getSender();
+                            if (s != null) {
+                                sender.username = s;
+                            } else {
+                                sender.username = "User" + sender.id;
+                            }
+                        }
+                        
+                        // Set avatarUrl
+                        if (avatarUrlObj != null && !avatarUrlObj.toString().isBlank() && !"null".equals(avatarUrlObj.toString())) {
+                            sender.avatarUrl = avatarUrlObj.toString();
+                        }
+                    } else {
+                        String s = tcpMsg.getSender();
+                        if (s != null) {
+                            sender = new UserSummary();
+                            sender.username = s;
+                        }
                     }
                 }
             }

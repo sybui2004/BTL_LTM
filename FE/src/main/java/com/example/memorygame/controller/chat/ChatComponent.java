@@ -176,7 +176,9 @@ public class ChatComponent extends VBox {
                              ", Previous: " + (previousMsg != null && previousMsg.getTimestamp() != null ? 
                              previousMsg.getTimestamp() : "NO_PREVIOUS"));
             
-            MessageCell messageCell = new MessageCell(currentMsg, context.getCurrentUser(), MessageCell.LayoutMode.DEFAULT, previousMsg);
+            // Đảm bảo sender info đồng nhất với otherUser trong private chat
+            ChatMessage msgToDisplay = ensureSenderInfoConsistent(currentMsg);
+            MessageCell messageCell = new MessageCell(msgToDisplay, context.getCurrentUser(), MessageCell.LayoutMode.DEFAULT, previousMsg, context);
             messageContainer.getChildren().add(messageCell);
         }
     }
@@ -375,7 +377,9 @@ public class ChatComponent extends VBox {
                 }
             }
             
-            MessageCell newCell = new MessageCell(msg, context.getCurrentUser(), MessageCell.LayoutMode.DEFAULT, previousMsg);
+            // Đảm bảo sender info đồng nhất với otherUser trong private chat
+            ChatMessage msgToDisplay = ensureSenderInfoConsistent(msg);
+            MessageCell newCell = new MessageCell(msgToDisplay, context.getCurrentUser(), MessageCell.LayoutMode.DEFAULT, previousMsg, context);
             messageContainer.getChildren().add(newCell);
             
             System.out.println("[ChatComponent] Added single new message, total messages: " + messageContainer.getChildren().size());
@@ -435,6 +439,43 @@ public class ChatComponent extends VBox {
         if (inputField != null) inputField.clear();
     }
 
+    /**
+     * Đảm bảo sender info trong message đồng nhất với otherUser trong private chat
+     * Nếu sender.id == otherUser.id, dùng thông tin từ otherUser để đảm bảo displayName và avatarUrl đúng
+     */
+    private ChatMessage ensureSenderInfoConsistent(ChatMessage msg) {
+        if (msg == null || msg.getSender() == null) {
+            return msg;
+        }
+        
+        // Chỉ áp dụng cho private chat
+        if (context instanceof com.example.memorygame.controller.chat.contexts.PrivateChatContext) {
+            com.example.memorygame.controller.chat.contexts.PrivateChatContext privateContext = 
+                (com.example.memorygame.controller.chat.contexts.PrivateChatContext) context;
+            com.example.memorygame.model.user.UserSummary otherUser = privateContext.getOtherUser();
+            
+            if (otherUser != null && msg.getSender().id > 0 && msg.getSender().id == otherUser.id) {
+                // Nếu sender là otherUser, dùng thông tin từ otherUser
+                com.example.memorygame.model.user.UserSummary sender = msg.getSender();
+                
+                // Cập nhật displayName và avatarUrl từ otherUser nếu có
+                if (otherUser.displayName != null && !otherUser.displayName.isBlank()) {
+                    sender.displayName = otherUser.displayName;
+                }
+                if (otherUser.avatarUrl != null && !otherUser.avatarUrl.isBlank() && !"null".equals(otherUser.avatarUrl)) {
+                    sender.avatarUrl = otherUser.avatarUrl;
+                }
+                // Giữ username từ sender nếu otherUser không có
+                if ((sender.username == null || sender.username.isBlank()) && 
+                    otherUser.username != null && !otherUser.username.isBlank()) {
+                    sender.username = otherUser.username;
+                }
+            }
+        }
+        
+        return msg;
+    }
+    
     private void showError(String message) {
         Alert a = new Alert(Alert.AlertType.ERROR);
         a.setContentText(message);
