@@ -1,11 +1,12 @@
 package com.example.memorygame;
 
+import java.io.IOException;
+
 import com.example.memorygame.controller.AuthScreenController;
+
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
-
-import java.io.IOException;
 
 public class FXMain extends Application {
     @Override

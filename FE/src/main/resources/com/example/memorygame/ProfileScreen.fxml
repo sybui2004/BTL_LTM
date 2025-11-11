@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.shape.*?>
+<?import javafx.scene.layout.*?>
+
+<StackPane xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" 
+           prefWidth="1024.0" prefHeight="720.0" stylesheets="@ProfileScreenStyle.css" id="root">
+    <BorderPane>
+        <!-- Top bar with back button -->
+        <top>
+            <BorderPane BorderPane.alignment="CENTER">
+                <left>
+                    <HBox spacing="12" alignment="CENTER_LEFT">
+                        <HBox fx:id="backButton" styleClass="icon-hover" spacing="8" alignment="CENTER_LEFT">
+                            <ImageView fitWidth="24" fitHeight="24" preserveRatio="true">
+                                <Image url="@assets/images/icon/back.png"/>
+                            </ImageView>
+                        </HBox>
+                    </HBox>
+                </left>
+                <padding>
+                    <Insets top="12" right="16" bottom="20" left="16"/>
+                </padding>
+            </BorderPane>
+        </top>
+
+        <!-- Main content: Left panel (info) + Right panel (match history) -->
+        <center>
+            <HBox spacing="32" alignment="TOP_CENTER">
+                <padding>
+                    <Insets top="20" right="40" bottom="40" left="40"/>
+                </padding>
+                
+                <!-- LEFT PANEL: User Info -->
+                <VBox spacing="20" styleClass="info-panel" prefWidth="350">
+                    <padding>
+                        <Insets top="30" right="30" bottom="30" left="30"/>
+                    </padding>
+                    
+                    <!-- Title -->
+                    <Label text="Player Information" styleClass="panel-title"/>
+                    <Separator/>
+                    
+                    <!-- Avatar -->
+                    <VBox alignment="CENTER" spacing="10">
+                        <StackPane>
+                            <ImageView fx:id="avatarImageView" fitWidth="150" fitHeight="150" preserveRatio="true"/>
+                            <Circle fx:id="avatarEditOverlay" radius="150" styleClass="avatar-edit-overlay" visible="false" managed="false"/>
+                        </StackPane>
+                        <Label fx:id="displayNameLabel" text="Username" styleClass="display-name" visible="true" managed="true"/>
+                        <TextField fx:id="displayNameField" text="Username" styleClass="display-name-field" visible="false" managed="false" prefWidth="250"/>
+                    </VBox>
+                    
+                    <!-- Statistics -->
+                    <VBox spacing="12" styleClass="stats-container">
+                        <HBox alignment="CENTER_LEFT" spacing="10">
+                            <Label text="Total Matches:" styleClass="stat-label"/>
+                            <Label fx:id="totalMatchesLabel" text="0" styleClass="stat-value"/>
+                        </HBox>
+                        
+                        <HBox alignment="CENTER_LEFT" spacing="10">
+                            <Label text="Elo:" styleClass="stat-label"/>
+                            <HBox alignment="CENTER_LEFT" spacing="5">
+                                <Label fx:id="eloLabel" text="0" styleClass="stat-value elo-value"/>
+                                <ImageView fitWidth="20" fitHeight="20" preserveRatio="true">
+                                    <Image url="@assets/images/icon/host.png"/>
+                                </ImageView>
+                            </HBox>
+                        </HBox>
+                        
+                        <HBox alignment="CENTER_LEFT" spacing="10">
+                            <Label text="Wins:" styleClass="stat-label"/>
+                            <HBox alignment="CENTER_LEFT" spacing="5">
+                                <Label fx:id="winsLabel" text="0" styleClass="stat-value"/>
+                                <Label text="WIN" styleClass="win-badge"/>
+                            </HBox>
+                        </HBox>
+                        
+                        <HBox alignment="CENTER_LEFT" spacing="10">
+                            <Label text="Friends:" styleClass="stat-label"/>
+                            <Label fx:id="friendsLabel" text="0" styleClass="stat-value"/>
+                        </HBox>
+                        
+                        <HBox alignment="CENTER_LEFT" spacing="10">
+                            <Label text="Join Date:" styleClass="stat-label"/>
+                            <Label fx:id="joinDateLabel" text="--" styleClass="stat-value"/>
+                        </HBox>
+                    </VBox>
+                    
+                    <!-- Edit Button (only show if viewing own profile) -->
+                    <VBox spacing="10" fx:id="editButtonContainer" visible="false" managed="false" alignment="CENTER">
+                        <Button fx:id="editButton" text="Edit" onAction="#handleEditProfile" styleClass="friend-action-button"/>
+                    </VBox>
+                    
+                    <!-- Friend Action Buttons (only show if viewing other user's profile) - Căn giữa -->
+                    <VBox spacing="10" fx:id="friendActionContainer" visible="false" managed="false" alignment="CENTER">
+                        <Button fx:id="addFriendButton" text="Add Friend" onAction="#handleAddFriend" styleClass="friend-action-button"/>
+                        <Button fx:id="removeFriendButton" text="Remove Friend" onAction="#handleRemoveFriend" styleClass="friend-action-button"/>
+                    </VBox>
+                </VBox>
+                
+                <!-- RIGHT PANEL: Match History Table -->
+                <VBox spacing="15" styleClass="history-panel" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS">
+                    <padding>
+                        <Insets top="30" right="30" bottom="30" left="30"/>
+                    </padding>
+                    
+                    <Label text="Match History" styleClass="panel-title"/>
+                    <Separator/>
+                    
+                    <!-- Table -->
+                    <ScrollPane styleClass="history-scroll" fitToWidth="true" fitToHeight="true" VBox.vgrow="ALWAYS" HBox.hgrow="ALWAYS" minHeight="0">
+                        <TableView fx:id="matchHistoryTable" styleClass="history-table" minHeight="0">
+                            <columns>
+                                <TableColumn fx:id="opponentColumn" text="Opponent" prefWidth="200" minWidth="180"/>
+                                <TableColumn fx:id="resultColumn" text="Result" prefWidth="100" minWidth="100"/>
+                                <TableColumn fx:id="eloChangeColumn" text="Elo +/-" prefWidth="100" minWidth="100"/>
+                                <TableColumn fx:id="dateColumn" text="Date" prefWidth="120" minWidth="120"/>
+                            </columns>
+                        </TableView>
+                    </ScrollPane>
+                </VBox>
+            </HBox>
+        </center>
+    </BorderPane>
+</StackPane>
+

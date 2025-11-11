@@ -441,6 +441,13 @@
   -fx-padding: 32 24 32 24; /* spacing top/bottom so card doesn't hug edges */
 }
 
+.chat-overlay {
+  /* Lobby chat overlay - no dimming background */
+  -fx-background-color: transparent;
+  -fx-alignment: top-left;
+  -fx-padding: 0;
+}
+
 .popup-content {
   /* Light mint/blue panel similar to reference */
   -fx-background-color: linear-gradient(to bottom, #e9fbf7, #d9f6f0);

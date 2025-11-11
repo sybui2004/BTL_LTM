@@ -31,7 +31,7 @@
                                 <Image url="@assets/images/icon/question.png"/>
                             </ImageView>
                         </StackPane>
-                        <StackPane styleClass="icon-hover">
+                        <StackPane styleClass="icon-hover" fx:id="settingsButton" onMouseClicked="#handleSettingsClick">
                             <ImageView fitWidth="28" fitHeight="28" preserveRatio="true">
                                 <Image url="@assets/images/icon/setting.png"/>
                             </ImageView>
@@ -158,7 +158,7 @@
                             </HBox>
                             <Pane prefHeight="12"/>
                             <HBox spacing="12" alignment="CENTER">
-                                <HBox spacing="8" alignment="CENTER_LEFT" styleClass="chat-box"
+                                <HBox fx:id="openLobbyChatButton" spacing="8" alignment="CENTER_LEFT" styleClass="chat-box"
                                       prefWidth="420" prefHeight="40">
                                     <ImageView fitWidth="22" fitHeight="22"
                                                preserveRatio="true">
@@ -269,8 +269,14 @@
         </center>
     </BorderPane>
 
-    <!-- Game Rules Popup Overlay -->
-    <StackPane fx:id="popupOverlay" visible="false" managed="false" styleClass="popup-overlay">
+    <!-- Settings Popup Overlay -->
+    <StackPane fx:id="popupOverlay" visible="false" managed="false" styleClass="popup-overlay" onMouseClicked="#handleOverlayClick">
+        <!-- Settings Popup (included component) -->
+        <fx:include source="SettingsPopup.fxml" fx:id="settingsPopupComponent"/>
+    </StackPane>
+    
+    <!-- Game Rules Popup Overlay (separate from settings) -->
+    <StackPane fx:id="rulesPopupOverlay" visible="false" managed="false" styleClass="popup-overlay">
         <!-- Popup content -->
         <VBox styleClass="popup-content" alignment="CENTER" spacing="20">
             <!-- Title -->
@@ -347,6 +353,12 @@
             <Button text="Got it" styleClass="popup-close-btn" fx:id="closePopupButton"/>
         </VBox>
     </StackPane>
+
+    <!-- Lobby Chat Overlay (transparent, no dimmer) -->
+    <StackPane fx:id="lobbyOverlay" visible="false" managed="false" style="-fx-background-color: transparent;">
+        <AnchorPane fx:id="lobbyChatContainer">
+            <!-- Include LobbyChat UI - positioned above chat-box HBox -->
+            <fx:include source="chat/LobbyChat.fxml" fx:id="lobbyChat" />
+        </AnchorPane>
+    </StackPane>
 </StackPane>
-
-

@@ -5,6 +5,7 @@ import com.ltm.memorygame.dto.game.response.RoomResponseDTO;
 import com.ltm.memorygame.dto.game.response.MatchResponseDTO;
 import com.ltm.memorygame.dto.game.request.CreateMatchRequest;
 import com.ltm.memorygame.service.room.RoomService;
+import com.ltm.memorygame.mapper.RoomMapper;
 import com.ltm.memorygame.facade.RoomFacadeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -57,7 +58,7 @@ public class RoomController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<RoomResponseDTO> getRoom(@PathVariable Long id) {
+    public ResponseEntity<RoomResponseDTO> genganngantRoom(@PathVariable Long id) {
         return ResponseEntity.ok(roomService.getRoom(id));
     }
 
@@ -69,4 +70,6 @@ public class RoomController {
         }
         return ResponseEntity.ok(roomFacadeService.startMatch(request));
     }
+
+
 }

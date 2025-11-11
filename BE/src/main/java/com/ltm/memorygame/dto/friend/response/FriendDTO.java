@@ -1,7 +1,11 @@
 package com.ltm.memorygame.dto.friend.response;
 
 import com.ltm.memorygame.model.enums.UserStatus;
-import lombok.*;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor

@@ -1,23 +1,262 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
-<?import javafx.scene.control.Button?>
-<?import javafx.scene.control.Label?>
-<?import javafx.scene.layout.AnchorPane?>
-<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.shape.Circle?>
+<?import javafx.scene.text.Text?>
+<?import javafx.scene.paint.LinearGradient?>
+<?import javafx.scene.paint.Stop?>
+<?import javafx.scene.paint.CycleMethod?>
 
-<AnchorPane xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" 
-            prefWidth="1024.0" prefHeight="720.0" 
-            stylesheets="@MainScreenStyle.css">
-   <children>
-      <VBox alignment="CENTER" spacing="30" AnchorPane.bottomAnchor="0.0" 
-            AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
-         <Label text="Memory Matching Game" styleClass="main-title" />
-         <Label text="Welcome!" styleClass="subtitle" />
-         <Button fx:id="enterRoomButton" mnemonicParsing="false" 
-                 prefHeight="60.0" prefWidth="300.0" 
-                 styleClass="enter-room-button"
-                 text="Vào phòng" />
-      </VBox>
-   </children>
-</AnchorPane>
+<StackPane xmlns="http://javafx.com/javafx"
+           xmlns:fx="http://javafx.com/fxml"
+           prefHeight="720.0" prefWidth="1024.0"
+           styleClass="main-container"
+           stylesheets="@MainScreenStyle.css">
+    
+    <!-- Background -->
+    <BorderPane>
+        <!-- Top Right Icons - Fixed to corner using AnchorPane -->
+        <top>
+            <AnchorPane prefHeight="120" styleClass="top-icons-anchor">
+                <HBox spacing="15" alignment="CENTER_RIGHT" styleClass="top-icons-fixed" AnchorPane.topAnchor="95" AnchorPane.rightAnchor="10">
+                    <StackPane styleClass="top-icon-button" onMouseClicked="#handlePrivateChatClick">
+                        <ImageView fitWidth="40" fitHeight="40" preserveRatio="true">
+                            <Image url="@assets/images/icon/chat_top_icon.png"/>
+                        </ImageView>
+                        <Circle fx:id="privateChatBadge" radius="5" styleClass="notification-badge" visible="false" 
+                                translateX="12" translateY="-12"/>
+                    </StackPane>
+                    <StackPane styleClass="top-icon-button" onMouseClicked="#handleNotificationClick">
+                        <ImageView fitWidth="40" fitHeight="40" preserveRatio="true">
+                            <Image url="@assets/images/icon/noti.png"/>
+                        </ImageView>
+                        <Circle fx:id="notificationBadge" radius="5" styleClass="notification-badge" visible="false" 
+                                translateX="18" translateY="-18"/>
+                    </StackPane>
+                    <StackPane styleClass="top-icon-button" onMouseClicked="#handleSettingsClick">
+                        <ImageView fitWidth="40" fitHeight="40" preserveRatio="true">
+                            <Image url="@assets/images/icon/setting.png"/>
+                        </ImageView>
+                    </StackPane>
+                </HBox>
+            </AnchorPane>
+        </top>
+        
+        <!-- Main Content -->
+        <center>
+            <HBox spacing="20" alignment="CENTER">
+            
+            <!-- LEFT SECTION -->
+            <VBox spacing="20" styleClass="left-section" alignment="TOP_CENTER" HBox.hgrow="NEVER">
+                <Region prefHeight="100"/>
+                
+                <!-- Personal Avatar - hiển thị dạng hình vuông -->
+                <StackPane styleClass="avatar-container" onMouseClicked="#handleAvatarClick">
+                    <ImageView fx:id="personalAvatar" fitWidth="100" fitHeight="100" preserveRatio="false" styleClass="avatar-image-full"/>
+                </StackPane>
+                
+                <!-- Top 3 Leaderboard -->
+                <VBox spacing="16" styleClass="leaderboard-container" onMouseClicked="#handleLeaderboardClick">
+                    <HBox alignment="CENTER" spacing="0">
+                        <ImageView fx:id="leaderboardRankIcon" fitWidth="36" fitHeight="36" preserveRatio="true" styleClass="leaderboard-icon-image"/>
+                    </HBox>
+                    <VBox fx:id="top3Container" spacing="15" styleClass="top3-list"/>
+                </VBox>
+                
+                <Pane VBox.vgrow="ALWAYS"/>
+            </VBox>
+            
+            <!-- CENTER SECTION -->
+            <VBox alignment="CENTER" spacing="0" HBox.hgrow="ALWAYS">
+                <!-- Game Logo/Banner - Circular/Slightly Elliptical -->
+                <StackPane styleClass="game-banner-circle" alignment="CENTER">
+                    <ImageView fx:id="gameBanner" fitWidth="560" fitHeight="560" preserveRatio="true" styleClass="banner-image"/>
+                    <!-- Overlay title text at bottom with gradient -->
+                    <VBox alignment="CENTER" styleClass="banner-title-overlay">
+                        <Text fx:id="memoryGameText" text="MEMORY GAME" styleClass="banner-title-gradient"/>
+                    </VBox>
+                </StackPane>
+            </VBox>
+            
+                        <!-- RIGHT SECTION -->
+            <VBox spacing="0" styleClass="right-section" HBox.hgrow="NEVER">                                                          
+
+                <!-- Friends List Panel (like RoomScreen) -->
+                <BorderPane styleClass="side-panel" VBox.vgrow="NEVER">
+                    <top>
+                        <VBox spacing="10">
+                            <padding>
+                                <Insets top="14" right="14" bottom="8" left="14"/>
+                            </padding>
+                            <GridPane hgap="4">
+                                <columnConstraints>
+                                    <ColumnConstraints percentWidth="50" halignment="CENTER"/>
+                                    <ColumnConstraints percentWidth="50" halignment="CENTER"/>
+                                </columnConstraints>
+                                <ToggleButton fx:id="tabFriends" styleClass="toggle-tab" selected="true" GridPane.columnIndex="0">
+                                    <graphic>
+                                        <ImageView fitWidth="24" fitHeight="24" preserveRatio="true">
+                                            <Image url="@assets/images/icon/friend.png"/>
+                                        </ImageView>
+                                    </graphic>
+                                    <GridPane.margin>
+                                        <Insets left="6" right="6"/>
+                                    </GridPane.margin>
+                                </ToggleButton>
+                                <ToggleButton fx:id="tabStrangers" styleClass="toggle-tab" GridPane.columnIndex="1">
+                                    <graphic>
+                                        <ImageView fitWidth="24" fitHeight="24" preserveRatio="true">
+                                            <Image url="@assets/images/icon/comunity.png"/>
+                                        </ImageView>
+                                    </graphic>
+                                    <GridPane.margin>
+                                        <Insets left="6" right="6"/>
+                                    </GridPane.margin>
+                                </ToggleButton>
+                            </GridPane>
+
+                            <!-- Search box for Strangers tab only -->
+                            <HBox fx:id="searchContainer" spacing="10" alignment="CENTER_LEFT" visible="false" managed="false">
+                                <TextField fx:id="txtSearch" promptText="Search by ID..." styleClass="search-field" HBox.hgrow="ALWAYS"/>
+                                <Button fx:id="btnSearch" styleClass="icon-button">
+                                    <graphic>
+                                        <ImageView fitWidth="20" fitHeight="20" preserveRatio="true">
+                                            <Image url="@assets/images/icon/search.png"/>
+                                        </ImageView>
+                                    </graphic>
+                                </Button>
+                            </HBox>
+                        </VBox>
+                    </top>
+
+                    <center>
+                        <ScrollPane styleClass="list-scroll" fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" VBox.vgrow="ALWAYS">
+                            <VBox fx:id="listContainer" spacing="8">
+                                <padding>
+                                    <Insets top="4" right="14" bottom="8" left="14"/>
+                                </padding>
+                            </VBox>
+                        </ScrollPane>
+                                                                                </center>
+                </BorderPane>
+            </VBox>
+            </HBox>
+        </center>
+        
+        <!-- Bottom Bar: Chat Input (thẳng trục với chat panel khi mở) -->
+        <bottom>
+            <HBox spacing="0" alignment="BOTTOM_LEFT" styleClass="bottom-bar">
+                <padding>
+                    <Insets top="15" right="40" bottom="180" left="120"/> <!-- Tăng bottom padding để nâng chat lên ngang hàng với START -->
+                </padding>
+                <!-- WorldChat Button - width = 480px -->
+                <HBox fx:id="bottomChatContainer" spacing="8" alignment="CENTER_LEFT" styleClass="bottom-chat-container" onMouseClicked="#handleChatInputClick">
+                    <ImageView fitWidth="18" fitHeight="18" preserveRatio="true">
+                        <Image url="@assets/images/icon/chat.png"/>
+                    </ImageView>
+                    <Label fx:id="chatInputLabel" text="Welcome to WorldChat. See what everyone is saying!" styleClass="bottom-chat-label" HBox.hgrow="ALWAYS"/>
+                </HBox>
+            </HBox>
+        </bottom>
+    </BorderPane>
+    
+    <!-- START Button - Độc lập, thẳng hàng với friend list, ở góc phải màn hình -->
+    <AnchorPane mouseTransparent="false" pickOnBounds="false">
+        <VBox styleClass="start-hexagon-container" AnchorPane.bottomAnchor="20" AnchorPane.rightAnchor="10" mouseTransparent="false" pickOnBounds="true">
+            <StackPane fx:id="startHexagonWrapper" styleClass="start-hexagon-wrapper" alignment="CENTER" onMouseClicked="#handleStartGame" mouseTransparent="false" pickOnBounds="true">
+                <VBox alignment="CENTER" spacing="0" styleClass="start-hexagon-content" mouseTransparent="false">
+                    <Button fx:id="startButton" text="START" onAction="#handleStartGame" styleClass="start-hexagon-button-top" mouseTransparent="false" disable="false"/>
+                    <Separator styleClass="start-hexagon-separator" mouseTransparent="true"/>
+                    <Label fx:id="personalElo" text="Elo: 0" styleClass="start-hexagon-elo" mouseTransparent="true"/>
+                </VBox>
+            </StackPane>
+        </VBox>
+    </AnchorPane>
+    
+    <!-- Overlay for Popups -->
+    <StackPane fx:id="popupOverlay" visible="false" managed="false" styleClass="popup-overlay" onMouseClicked="#handleOverlayClick">
+        <fx:include source="SettingsPopup.fxml" fx:id="settingsPopupComponent"/>
+        
+        <!-- Notifications Popup -->
+        <VBox fx:id="notificationsPopup" spacing="15" styleClass="popup-container" visible="false" maxWidth="400" maxHeight="500">
+            <HBox alignment="CENTER_LEFT" spacing="10">
+                <Label text="🔔 Notifications" styleClass="popup-title" HBox.hgrow="ALWAYS"/>
+                <Button text="✕" onAction="#closePopup" styleClass="close-popup-btn"/>
+            </HBox>
+            <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS">
+                <VBox fx:id="notificationsContainer" spacing="10" styleClass="notifications-content"/>
+            </ScrollPane>
+        </VBox>
+        
+        <!-- Full Leaderboard Popup - 2/3 screen width, slide from left -->
+        <HBox fx:id="leaderboardPopupContainer" styleClass="leaderboard-popup-overlay" visible="false" alignment="CENTER_LEFT" spacing="0">
+            <!-- Leaderboard Panel - slides from left -->
+            <BorderPane fx:id="leaderboardPopup" styleClass="leaderboard-popup-panel" prefWidth="680.0" prefHeight="720.0">
+                <center>
+                    <BorderPane styleClass="leaderboard-main-panel">
+                        <!-- Top Header with Title and Tabs -->
+                        <top>
+                            <VBox spacing="15" styleClass="leaderboard-header-section">
+                                <Label text="LEADERBOARD" styleClass="leaderboard-title-main"/>
+                                
+                                <!-- Tabs: Bạn bè / Thế giới -->
+                                <HBox spacing="0" alignment="CENTER_LEFT">
+                                    <ToggleButton fx:id="tabFriendsLeaderboard" text="Bạn bè" styleClass="leaderboard-tab" selected="true">
+                                        <toggleGroup>
+                                            <ToggleGroup fx:id="leaderboardTabGroup"/>
+                                        </toggleGroup>
+                                    </ToggleButton>
+                                    <ToggleButton fx:id="tabGlobalLeaderboard" text="Thế giới" styleClass="leaderboard-tab" toggleGroup="$leaderboardTabGroup">
+                                    </ToggleButton>
+                                </HBox>
+                            </VBox>
+                        </top>
+                        
+                        <!-- Leaderboard Content -->
+                        <center>
+                            <ScrollPane styleClass="leaderboard-scroll" fitToWidth="true" fitToHeight="true" VBox.vgrow="ALWAYS" HBox.hgrow="ALWAYS" minHeight="0">
+                                <TableView fx:id="leaderboardTable" styleClass="leaderboard-table" minHeight="0">
+                                    <columns>
+                                        <TableColumn fx:id="rankColumn" text="Rank" prefWidth="100" minWidth="80"/>
+                                        <TableColumn fx:id="nameColumn" text="Name" prefWidth="280" minWidth="200"/>
+                                        <TableColumn fx:id="eloColumn" text="Elo" prefWidth="120" minWidth="100"/>
+                                        <TableColumn fx:id="winsColumn" text="Wins" prefWidth="120" minWidth="100"/>
+                                    </columns>
+                                </TableView>
+                            </ScrollPane>
+                        </center>
+                    </BorderPane>
+                </center>
+            </BorderPane>
+            
+            <!-- Clickable overlay to close -->
+            <Region HBox.hgrow="ALWAYS" styleClass="leaderboard-overlay-clickable" onMouseClicked="#closeLeaderboard"/>
+                </HBox>
+        
+        <!-- Full Private Chat Popup - 2/3 screen width, slide from right -->
+        <HBox fx:id="privateChatPopupContainer" styleClass="private-chat-popup-overlay" visible="false" alignment="CENTER_RIGHT" spacing="0">
+            <!-- Clickable overlay to close -->
+            <Region HBox.hgrow="ALWAYS" styleClass="private-chat-overlay-clickable" onMouseClicked="#closePrivateChat"/>
+            
+            <!-- Private Chat Panel - slides from right -->
+            <BorderPane fx:id="privateChatPopup" styleClass="private-chat-popup-panel" prefWidth="680.0" prefHeight="720.0">
+                <!-- PrivateChat FXML content will be loaded here dynamically -->
+            </BorderPane>
+        </HBox>
+
+    </StackPane>
+    
+    <!-- World Chat Popup - Small popup aligned with ChatInput (outside overlay, no background) -->
+    <StackPane fx:id="worldChatPopupContainer" styleClass="world-chat-popup-container" visible="false" managed="false" onMouseClicked="#handleWorldChatOverlayClick" mouseTransparent="false">
+        <!-- WorldChat FXML content will be loaded here dynamically -->
+        <VBox fx:id="worldChatPopup" styleClass="world-chat-popup" prefWidth="480.0" prefHeight="500.0" maxWidth="480.0" maxHeight="500.0" onMouseClicked="#handleWorldChatPopupClick">
+            <!-- Content loaded dynamically -->
+        </VBox>
+    </StackPane>
+
+</StackPane>
+

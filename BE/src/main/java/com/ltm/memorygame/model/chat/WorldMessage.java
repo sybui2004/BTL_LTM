@@ -1,11 +1,25 @@
 package com.ltm.memorygame.model.chat;
 
+import java.util.Date;
+
+import com.ltm.memorygame.model.enums.MessageType;
 import com.ltm.memorygame.model.user.User;
-import jakarta.persistence.*;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.Temporal;
+import jakarta.persistence.TemporalType;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.Date;
 
 @Entity
 @Table(name = "world_message")
@@ -24,7 +38,16 @@ public class WorldMessage {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String content;
 
+    @Enumerated(EnumType.STRING)
+    private MessageType messageType = MessageType.TEXT;
+
+    @ManyToOne
+    @JoinColumn(name = "sticker_id")
+    private Sticker sticker;
+
     @Column(name = "created_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date createdAt = new Date();
+    
+
 }

@@ -1,41 +1,55 @@
 package com.example.memorygame.view;
 
+import java.io.IOException;
+
 import com.example.memorygame.controller.AuthScreenController;
 import com.example.memorygame.controller.MainScreenController;
+
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
-import javafx.geometry.Rectangle2D;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
-import javafx.stage.Screen;
 import javafx.stage.Stage;
 
-import java.io.IOException;
-
 public class AuthScreen {
-    @FXML private PasswordField passwordField;
-    @FXML private TextField usernameField;
-    @FXML private Button loginButton;
-    @FXML private Button forgetPasswordButton;
-    @FXML private Button signUpButton;
-    @FXML private Button googleLoginButton;
+    @FXML
+    private PasswordField passwordField;
+    @FXML
+    private TextField usernameField;
+    @FXML
+    private Button loginButton;
+    @FXML
+    private Button forgetPasswordButton;
+    @FXML
+    private Button signUpButton;
+    @FXML
+    private Button googleLoginButton;
 
     // Swap-mode controls
-    @FXML private javafx.scene.layout.VBox loginForm;
-    @FXML private javafx.scene.layout.Pane leftBanner;
-    @FXML private javafx.scene.layout.Pane rightBanner;
-    @FXML private javafx.scene.layout.VBox signupForm;
-    @FXML private TextField signupUsernameField;
-    @FXML private PasswordField signupPasswordField;
-    @FXML private TextField signupEmailField;
-    @FXML private Button submitSignUpButton;
-    @FXML private Button loginLinkButton;
+    @FXML
+    private javafx.scene.layout.VBox loginForm;
+    @FXML
+    private javafx.scene.layout.Pane leftBanner;
+    @FXML
+    private javafx.scene.layout.Pane rightBanner;
+    @FXML
+    private javafx.scene.layout.VBox signupForm;
+    @FXML
+    private TextField signupUsernameField;
+    @FXML
+    private PasswordField signupPasswordField;
+    @FXML
+    private TextField signupEmailField;
+    @FXML
+    private Button submitSignUpButton;
+    @FXML
+    private Button loginLinkButton;
 
     private final FXMLLoader loader;
 
@@ -61,6 +75,10 @@ public class AuthScreen {
             public void handle(ActionEvent event) {
                 int loginStatus = controller.handleLogin();
                 if (loginStatus == AuthScreenController.LOGIN_SUCCESSFUL) {
+                    //showWorldChatOnly(); // TEMP: test WorldChat
+                    //showPrivateChatOnly(); // TEMP: test PrivateChat
+                    // showMatchChatOnly(); // TEMP: test MatchChat
+                    // showLobbyChatOnly(); // TEMP: test LobbyChat
                     showMainScreen();
                 }
             }
@@ -85,22 +103,54 @@ public class AuthScreen {
         }
     }
 
-    public PasswordField getPasswordField() { return passwordField; }
-    public TextField getUsernameField() { return usernameField; }
-    public <T> T getRoot() { return loader.getRoot(); }
+    public PasswordField getPasswordField() {
+        return passwordField;
+    }
+
+    public TextField getUsernameField() {
+        return usernameField;
+    }
+
+    public <T> T getRoot() {
+        return loader.getRoot();
+    }
 
     public void showSignUp() {
-        if (loginForm != null) { loginForm.setVisible(false); loginForm.setManaged(false); }
-        if (leftBanner != null) { leftBanner.setVisible(true); leftBanner.setManaged(true); }
-        if (rightBanner != null) { rightBanner.setVisible(false); rightBanner.setManaged(false); }
-        if (signupForm != null) { signupForm.setVisible(true); signupForm.setManaged(true); }
+        if (loginForm != null) {
+            loginForm.setVisible(false);
+            loginForm.setManaged(false);
+        }
+        if (leftBanner != null) {
+            leftBanner.setVisible(true);
+            leftBanner.setManaged(true);
+        }
+        if (rightBanner != null) {
+            rightBanner.setVisible(false);
+            rightBanner.setManaged(false);
+        }
+        if (signupForm != null) {
+            signupForm.setVisible(true);
+            signupForm.setManaged(true);
+        }
     }
 
     public void showLogin() {
-        if (loginForm != null) { loginForm.setVisible(true); loginForm.setManaged(true); }
-        if (leftBanner != null) { leftBanner.setVisible(false); leftBanner.setManaged(false); }
-        if (rightBanner != null) { rightBanner.setVisible(true); rightBanner.setManaged(true); }
-        if (signupForm != null) { signupForm.setVisible(false); signupForm.setManaged(false); }
+        if (loginForm != null) {
+            loginForm.setVisible(true);
+            loginForm.setManaged(true);
+        }
+        if (leftBanner != null) {
+            leftBanner.setVisible(false);
+            leftBanner.setManaged(false);
+        }
+        if (rightBanner != null) {
+            rightBanner.setVisible(true);
+            rightBanner.setManaged(true);
+        }
+        if (signupForm != null) {
+            signupForm.setVisible(false);
+            signupForm.setManaged(false);
+        }
     }
 
     public void showMainScreen() {
@@ -109,6 +159,10 @@ public class AuthScreen {
             MainScreenController controller = new MainScreenController();
             Parent root = controller.getScreen().getRoot();
 
+            // Preserve current stage size
+            double currentWidth = stage.getWidth();
+            double currentHeight = stage.getHeight();
+
             Scene scene = root.getScene() == null ? new Scene(root) : root.getScene();
             // Add MainScreen CSS stylesheet
             scene.getStylesheets().add(getClass().getResource("/com/example/memorygame/MainScreenStyle.css").toExternalForm());
@@ -116,16 +170,21 @@ public class AuthScreen {
             stage.setTitle("Memory Matching Game");
             stage.setScene(scene);
 
-            Rectangle2D screenBounds = Screen.getPrimary().getVisualBounds();
-            double screenWidth = screenBounds.getWidth();
-            double screenHeight = screenBounds.getHeight();
-            stage.setX((screenWidth - stage.getWidth()) / 2);
-            stage.setY((screenHeight - stage.getHeight()) / 2);
+            // Restore stage size to match AuthScreen
+            if (currentWidth > 0 && currentHeight > 0) {
+                stage.setWidth(currentWidth);
+                stage.setHeight(currentHeight);
+            } else {
+                // Default size if stage size not available
+                stage.setWidth(1024);
+                stage.setHeight(720);
+            }
+
+            // Center the window
+            stage.centerOnScreen();
             stage.show();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 }
-
-

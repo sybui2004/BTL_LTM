@@ -158,7 +158,13 @@ public class MemoryCard extends Button {
     }
     
     public void flipToBack() {
-        if (!isFlipped) return;
+        // If already showing back, no need to flip
+        if (!isFlipped) {
+            // Ensure card is showing back side even if state is inconsistent
+            loadCardBack();
+            isFlipped = false;
+            return;
+        }
         
         javafx.animation.ScaleTransition flipTransition = new javafx.animation.ScaleTransition(javafx.util.Duration.millis(300), this);
         flipTransition.setFromX(1.0);
@@ -174,6 +180,14 @@ public class MemoryCard extends Button {
         });
         
         flipTransition.play();
+    }
+    
+    /**
+     * Force flip to back regardless of current state (for error recovery)
+     */
+    public void forceFlipToBack() {
+        isFlipped = false;
+        loadCardBack();
     }
     
     public void markAsMatched() {

@@ -23,7 +23,7 @@ public class RoomApi {
             if (guestId != null) {
                 request.put("guestId", guestId);
             }
-            
+
             String json = MAPPER.writeValueAsString(request);
             String response = ApiClient.postJsonAuth("/api/rooms", json);
             return MAPPER.readValue(response, RoomResponseDTO.class);
@@ -42,7 +42,7 @@ public class RoomApi {
             request.put("roomId", roomId);
             request.put("senderId", senderId);
             request.put("targetId", targetId);
-            
+
             String json = MAPPER.writeValueAsString(request);
             ApiClient.postJsonAuth("/api/invites/send", json);
             return true;
@@ -58,7 +58,8 @@ public class RoomApi {
     public static java.util.List<RoomResponseDTO> getWaitingRooms() {
         try {
             String response = ApiClient.getAuth("/api/rooms");
-            return MAPPER.readValue(response, new TypeReference<List<RoomResponseDTO>>(){});
+            return MAPPER.readValue(response, new TypeReference<List<RoomResponseDTO>>() {
+            });
         } catch (Exception e) {
             System.err.println("[RoomApi] Failed to get rooms: " + e.getMessage());
             return java.util.Collections.emptyList();
@@ -82,5 +83,17 @@ public class RoomApi {
             return false;
         }
     }
-}
 
+    /**
+     * Get a specific room by ID
+     */
+    public static RoomResponseDTO getRoom(Long roomId) {
+        try {
+            String response = ApiClient.getAuth("/api/rooms/" + roomId);
+            return MAPPER.readValue(response, RoomResponseDTO.class);
+        } catch (Exception e) {
+            System.err.println("[RoomApi] Failed to get room: " + e.getMessage());
+            return null;
+        }
+    }
+}

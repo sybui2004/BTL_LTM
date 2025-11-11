@@ -1,15 +1,18 @@
 package com.example.memorygame.controller;
 
 import com.example.memorygame.model.game.GameSettings;
+import com.example.memorygame.utils.SoundManager;
 import com.example.memorygame.view.CoinFlipScreen;
-import javafx.animation.*;
+
+import javafx.animation.ScaleTransition;
+import javafx.animation.SequentialTransition;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
+import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.StackPane;
-import javafx.scene.Scene;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
@@ -259,6 +262,9 @@ public class CoinFlipScreenController {
         Image initialCoin = new Image(getClass().getResourceAsStream(coin1Path));
         coinImageView.setImage(initialCoin);
         
+        // Play coin toss sound
+        SoundManager.playSound("coin_toss_2.mp3");
+        
         // Animate coin flipping
         animateCoinFlip();
         
@@ -441,6 +447,9 @@ public class CoinFlipScreenController {
     }
     
     private void showCoinResult(int coinResult) {
+        // Play coin result sound
+        SoundManager.playSound("coin_result.wav");
+        
         String coin1Path = "/com/example/memorygame/assets/images/coin1.png";
         String coin2Path = "/com/example/memorygame/assets/images/coin2.png";
         
@@ -510,8 +519,10 @@ public class CoinFlipScreenController {
             // Create scene
             Scene gameScene = new Scene(gameController.getScreen().getRoot());
             
-            // Apply CSS
+            // Apply CSS - GameScreenStyle trước
             gameScene.getStylesheets().add(getClass().getResource("/com/example/memorygame/GameScreenStyle.css").toExternalForm());
+            // MatchChatStyle.css sau để override GameScreenStyle.css cho các component trong MatchChat
+            gameScene.getStylesheets().add(getClass().getResource("/com/example/memorygame/chat/chatstyles/MatchChatStyle.css").toExternalForm());
             
             // Set scene and show
             stage.setScene(gameScene);
