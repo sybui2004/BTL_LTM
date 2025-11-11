@@ -273,16 +273,18 @@ public class TCPMessageHandler {
 
                 Platform.runLater(() -> {
                     stateManager.setHost(true);
-                    uiUpdater.setPlayButtonEnabled(true);
+                    // Host has no guest yet -> disable Play until someone joins
+                    uiUpdater.setPlayButtonEnabled(stateManager.isHost() && stateManager.canStartGame());
 
                     UserSummary currentUser = UserApi.getCurrentUser();
                     if (currentUser != null) {
                         uiUpdater.updateHostInfo(currentUser.displayName, currentUser.avatarUrl);
+                        // Track the new host ID in state
+                        stateManager.setCurrentHostId(currentUser.id);
                     }
 
                     uiUpdater.clearGuestInfo();
                     stateManager.setCurrentGuestId(null);
-                    stateManager.setCurrentHostId(null);
                     
                     // Update ComboBox states
                     if (onComboBoxStateUpdate != null) {

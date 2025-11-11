@@ -1148,6 +1148,7 @@ public class GameScreenController {
         
         // Get display names for winner (use displayName from GameSettings for display)
         String winnerDisplayName = "Unknown";
+		String opponentDisplayName = "Unknown";
         if (gameSettings != null) {
             if (iWon) {
                 // I won - use my displayName from GameSettings
@@ -1158,8 +1159,11 @@ public class GameScreenController {
                 winnerDisplayName = gameSettings.isHost() ? gameSettings.getPlayer2Name() : gameSettings.getPlayer1Name();
                 System.out.println("[GameScreen] I lost - winnerDisplayName: " + winnerDisplayName);
             }
+			// Opponent display name is always the other player
+			opponentDisplayName = gameSettings.isHost() ? gameSettings.getPlayer2Name() : gameSettings.getPlayer1Name();
         } else {
             System.err.println("[GameScreen] gameSettings is null, cannot determine winnerDisplayName");
+			System.err.println("[GameScreen] gameSettings is null, cannot determine opponentDisplayName");
         }
         
         // Build final message with score info
@@ -1180,7 +1184,7 @@ public class GameScreenController {
                                loserRankPoints != null ? loserRankPoints : 0);
         }
         
-        String finalWinnerDisplayName = winnerDisplayName;
+		String finalOpponentDisplayName = opponentDisplayName;
         boolean finalIWon = iWon;
         
         // Show end game dialog on JavaFX thread
@@ -1210,7 +1214,8 @@ public class GameScreenController {
             }
             
             try {
-                showGameResultPopup(finalIWon, finalWinnerDisplayName, 
+				// Pass opponent's display name to popup to avoid duplicating my name
+				showGameResultPopup(finalIWon, finalOpponentDisplayName, 
                                    myScore, opponentScore,
                                    myRankPoints, opponentRankPoints);
             } catch (Exception e) {
@@ -1267,8 +1272,7 @@ public class GameScreenController {
         com.example.memorygame.model.user.UserSummary currentUser = com.example.memorygame.utils.UserApi.getCurrentUser();
         String myName = currentUser != null && currentUser.displayName != null ? currentUser.displayName : 
                        (currentUser != null ? currentUser.username : "Player 1");
-        String myAvatarUrl = currentUser != null && currentUser.avatarUrl != null ? currentUser.avatarUrl : 
-                            "http://localhost:8080/static/avatars/default_avatar.png";
+		String myAvatarUrl = sanitizeAvatarUrl(currentUser != null ? currentUser.avatarUrl : null);
         
         String opponentDisplayName = opponentName != null ? opponentName : "Player 2";
         String opponentAvatarUrl = "http://localhost:8080/static/avatars/default_avatar.png";
@@ -1359,6 +1363,9 @@ public class GameScreenController {
             // Navigate to RoomScreen (waiting lobby)
             try {
                 Stage stage = (Stage) gameContainer.getScene().getWindow();
+                
+                // Keep using the same room by passing current RoomStateManager back to RoomScreen
+                com.example.memorygame.controller.RoomScreenController.setRoomStateManager(roomStateManager);
                 
                 RoomScreenController roomController = new RoomScreenController();
                 Scene roomScene = new Scene(roomController.getScreen().getRoot());
@@ -1816,4 +1823,22 @@ public class GameScreenController {
             return null;
         }
     }
+	
+	/**
+	 * Ensure avatar URL is usable; fall back to default if null/blank/invalid.
+	 */
+	private String sanitizeAvatarUrl(String url) {
+		try {
+			if (url == null || url.isBlank()) {
+				return "http://localhost:8080/static/avatars/default_avatar.png";
+			}
+			String lower = url.toLowerCase();
+			if (!(lower.startsWith("http://") || lower.startsWith("https://"))) {
+				return "http://localhost:8080/static/avatars/default_avatar.png";
+			}
+			return url;
+		} catch (Exception ignored) {
+			return "http://localhost:8080/static/avatars/default_avatar.png";
+		}
+	}
 }
