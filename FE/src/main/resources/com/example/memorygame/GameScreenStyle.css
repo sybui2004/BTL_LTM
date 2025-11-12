@@ -1,0 +1,296 @@
+/* Back Button Styling */
+.back-button-container {
+  -fx-background-color: transparent;
+  -fx-background-radius: 999;
+  -fx-padding: 6;
+  -fx-cursor: hand;
+}
+
+.back-button-container:hover {
+  -fx-background-color: rgba(102, 185, 231, 0.25);
+}
+
+.back-button-container:pressed {
+  -fx-background-color: rgba(102, 185, 231, 0.35);
+}
+
+/* Player Panel Styling */
+.player-panel {
+  -fx-background-color: white;
+  -fx-background-radius: 15;
+  -fx-padding: 12 16 12 16;
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.15), 8, 0.2, 0, 2);
+  -fx-spacing: 12;
+}
+
+.player-avatar {
+  -fx-border-color: #66b9e7;
+  -fx-border-width: 2;
+  -fx-border-radius: 24;
+  -fx-background-radius: 24;
+}
+
+.player-name {
+  -fx-font-size: 14px;
+  -fx-font-weight: bold;
+  -fx-text-fill: #333333;
+}
+
+.chat-input {
+  -fx-background-color: transparent;
+  -fx-border-color: transparent transparent #cccccc transparent;
+  -fx-border-width: 0 0 1 0;
+  -fx-padding: 4 0 4 0;
+  -fx-font-size: 14px;
+  -fx-prompt-text-fill: #999999;
+  -fx-text-fill: #333333;
+}
+
+.send-button {
+  -fx-background-color: #ff6b35;
+  -fx-text-fill: white;
+  -fx-background-radius: 8;
+  -fx-border-radius: 8;
+  -fx-padding: 8 12 8 12;
+  -fx-font-size: 16px;
+  -fx-font-weight: bold;
+  -fx-min-width: 40;
+  -fx-min-height: 40;
+  -fx-cursor: hand;
+}
+
+.send-button:hover {
+  -fx-background-color: #ff5722;
+}
+
+.send-button:pressed {
+  -fx-background-color: #e64a19;
+}
+
+.player-score {
+  -fx-font-size: 38px;
+  -fx-font-weight: bold;
+  -fx-text-fill: #CF0404;
+  -fx-background-color: white;
+  -fx-background-radius: 0;
+  -fx-border-radius: 0;
+  -fx-padding: 0;
+  -fx-min-height: 72px;
+  -fx-pref-height: 72px;
+  -fx-min-width: 72px;
+  -fx-pref-width: 72px;
+  -fx-alignment: center;
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.35), 12, 0.2, 0, 6);
+}
+
+/* Game Screen Styles */
+.game-overlay {
+  -fx-background-color: transparent;
+  -fx-padding: 20;
+}
+
+/* Background Image Styling */
+#backgroundImage {
+  -fx-fit-width: 100%;
+  -fx-fit-height: 100%;
+  -fx-preserve-ratio: false;
+  -fx-smooth: true;
+}
+
+/* Card Board Image Styling */
+#cardBoardImage {
+  -fx-fit-width: 600;
+  -fx-fit-height: 400;
+  -fx-preserve-ratio: true;
+  -fx-smooth: true;
+}
+
+/* Card Grid Positioning */
+#cardGrid {
+  -fx-translate-x: 0;
+  -fx-translate-y: 0;
+}
+
+/* Player Info Panel */
+.player-info-panel {
+  -fx-background-color: rgba(255, 255, 255, 0.9);
+  -fx-background-radius: 15;
+  -fx-padding: 20;
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 10, 0.2, 0, 2);
+  -fx-alignment: center;
+  -fx-max-width: 1000;
+}
+
+.player-card {
+  -fx-background-color: rgba(255, 255, 255, 0.8);
+  -fx-background-radius: 10;
+  -fx-padding: 15;
+  -fx-min-width: 150;
+  -fx-alignment: center;
+}
+
+.player-left {
+  -fx-border-color: #4caf50;
+  -fx-border-width: 2;
+  -fx-border-radius: 10;
+}
+
+.player-right {
+  -fx-border-color: #ff5722;
+  -fx-border-width: 2;
+  -fx-border-radius: 10;
+}
+
+.player-name {
+  -fx-font-size: 18px;
+  -fx-font-weight: bold;
+  -fx-text-fill: #333;
+}
+
+
+
+.player-status {
+  -fx-font-size: 14px;
+  -fx-font-weight: bold;
+  -fx-text-fill: #2196f3;
+}
+
+/* Timer Panel */
+.timer-panel {
+  -fx-background-color: rgba(33, 150, 243, 0.1);
+  -fx-background-radius: 10;
+  -fx-padding: 15;
+  -fx-alignment: center;
+}
+
+.current-player-text {
+  -fx-font-size: 16px;
+  -fx-font-weight: bold;
+  -fx-text-fill: #2196f3;
+}
+
+.timer-text {
+  -fx-font-size: 24px;
+  -fx-font-weight: bold;
+  -fx-text-fill: #ff5722;
+}
+
+.timer-progress {
+  -fx-accent: #4caf50;
+  -fx-background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Card Container */
+.card-container {
+  -fx-background-color: rgba(255, 255, 255, 0.9);
+  -fx-background-radius: 15;
+  -fx-padding: 20;
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 10, 0.2, 0, 2);
+  -fx-alignment: center;
+  -fx-max-width: 800;
+}
+
+.game-title {
+  -fx-font-size: 24px;
+  -fx-font-weight: bold;
+  -fx-text-fill: #333;
+  -fx-alignment: center;
+}
+
+.card-grid {
+  -fx-background-color: transparent;
+  -fx-hgap: 5;
+  -fx-vgap: 5;
+  -fx-padding: 20;
+  -fx-alignment: center;
+  -fx-max-width: 750;
+  -fx-max-height: 600;
+  -fx-pick-on-bounds: true;
+}
+
+/* Memory Card Styles */
+.memory-card {
+  -fx-background-color: transparent;
+  -fx-border-color: transparent;
+  -fx-border-width: 0;
+  -fx-border-radius: 8;
+  -fx-background-radius: 8;
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 5, 0.2, 0, 2);
+  -fx-pref-width: 85;
+  -fx-pref-height: 85;
+  -fx-min-width: 85;
+  -fx-min-height: 85;
+  -fx-max-width: 85;
+  -fx-max-height: 85;
+  -fx-pick-on-bounds: true;
+}
+
+.memory-card:hover {
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.4), 8, 0.3, 0, 3);
+  -fx-scale-x: 1.05;
+  -fx-scale-y: 1.05;
+}
+
+.memory-card:pressed {
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.6), 10, 0.4, 0, 4);
+  -fx-scale-x: 0.95;
+  -fx-scale-y: 0.95;
+}
+
+.card-matched {
+  -fx-opacity: 0.6;
+  -fx-effect: dropshadow(gaussian, rgba(76, 175, 80, 0.6), 10, 0.4, 0, 2);
+}
+
+/* Control Buttons */
+.control-buttons {
+  -fx-background-color: rgba(255, 255, 255, 0.9);
+  -fx-background-radius: 15;
+  -fx-padding: 15;
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 10, 0.2, 0, 2);
+  -fx-alignment: center;
+  -fx-max-width: 400;
+}
+
+.control-btn {
+  -fx-background-color: linear-gradient(#4caf50, #45a049);
+  -fx-text-fill: white;
+  -fx-font-size: 16px;
+  -fx-font-weight: bold;
+  -fx-padding: 10 20;
+  -fx-background-radius: 8;
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.3), 5, 0.2, 0, 2);
+}
+
+.control-btn:hover {
+  -fx-background-color: linear-gradient(#45a049, #4caf50);
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.4), 8, 0.3, 0, 3);
+}
+
+.control-btn:pressed {
+  -fx-background-color: linear-gradient(#3d8b40, #45a049);
+}
+
+/* Turn Indicator */
+.turn-indicator {
+  -fx-font-size: 20px;
+  -fx-font-weight: bold;
+  -fx-text-fill: #2196f3;
+  -fx-background-color: rgba(255, 255, 255, 0.9);
+  -fx-background-radius: 10;
+  -fx-padding: 8 16 8 16;
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 5, 0.2, 0, 2);
+}
+
+/* Load VT323 font */
+@font-face {
+  font-family: "VT323";
+  src: url("/com/example/memorygame/assets/fonts/VT323-Regular.ttf");
+}
+
+/* Timer Label */
+.timer-label {
+  -fx-font-family: "VT323", "Consolas", "Courier New", monospace;
+  -fx-font-size: 17px;
+  -fx-text-fill: #333333;
+}

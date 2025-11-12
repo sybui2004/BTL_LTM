@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<StackPane fx:id="gameContainer" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" prefWidth="1400.0"
+           prefHeight="787.0" fx:controller="com.example.memorygame.controller.GameScreenController" stylesheets="@GameScreenStyle.css">
+   <children>
+      <!-- Background -->
+      <ImageView fx:id="backgroundImage" fitHeight="720" fitWidth="1024" pickOnBounds="true" preserveRatio="false" />
+      
+      <!-- Card Grid - Direct placement -->
+      <GridPane fx:id="cardGrid" alignment="CENTER" styleClass="card-grid" maxWidth="750" maxHeight="600">
+         <!-- Cards will be added programmatically -->
+      </GridPane>
+
+      <!-- Overlay UI -->
+      <AnchorPane fx:id="overlayPane" pickOnBounds="false">
+         <!-- Turn indicator - top-center (placed first, so back button can be on top) -->
+         <HBox alignment="CENTER" AnchorPane.topAnchor="20.0" AnchorPane.leftAnchor="80.0" AnchorPane.rightAnchor="80.0" mouseTransparent="true" pickOnBounds="false">
+            <Label fx:id="turnIndicatorLabel" text="Your turn" styleClass="turn-indicator" mouseTransparent="true" />
+         </HBox>
+
+         <!-- Back button - top-left (placed after turn indicator to be on top) -->
+         <StackPane fx:id="backButton" layoutX="10" layoutY="10" styleClass="back-button-container">
+            <ImageView fitWidth="36" fitHeight="36" pickOnBounds="true">
+               <Image url="@assets/images/icon/back.png"/>
+            </ImageView>
+         </StackPane>
+         
+         <!-- Settings button - top-right (fixed position) -->
+         <StackPane fx:id="settingsButton" styleClass="back-button-container" onMouseClicked="#handleSettingsClick"
+                    AnchorPane.topAnchor="10.0" AnchorPane.rightAnchor="10.0">
+            <ImageView fitWidth="36" fitHeight="36" pickOnBounds="true">
+               <Image url="@assets/images/icon/setting.png"/>
+            </ImageView>
+         </StackPane>
+
+         <!-- Opponent score - positioned to align with opponent player header -->
+         <Label fx:id="opponentScoreLabel" text="0" styleClass="player-score" 
+                AnchorPane.topAnchor="70.0" AnchorPane.rightAnchor="370.0" />
+
+         <!-- My score - bên phải player header của bản thân (leftPane input area) -->
+         <!-- leftPane ở bottomAnchor="10", leftAnchor="10", maxWidth="350" -->
+         <Label fx:id="myScoreLabel" text="0" styleClass="player-score" AnchorPane.bottomAnchor="10.0" AnchorPane.leftAnchor="370.0" />
+
+         <!-- Timer - bottom-right -->
+         <HBox alignment="CENTER_RIGHT" spacing="5" AnchorPane.bottomAnchor="10.0" AnchorPane.rightAnchor="10.0">
+            <Label fx:id="timerLabel" text="10s" styleClass="timer-label" />
+            <ImageView fitWidth="17" fitHeight="17" preserveRatio="true">
+               <Image url="@assets/images/icon/time.png"/>
+            </ImageView>
+         </HBox>
+      </AnchorPane>
+      
+      <!-- Popup Overlay for Settings -->
+      <StackPane fx:id="popupOverlay" visible="false" managed="false" styleClass="popup-overlay" onMouseClicked="#handleOverlayClick">
+         <fx:include source="SettingsPopup.fxml" fx:id="settingsPopupComponent"/>
+      </StackPane>
+   </children>
+</StackPane>
