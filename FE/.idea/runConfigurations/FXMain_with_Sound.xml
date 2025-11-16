@@ -1,0 +1,10 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="FXMain with Sound" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="com.example.memorygame.FXMain" />
+    <module name="FE" />
+    <option name="VM_PARAMETERS" value="--add-modules javafx.controls,javafx.fxml,javafx.media --add-exports=javafx.base/com.sun.javafx=javafx.media --add-exports=javafx.graphics/com.sun.javafx.application=javafx.media --add-exports=javafx.graphics/com.sun.javafx.tk=javafx.media" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
