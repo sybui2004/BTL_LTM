@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.net.URL?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox fx:id="settingsPopup" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" 
+      fx:controller="com.example.memorygame.controller.SettingsPopupController"
+      spacing="20" styleClass="popup-container-settings" visible="false" maxWidth="500" maxHeight="450">
+    <stylesheets>
+        <URL value="@SettingsPopupStyle.css"/>
+    </stylesheets>
+    <HBox alignment="CENTER_LEFT" spacing="15" styleClass="settings-header">
+        <Label text="⚙️" styleClass="settings-icon"/>
+        <Label text="Settings" styleClass="popup-title-settings" HBox.hgrow="ALWAYS"/>
+        <Button text="✕" onAction="#closePopup" styleClass="close-popup-btn"/>
+    </HBox>
+    <VBox spacing="20" styleClass="settings-content">
+        <VBox spacing="12" styleClass="settings-section">
+            <Label text="Audio Settings" styleClass="settings-section-title"/>
+            <!-- Background Music Volume Slider -->
+            <VBox spacing="8" styleClass="setting-item">
+                <Label text="background music" styleClass="setting-label"/>
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <Slider fx:id="backgroundMusicSlider" min="0" max="100" value="50" styleClass="volume-slider" HBox.hgrow="ALWAYS"/>
+                    <Label fx:id="backgroundMusicValue" text="50" styleClass="volume-value"/>
+                </HBox>
+            </VBox>
+            <!-- Sound Effects Volume Slider -->
+            <VBox spacing="8" styleClass="setting-item">
+                <Label text="sound effects" styleClass="setting-label"/>
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <Slider fx:id="soundFxSlider" min="0" max="100" value="50" styleClass="volume-slider" HBox.hgrow="ALWAYS"/>
+                    <Label fx:id="soundFxValue" text="50" styleClass="volume-value"/>
+                </HBox>
+            </VBox>
+        </VBox>
+        <VBox spacing="12" styleClass="settings-section">
+            <Label text="Notification Settings" styleClass="settings-section-title"/>
+            <HBox spacing="15" alignment="CENTER_LEFT" styleClass="setting-item">
+                <VBox spacing="2" HBox.hgrow="ALWAYS">
+                    <Label text="notification_enabled" styleClass="setting-label"/>
+                    <Label text="Receive notifications for friend requests and invites" styleClass="setting-description"/>
+                </VBox>
+                <CheckBox fx:id="notificationsCheckbox" selected="true" styleClass="setting-checkbox"/>
+            </HBox>
+        </VBox>
+        
+        <!-- Logout Button -->
+        <HBox alignment="CENTER" spacing="10" styleClass="settings-section">
+            <Button text="Logout" onAction="#handleLogout" styleClass="logout-button"/>
+        </HBox>
+    </VBox>
+</VBox>
+

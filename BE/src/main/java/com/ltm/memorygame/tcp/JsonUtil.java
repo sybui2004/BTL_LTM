@@ -1,12 +1,17 @@
 package com.ltm.memorygame.tcp;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.google.gson.*;
 
 import java.lang.reflect.Type;
+import java.time.Instant;
 
 public class JsonUtil {
-    private static final Gson gson = new GsonBuilder().serializeNulls().create();
+    private static final Gson gson = new GsonBuilder()
+            .serializeNulls()
+            // Serialize java.time.Instant as epoch millis to avoid Gson runtime issues
+            .registerTypeAdapter(Instant.class, (JsonSerializer<Instant>)
+                    (src, typeOfSrc, context) -> src == null ? JsonNull.INSTANCE : new JsonPrimitive(src.toEpochMilli()))
+            .create();
 
     public static String toJson(Object obj) {
         return gson.toJson(obj);

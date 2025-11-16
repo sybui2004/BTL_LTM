@@ -3,9 +3,13 @@ package com.ltm.memorygame.controller;
 import com.ltm.memorygame.dao.user.UserRankingProjection;
 import com.ltm.memorygame.dto.friend.response.FriendDTO;
 import com.ltm.memorygame.dto.user.request.SetStatusRequest;
+import com.ltm.memorygame.dto.user.request.UpdateProfileRequest;
+import com.ltm.memorygame.dto.user.request.ChangePasswordRequest;
+import com.ltm.memorygame.dto.user.request.UpdateSettingsRequest;
 import jakarta.validation.Valid;
 import com.ltm.memorygame.dto.user.response.UserProfileDTO;
 import com.ltm.memorygame.dto.user.response.UserResponseDTO;
+import com.ltm.memorygame.dto.user.response.UserSettingDTO;
 import com.ltm.memorygame.service.user.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -52,6 +56,28 @@ public class UserController {
         return ResponseEntity.ok().build();
     }
 
+    @PatchMapping("/{id}")
+    public ResponseEntity<UserResponseDTO> updateProfile(@PathVariable Long id,
+                                                          @Valid @RequestBody UpdateProfileRequest body) {
+        Long authId = AuthUtils.getAuthenticatedUserId();
+        if (authId == null || !authId.equals(id)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        UserResponseDTO updatedUser = userService.updateProfile(id, body.getDisplayName(), body.getAvatarUrl());
+        return ResponseEntity.ok(updatedUser);
+    }
+
+    @PatchMapping("/{id}/password")
+    public ResponseEntity<Void> changePassword(@PathVariable Long id,
+                                               @Valid @RequestBody ChangePasswordRequest body) {
+        Long authId = AuthUtils.getAuthenticatedUserId();
+        if (authId == null || !authId.equals(id)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        userService.changePassword(id, body.getPassword());
+        return ResponseEntity.ok().build();
+    }
+
     @GetMapping("/search")
     public ResponseEntity<List<FriendDTO>> search(@RequestParam String q) {
         Long excludeId = AuthUtils.getAuthenticatedUserId();
@@ -65,5 +91,24 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         return ResponseEntity.ok(userService.getRecentPlayers(userId));
+    }
+
+    @GetMapping("/{id}/settings")
+    public ResponseEntity<UserSettingDTO> getSettings(@PathVariable Long id) {
+        Long authId = AuthUtils.getAuthenticatedUserId();
+        if (authId == null || !authId.equals(id)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        return ResponseEntity.ok(userService.getSettings(id));
+    }
+
+    @PatchMapping("/{id}/settings")
+    public ResponseEntity<UserSettingDTO> updateSettings(@PathVariable Long id,
+                                                         @Valid @RequestBody UpdateSettingsRequest body) {
+        Long authId = AuthUtils.getAuthenticatedUserId();
+        if (authId == null || !authId.equals(id)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        return ResponseEntity.ok(userService.updateSettings(id, body));
     }
 }

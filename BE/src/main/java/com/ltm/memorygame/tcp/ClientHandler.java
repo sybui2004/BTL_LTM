@@ -1,20 +1,47 @@
 package com.ltm.memorygame.tcp;
 
-import com.ltm.memorygame.service.user.UserService;
-import com.ltm.memorygame.service.room.RoomService;
-import com.ltm.memorygame.service.game.GameSessionService;
-import com.ltm.memorygame.security.JwtService;
-import com.ltm.memorygame.model.enums.UserStatus;
-import com.ltm.memorygame.model.enums.RoomStatus;
-import com.ltm.memorygame.model.game.Room;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.net.Socket;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
-import java.net.Socket;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.List;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ltm.memorygame.dto.chat.request.MatchMessageRequest;
+import com.ltm.memorygame.dto.chat.request.PrivateMessageRequest;
+import com.ltm.memorygame.dto.chat.request.WorldMessageRequest;
+import com.ltm.memorygame.dto.chat.response.MatchMessageDTO;
+import com.ltm.memorygame.dto.chat.response.PrivateMessageResponse;
+import com.ltm.memorygame.dto.chat.response.StickerResponse;
+import com.ltm.memorygame.dto.chat.response.WorldMessageResponse;
+import com.ltm.memorygame.dto.user.response.UserPresenceDTO;
+import com.ltm.memorygame.model.enums.MessageType;
+import com.ltm.memorygame.model.enums.RoomStatus;
+import com.ltm.memorygame.model.enums.UserStatus;
+import com.ltm.memorygame.model.game.Room;
+import com.ltm.memorygame.model.user.User;
+import com.ltm.memorygame.security.JwtService;
+import com.ltm.memorygame.service.chat.MatchMessageService;
+import com.ltm.memorygame.service.chat.PrivateMessageService;
+import com.ltm.memorygame.service.chat.StickerService;
+import com.ltm.memorygame.service.chat.WorldMessageService;
+import com.ltm.memorygame.service.game.GameSessionService;
+import com.ltm.memorygame.service.room.RoomService;
+import com.ltm.memorygame.service.user.PresenceService;
+import com.ltm.memorygame.service.user.UserService;
+
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
 
 public class ClientHandler extends Thread {
     private static final Logger log = LoggerFactory.getLogger(ClientHandler.class);
@@ -30,6 +57,15 @@ public class ClientHandler extends Thread {
     private final boolean requireJwt;
     private final int maxPerSecond;
 
+    private final MatchMessageService matchMessageService;
+    private final PrivateMessageService privateMessageService;
+    private final WorldMessageService worldMessageService;
+    private final PresenceService presenceService;
+    private final StickerService stickerService;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
+
     private long windowStartMs = System.currentTimeMillis();
     private int messagesInWindow = 0;
 
@@ -37,13 +73,18 @@ public class ClientHandler extends Thread {
     private Long userId;
 
     public ClientHandler(Socket socket,
-                         Map<String, ClientHandler> onlineClients,
-                         UserService userService,
-                         RoomService roomService,
-                         GameSessionService gameSessionService,
-                         JwtService jwtService,
-                         boolean requireJwt,
-                         int maxPerSecond) throws IOException {
+            Map<String, ClientHandler> onlineClients,
+            UserService userService,
+            RoomService roomService,
+            GameSessionService gameSessionService,
+            JwtService jwtService,
+            boolean requireJwt,
+            int maxPerSecond,
+            MatchMessageService matchMessageService,
+            PrivateMessageService privateMessageService,
+            WorldMessageService worldMessageService,
+            PresenceService presenceService,
+            StickerService stickerService) throws IOException {
         this.socket = socket;
         this.onlineClients = onlineClients;
         this.userService = userService;
@@ -52,8 +93,13 @@ public class ClientHandler extends Thread {
         this.jwtService = jwtService;
         this.requireJwt = requireJwt;
         this.maxPerSecond = maxPerSecond;
-        this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-        this.out = new PrintWriter(socket.getOutputStream(), true);
+        this.matchMessageService = matchMessageService;
+        this.privateMessageService = privateMessageService;
+        this.worldMessageService = worldMessageService;
+        this.presenceService = presenceService;
+        this.stickerService = stickerService;
+        this.in = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
+        this.out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8), true);
     }
 
     @Override
@@ -130,11 +176,28 @@ public class ClientHandler extends Thread {
                 }
                 
                 broadcastUserStatus(username, false);
+                
+                // Exit all rooms when disconnecting
+                if (userId != null) {
+                    try {
+                        var rooms = roomService.findRoomsByPlayer(userId);
+                        for (var room : rooms) {
+                            try {
+                                roomService.exitRoom(room.getId(), userId);
+                                log.info("[TCP] User {} exited room {} on disconnect", username, room.getId());
+                            } catch (Exception e) {
+                                log.warn("[TCP] Failed to exit room {} for user {}: {}", 
+                                    room.getId(), username, e.getMessage());
+                            }
+                        }
+                    } catch (Exception e) {
+                        log.warn("[TCP] Error during room cleanup for {}: {}", username, e.getMessage());
+                    }
+                }
             }
             try { socket.close(); } catch (IOException ignored) {}
         }
     }
-
 
     private void handleMessage(TCPMessage message) {
         String msgType = message.getType();
@@ -143,10 +206,14 @@ public class ClientHandler extends Thread {
                  msgType != null ? msgType.length() : "null", 
                  "COIN_FLIP_REQUEST".equals(msgType));
         switch (msgType) {
-            case "LOGIN_REQUEST" -> handleLogin(message);
-            case "LOGOUT_REQUEST" -> handleLogout();
-            case "WORLD_CHAT" -> handleWorldChat(message);
-            case "PRIVATE_CHAT" -> handlePrivateChat(message);
+            case "LOGIN_REQUEST" ->
+                handleLogin(message);
+            case "LOGOUT_REQUEST" ->
+                handleLogout();
+            case "WORLD_CHAT" ->
+                handleWorldChat(message);
+            case "PRIVATE_CHAT" ->
+                handlePrivateChat(message);
             case "ROOM_SETTINGS_CHANGED" -> handleRoomSettingsChanged(message);
             case "GAME_STARTED" -> handleGameStarted(message);
             case "CARD_FLIPPED" -> handleCardFlipped(message);
@@ -157,8 +224,16 @@ public class ClientHandler extends Thread {
             case "GAME_STATE_SYNC" -> handleGameStateSync(message);
             case "PLAYER_SURRENDER" -> handlePlayerSurrender(message);
             case "COIN_FLIP_REQUEST" -> handleCoinFlipRequest(message);
-            case "PING" -> sendMessage(new TCPMessage("PONG", null, "server", username));
-            default -> log.warn("[TCP] Unknown type: {}", message.getType());
+            case "MATCH_CHAT" ->
+                handleMatchChat(message);
+            case "LOBBY_CHAT" ->
+                handleLobbyChat(message);
+            case "SET_STATUS_REQUEST" ->
+                handleSetStatus(message);
+            case "PING" ->
+                sendMessage(new TCPMessage("PONG", null, "server", username));
+            default ->
+                log.warn("[TCP] Unknown type: {}", message.getType());
         }
     }
 
@@ -226,7 +301,9 @@ public class ClientHandler extends Thread {
     }
 
     private void handleLogout() {
-        if (username == null) return;
+        if (username == null) {
+            return;
+        }
         onlineClients.remove(username);
         
         // Set user status to OFFLINE in database
@@ -240,23 +317,360 @@ public class ClientHandler extends Thread {
         }
         
         broadcastUserStatus(username, false);
-        try { socket.close(); } catch (IOException ignored) {}
-    }
-
-    private void handleWorldChat(TCPMessage message) {
-        for (ClientHandler client : onlineClients.values()) {
-            client.sendMessage(message);
+        try {
+            socket.close();
+        } catch (IOException ignored) {
         }
     }
 
+    /**
+     * Xử lý tin nhắn chat world (chat toàn server)
+     */
+    private void handleWorldChat(TCPMessage message) {
+        if (username == null || userId == null) {
+            return;
+        }
+
+        WorldMessageRequest request;
+
+        try {
+            request = objectMapper.convertValue(message.getData(), WorldMessageRequest.class);
+
+            // Validation
+            Set<ConstraintViolation<WorldMessageRequest>> violations = validator.validate(request);
+            if (!violations.isEmpty()) {
+                String firstViolation = violations.iterator().next().getMessage();
+                throw new IllegalArgumentException(firstViolation);
+            }
+
+            if (request.getMessageType() == MessageType.TEXT
+                    && (request.getContent() == null || request.getContent().trim().isEmpty())) {
+                throw new IllegalArgumentException("Message content cannot be empty for TEXT messages.");
+            }
+
+            if (request.getMessageType() == MessageType.STICKER
+                    && request.getStickerId() == null) {
+                throw new IllegalArgumentException("Sticker id is required for STICKER messages.");
+            }
+
+            // Lưu vào database
+            WorldMessageResponse savedMessage = worldMessageService.postWorldMessage(
+                    userId,
+                    request.getContent(),
+                    request.getMessageType(),
+                    request.getStickerId());
+
+            // Phát tán tin nhắn đến tất cả client online
+            TCPMessage broadcastMsg = new TCPMessage("WORLD_CHAT_MESSAGE",
+                    Map.of("message", savedMessage), this.username, null);
+
+            for (ClientHandler client : onlineClients.values()) {
+                client.sendMessage(broadcastMsg);
+            }
+
+        } catch (Exception e) {
+            log.error("[WORLD_CHAT] Error processing message from user {}: {}", username, e.getMessage(), e);
+            Map<String, Object> errorMap = TcpErrorUtil.getErrorMap(e, username,
+                    "Internal error during world chat processing.");
+            sendMessage(new TCPMessage("ERROR", errorMap, "server", username));
+        }
+    }
+
+    /**
+     * Xử lý tin nhắn chat private (chat riêng tư giữa 2 người)
+     */
     private void handlePrivateChat(TCPMessage message) {
-        String to = message.getReceiver();
-        ClientHandler target = onlineClients.get(to);
-        if (target != null) {
-            target.sendMessage(message);
-        } else {
-            sendMessage(new TCPMessage("ERROR",
-                    Map.of("reason", "User offline"), "server", username));
+        if (username == null || userId == null) {
+            return;
+        }
+        PrivateMessageRequest request;
+        try {
+            request = objectMapper.convertValue(message.getData(), PrivateMessageRequest.class);
+
+            // Validation
+            Set<ConstraintViolation<PrivateMessageRequest>> violations = validator.validate(request);
+            if (!violations.isEmpty()) {
+                String reason = violations.iterator().next().getMessage();
+                throw new IllegalArgumentException("Validation Error: " + reason);
+            }
+
+            String receiverUsername = message.getReceiver();
+            if (receiverUsername == null) {
+                throw new IllegalArgumentException("Missing receiver username in TCP message header.");
+            }
+
+            if (request.getMessageType() == MessageType.TEXT
+                    && (request.getContent() == null || request.getContent().trim().isEmpty())) {
+                throw new IllegalArgumentException("Message content cannot be empty for TEXT messages.");
+            }
+
+            // Lưu vào database
+            PrivateMessageResponse savedMessage = privateMessageService.sendPrivateMessage(
+                    userId,
+                    request.getToUserId(), 
+                    request.getContent(),
+                    null,
+                    request.getMessageType(),
+                    request.getStickerId());
+
+            // Chuyển đổi sang Map với timestamp epoch millis cho TCP
+            Map<String, Object> messageMap = new java.util.HashMap<>();
+            messageMap.put("id", savedMessage.getId());
+            messageMap.put("fromUserId", savedMessage.getFromUserId());
+            messageMap.put("toUserId", savedMessage.getToUserId());
+            messageMap.put("matchId", savedMessage.getMatchId());
+            messageMap.put("content", savedMessage.getContent());
+            messageMap.put("messageType", savedMessage.getMessageType());
+            messageMap.put("sticker", savedMessage.getSticker());
+            if (savedMessage.getCreatedAt() != null) {
+                messageMap.put("timestamp", savedMessage.getCreatedAt().toEpochMilli());
+            }
+            
+            // Gửi tin nhắn đến người nhận và người gửi
+            TCPMessage realtimeMsg = new TCPMessage("PRIVATE_CHAT_MESSAGE",
+                    Map.of("message", messageMap), this.username, receiverUsername);
+
+            ClientHandler target = onlineClients.get(receiverUsername);
+            if (target != null) {
+                target.sendMessage(realtimeMsg);
+            }
+
+            // Gửi lại cho người gửi để xác nhận
+            sendMessage(realtimeMsg);
+
+        } catch (Exception e) {
+            Map<String, Object> errorMap = TcpErrorUtil.getErrorMap(e, username,
+                    "Internal error during private chat processing.");
+            sendMessage(new TCPMessage("ERROR", errorMap, "server", username));
+        }
+    }
+
+    /**
+     * Xử lý tin nhắn chat trong match (trong phòng chơi game)
+     */
+    private void handleMatchChat(TCPMessage message) {
+        if (username == null || userId == null) {
+            return;
+        }
+
+        String roomId = (String) message.getData().get("roomId");
+        if (roomId == null) {
+            sendMessage(new TCPMessage("ERROR", Map.of("reason", "Missing roomId"), "server", username));
+            return;
+        }
+
+        MatchMessageRequest request;
+
+        try {
+            // Tạo bản sao data không có roomId để tránh lỗi "unrecognized field"
+            Map<String, Object> dataForDTO = new java.util.HashMap<>(message.getData());
+            dataForDTO.remove("roomId");
+            
+            request = objectMapper.convertValue(dataForDTO, MatchMessageRequest.class);
+
+            // Validation
+            Set<ConstraintViolation<MatchMessageRequest>> violations = validator.validate(request);
+            if (!violations.isEmpty()) {
+                String reason = violations.iterator().next().getMessage();
+                throw new IllegalArgumentException("Validation Error: " + reason);
+            }
+
+            if (request.getMessageType() == MessageType.TEXT
+                    && (request.getContent() == null || request.getContent().trim().isEmpty())) {
+                throw new IllegalArgumentException("Message content cannot be empty for TEXT messages.");
+            }
+
+            // Kiểm tra Room Session (RAM). Nếu chưa có, khởi tạo từ DB Room.
+            RoomSession session = RoomSessionManager.getRoom(roomId);
+            if (session == null) {
+                try {
+                    Long rid = Long.parseLong(roomId);
+                    com.ltm.memorygame.model.game.Room room = roomService.getEntityById(rid);
+
+                    // Tạo session và thêm thành viên (host + guest nếu có)
+                    session = RoomSessionManager.createRoom(roomId, room.getHost().getUsername());
+                    session.addMember(room.getHost().getUsername());
+                    if (room.getGuest() != null) {
+                        session.addMember(room.getGuest().getUsername());
+                    }
+                    session.setActive(true);
+                    log.info("[MATCH_CHAT] Created transient session for room {}", roomId);
+                } catch (Exception ex) {
+                    throw new IllegalStateException("Room not found or session expired.");
+                }
+            }
+
+            // Đảm bảo người gửi là thành viên của RoomSession
+            try { session.addMember(this.username); } catch (Exception ignored) {}
+
+            // Gọi Service lưu vào RAM
+            MatchMessageDTO matchMsgDTO = matchMessageService.sendMatchMessage(
+                    roomId,
+                    userId,
+                    request.getContent(),
+                    request.getMessageType(),
+                    request.getStickerId());
+
+            // Phát tán tin nhắn đến tất cả thành viên trong room
+            TCPMessage realtimeMsg = new TCPMessage("MATCH_CHAT_MESSAGE",
+                    Map.of("message", matchMsgDTO), username, roomId);
+
+            for (String memberUsername : session.getMembers()) {
+                ClientHandler memberHandler = onlineClients.get(memberUsername);
+                if (memberHandler != null) {
+                    memberHandler.sendMessage(realtimeMsg);
+                }
+            }
+
+        } catch (Exception e) {
+            String defaultReason = "An unexpected error occurred.";
+            Map<String, Object> errorMap = TcpErrorUtil.getErrorMap(e, username, defaultReason);
+            sendMessage(new TCPMessage("ERROR", errorMap, "server", username));
+        }
+    }
+
+    /**
+     * Xử lý tin nhắn chat trong lobby (phòng chờ trước khi vào game)
+     */
+    private void handleLobbyChat(TCPMessage message) {
+        if (username == null || userId == null) {
+            return;
+        }
+
+        Object roomIdObj = message.getData().get("roomId");
+        if (roomIdObj == null) {
+            sendMessage(new TCPMessage("ERROR", Map.of("reason", "Missing roomId"), "server", username));
+            return;
+        }
+
+        Long roomId;
+        try {
+            roomId = Long.parseLong(roomIdObj.toString());
+        } catch (NumberFormatException e) {
+            sendMessage(new TCPMessage("ERROR", Map.of("reason", "Invalid roomId format"), "server", username));
+            return;
+        }
+
+        try {
+            // Lấy Room entity từ DB để biết host + guest
+            Room room = roomService.getEntityById(roomId);
+            if (room == null) {
+                throw new IllegalStateException("Room not found: " + roomId);
+            }
+
+            // Validate request
+            String content = (String) message.getData().get("content");
+            String messageTypeStr = (String) message.getData().getOrDefault("messageType", "TEXT");
+            MessageType messageType;
+            try {
+                messageType = MessageType.valueOf(messageTypeStr);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Invalid messageType: " + messageTypeStr);
+            }
+            
+            Object stickerIdObj = message.getData().get("stickerId");
+            Long stickerId = null;
+            if (stickerIdObj != null) {
+                try {
+                    if (stickerIdObj instanceof Number) {
+                        stickerId = ((Number) stickerIdObj).longValue();
+                    } else {
+                        stickerId = Long.parseLong(stickerIdObj.toString());
+                    }
+                } catch (NumberFormatException e) {
+                    throw new IllegalArgumentException("Invalid stickerId format: " + stickerIdObj);
+                }
+            }
+            
+            // Validation theo messageType
+            if (messageType == MessageType.TEXT) {
+                if (content == null || content.trim().isEmpty()) {
+                    throw new IllegalArgumentException("Message content cannot be empty for TEXT messages.");
+                }
+            } else if (messageType == MessageType.STICKER) {
+                if (stickerId == null) {
+                    throw new IllegalArgumentException("Sticker id is required for STICKER messages.");
+                }
+            }
+            
+            if (content == null) {
+                content = "";
+            }
+
+            // Tạo message DTO (không lưu DB, chỉ broadcast)
+            Map<String, Object> lobbyMessage = new java.util.HashMap<>();
+            lobbyMessage.put("id", java.util.UUID.randomUUID().toString());
+            lobbyMessage.put("roomId", String.valueOf(roomId));
+            lobbyMessage.put("content", content);
+            lobbyMessage.put("messageType", messageType.name());
+            
+            // Load sticker nếu có stickerId
+            if (stickerId != null) {
+                try {
+                    StickerResponse stickerResponse = stickerService.getStickerById(stickerId);
+                    if (stickerResponse != null) {
+                        Map<String, Object> stickerMap = new java.util.HashMap<>();
+                        stickerMap.put("id", stickerResponse.getId());
+                        stickerMap.put("stickerPath", stickerResponse.getStickerPath());
+                        lobbyMessage.put("sticker", stickerMap);
+                        lobbyMessage.put("stickerId", stickerId);
+                    } else {
+                        lobbyMessage.put("stickerId", stickerId);
+                    }
+                } catch (Exception e) {
+                    log.warn("[LOBBY_CHAT] Failed to load sticker for stickerId {}: {}", stickerId, e.getMessage());
+                    lobbyMessage.put("stickerId", stickerId);
+                }
+            }
+            
+            lobbyMessage.put("timestamp", System.currentTimeMillis());
+            
+            // Thêm thông tin người gửi
+            Map<String, Object> sender = new java.util.HashMap<>();
+            sender.put("id", userId);
+            sender.put("username", username);
+            
+            try {
+                User senderUser = userService.getEntityById(userId);
+                if (senderUser != null && senderUser.getAvatarUrl() != null) {
+                    sender.put("avatarUrl", senderUser.getAvatarUrl());
+                }
+                if (senderUser != null && senderUser.getDisplayName() != null) {
+                    sender.put("displayName", senderUser.getDisplayName());
+                }
+            } catch (Exception e) {
+                log.debug("[LOBBY_CHAT] Failed to get sender info: " + e.getMessage());
+            }
+            
+            lobbyMessage.put("sender", sender);
+
+            // Phát tán tin nhắn đến host và guest
+            TCPMessage realtimeMsg = new TCPMessage("LOBBY_CHAT_MESSAGE",
+                    Map.of("message", lobbyMessage), username, String.valueOf(roomId));
+
+            String hostUsername = room.getHost().getUsername();
+            String guestUsername = room.getGuest() != null ? room.getGuest().getUsername() : null;
+            
+            Set<String> recipients = new java.util.HashSet<>();
+            recipients.add(hostUsername);
+            if (guestUsername != null) {
+                recipients.add(guestUsername);
+            }
+            
+            for (String recipientUsername : recipients) {
+                ClientHandler handler = onlineClients.get(recipientUsername);
+                if (handler != null) {
+                    handler.sendMessage(realtimeMsg);
+                }
+            }
+            
+            log.info("[LOBBY_CHAT] Broadcast message from {} to {} recipients in room {}", 
+                    username, recipients.size(), roomId);
+
+        } catch (Exception e) {
+            String defaultReason = "An unexpected error occurred during lobby chat.";
+            Map<String, Object> errorMap = TcpErrorUtil.getErrorMap(e, username, defaultReason);
+            sendMessage(new TCPMessage("ERROR", errorMap, "server", username));
         }
     }
 
@@ -305,23 +719,64 @@ public class ClientHandler extends Thread {
         }
     }
 
-    private void broadcastUserStatus(String user, boolean online) {
-        TCPMessage msg = new TCPMessage("USER_STATUS",
-                Map.of("user", user, "online", online), "server", null);
-        for (ClientHandler client : onlineClients.values()) {
-            client.sendMessage(msg);
+
+    private void updateAndBroadcastPresence(Long userId, UserStatus status) {
+        try {
+            // Lưu DB
+            UserPresenceDTO dto = presenceService.setStatus(userId, status);
+
+            // Phát tán
+            TCPMessage msg = new TCPMessage("USER_PRESENCE_UPDATE",
+                    Map.of("user", dto), "server", null);
+
+            for (ClientHandler client : onlineClients.values()) {
+                client.sendMessage(msg);
+            }
+        } catch (Exception e) {
+            log.error("[PRESENCE] Failed to update and broadcast status for user {}: {}", username, e.getMessage(), e);
         }
     }
 
-    private void handleCardFlipped(TCPMessage message) {
-        log.info("[TCP] Card flipped by {}: {}", username, message.getData());
-        // Forward the message to all other clients in the same room
-        for (ClientHandler client : onlineClients.values()) {
-            if (!client.username.equals(username)) { // Don't send back to sender
-                client.sendMessage(message);
-            }
+private void handleSetStatus(TCPMessage message) {
+    if (username == null || userId == null)
+        return;
+
+    try {
+        Object statusObj = message.getData().get("status");
+        
+        // Validation
+        if (statusObj == null) {
+            throw new IllegalArgumentException("Missing status parameter.");
         }
+
+        UserStatus status = UserStatus.valueOf(statusObj.toString().toUpperCase());
+
+        updateAndBroadcastPresence(this.userId, status);
+
+    } catch (Exception e) {
+        
+        String defaultReason = "Failed to update status.";     
+        Map<String, Object> errorMap = TcpErrorUtil.getErrorMap(e, username, defaultReason);
+        sendMessage(new TCPMessage("ERROR", errorMap, "server", username));
     }
+}
+
+    private void broadcastUserStatus(String user, boolean online) {
+        if (this.userId == null) {
+            TCPMessage msg = new TCPMessage("USER_STATUS",
+                    Map.of("user", user, "online", online), "server", null);
+            for (ClientHandler client : onlineClients.values()) {
+                client.sendMessage(msg);
+            }
+            return;
+        }
+
+        UserStatus status = online ? UserStatus.ONLINE : UserStatus.OFFLINE;
+
+        //cập nhật DB và broadcast chi tiết
+        updateAndBroadcastPresence(this.userId, status);
+    }
+
 
     private void handleCardMatched(TCPMessage message) {
         log.info("[TCP] Card matched by {}: {}", username, message.getData());
@@ -501,13 +956,18 @@ public class ClientHandler extends Thread {
                 return;
             }
             
+            log.info("[TCP] Room {} found - Status: {}, Host: {}, Guest: {}", 
+                roomId, room.getStatus(), 
+                room.getHost() != null ? room.getHost().getUsername() : "null",
+                room.getGuest() != null ? room.getGuest().getUsername() : "null");
+            
             if (room.getHost() == null) {
                 log.error("[TCP] Room {} has no host", roomId);
                 return;
             }
             
             if (room.getGuest() == null) {
-                log.error("[TCP] Room {} has no guest", roomId);
+                log.error("[TCP] Room {} has no guest - cannot flip coin", roomId);
                 return;
             }
             
@@ -516,7 +976,8 @@ public class ClientHandler extends Thread {
             
             // Only host can request coin flip
             if (!username.equals(hostUsername)) {
-                log.warn("[TCP] Non-host user {} tried to request coin flip for room {}", username, roomId);
+                log.warn("[TCP] Non-host user {} tried to request coin flip for room {} (host is {})", 
+                    username, roomId, hostUsername);
                 return;
             }
             
@@ -546,25 +1007,39 @@ public class ClientHandler extends Thread {
             ClientHandler hostHandler = onlineClients.get(hostUsername);
             if (hostHandler != null) {
                 hostHandler.sendMessage(resultMessage);
-                log.info("[TCP] Sent COIN_FLIP_RESULT to host: {}", hostUsername);
+                log.info("[TCP] ✓ Sent COIN_FLIP_RESULT to host: {} (result: {})", hostUsername, coinResult);
             } else {
-                log.warn("[TCP] Host {} not online", hostUsername);
+                log.error("[TCP] ✗ Host {} not online - cannot send coin flip result", hostUsername);
             }
             
             // Send to guest
             ClientHandler guestHandler = onlineClients.get(guestUsername);
             if (guestHandler != null) {
                 guestHandler.sendMessage(resultMessage);
-                log.info("[TCP] Sent COIN_FLIP_RESULT to guest: {}", guestUsername);
+                log.info("[TCP] ✓ Sent COIN_FLIP_RESULT to guest: {} (result: {})", guestUsername, coinResult);
             } else {
-                log.warn("[TCP] Guest {} not online", guestUsername);
+                log.error("[TCP] ✗ Guest {} not online - cannot send coin flip result", guestUsername);
             }
+            
+            log.info("[TCP] ===== COIN_FLIP_REQUEST completed for room {} =====", roomId);
             
         } catch (Exception e) {
             log.error("[TCP] Error handling coin flip request: {}", e.getMessage());
             e.printStackTrace();
         }
     }
+
+    private void handleCardFlipped(TCPMessage message) {
+        log.info("[TCP] Card flipped by {}: {}", username, message.getData());
+        // Forward the message to all other clients in the same room
+        for (ClientHandler client : onlineClients.values()) {
+            if (!client.username.equals(username)) { // Don't send back to sender
+                client.sendMessage(message);
+            }
+        }
+    }
+    
+
 
     public void sendMessage(TCPMessage message) {
         try {

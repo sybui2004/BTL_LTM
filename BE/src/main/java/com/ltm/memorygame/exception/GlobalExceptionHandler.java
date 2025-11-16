@@ -1,14 +1,15 @@
 package com.ltm.memorygame.exception;
 
-import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.web.bind.MethodArgumentNotValidException;
+import java.time.OffsetDateTime;
+import java.util.NoSuchElementException;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.time.OffsetDateTime;
-import java.util.NoSuchElementException;
+import jakarta.servlet.http.HttpServletRequest;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -51,11 +52,15 @@ public class GlobalExceptionHandler {
 
 	@ExceptionHandler(Exception.class)
 	public ResponseEntity<ApiError> handleInternal(Exception ex, HttpServletRequest request) {
+		// Log the exception for debugging
+		System.err.println("[GlobalExceptionHandler] Unexpected error: " + ex.getClass().getName() + " - " + ex.getMessage());
+		ex.printStackTrace();
+		
 		ApiError body = new ApiError(
 			OffsetDateTime.now().toString(),
 			HttpStatus.INTERNAL_SERVER_ERROR.value(),
 			HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(),
-			"Unexpected server error",
+			"Unexpected server error: " + ex.getClass().getSimpleName() + " - " + ex.getMessage(),
 			request.getRequestURI()
 		);
 		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);

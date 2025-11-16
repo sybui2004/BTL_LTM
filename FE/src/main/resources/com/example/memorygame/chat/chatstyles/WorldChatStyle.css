@@ -1,0 +1,60 @@
+/* Load VT323 font if bundled in resources */
+@font-face {
+  font-family: "VT323";
+  src: url("/com/example/memorygame/assets/fonts/VT323-Regular.ttf");
+}
+
+
+.world-chat-container {
+  -fx-background-image: url("/com/example/memorygame/assets/images/bg_1.png");
+  -fx-background-size: cover;
+  -fx-background-repeat: no-repeat;
+  -fx-background-position: center center;
+  -fx-border-color: #e5e7eb;
+  -fx-border-radius: 8;
+  -fx-background-radius: 8;
+}
+
+.world-chat-container .chat-header {
+  -fx-background-color: linear-gradient(to right, #eef2ff, #eff6ff);
+  -fx-border-color: #dbeafe;
+}
+
+.world-chat-container .chat-title {
+  -fx-text-fill: #1e293b;
+  -fx-font-family: "VT323", "Consolas", "Courier New", monospace;
+  -fx-font-size: 40px; /* Bigger title */
+  -fx-font-weight: normal; /* VT323 is a display font; normal looks better */
+}
+
+.world-chat-container .toggle-btn {
+  -fx-background-color: #e2e8f0;
+  -fx-background-radius: 8;
+}
+.world-chat-container .toggle-btn:hover {
+  -fx-background-color: #cbd5e1;
+}
+
+/* Đảm bảo chat-content transparent */
+.world-chat-container .chat-content {
+  -fx-background-color: transparent;
+}
+/* Message area background - Transparent để hiển thị background image */
+.world-chat-container .base-chat-container {
+  -fx-background-color: transparent;
+}
+
+.world-chat-container .chat-scroll-pane,
+.world-chat-container .chat-scroll-pane > .viewport {
+  -fx-background-color: transparent;
+}
+
+.world-chat-container .chat-footer {
+  -fx-background-color: #f8fafc;
+}
+
+/* ===== Split layout (2 cột) ===== */
+.world-chat-split {
+  -fx-padding: 8 10 8 10;
+}
+

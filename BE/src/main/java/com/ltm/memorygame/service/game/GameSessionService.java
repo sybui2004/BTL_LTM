@@ -233,6 +233,43 @@ public class GameSessionService {
             updateUserScore(loserId, loserRankPoints, false);
         }
         
+        // Finish the match and save rank points change
+        try {
+            var matchOpt = matchRepository.findByRoomAndStatus(room, MatchStatus.PLAYING);
+            if (matchOpt.isPresent()) {
+                var match = matchOpt.get();
+                FinishedMatchRequest finishRequest = new FinishedMatchRequest();
+                finishRequest.setPlayer1Score(player1Pairs);
+                finishRequest.setPlayer2Score(player2Pairs);
+                
+                // Set rank points change based on winner
+                if (player1Wins) {
+                    finishRequest.setPlayer1RankPointsChange(winnerRankPoints);
+                    finishRequest.setPlayer2RankPointsChange(-loserRankPoints);
+                } else if (player2Wins) {
+                    finishRequest.setPlayer1RankPointsChange(-loserRankPoints);
+                    finishRequest.setPlayer2RankPointsChange(winnerRankPoints);
+                } else {
+                    // Draw - both get 0
+                    finishRequest.setPlayer1RankPointsChange(0);
+                    finishRequest.setPlayer2RankPointsChange(0);
+                }
+                
+                try {
+                    matchService.finishMatch(match.getId(), finishRequest);
+                    System.out.println("[GameSessionService] ✓ Finished match " + match.getId() + " normally - Scores: P1=" + 
+                                     player1Pairs + ", P2=" + player2Pairs +
+                                     ", RankPoints: P1=" + finishRequest.getPlayer1RankPointsChange() + 
+                                     ", P2=" + finishRequest.getPlayer2RankPointsChange());
+                } catch (Exception e) {
+                    System.err.println("[GameSessionService] ✗ Failed to finish match " + match.getId() + ": " + e.getMessage());
+                    e.printStackTrace();
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("[GameSessionService] Failed to finish match: " + e.getMessage());
+        }
+        
         // Send game end message to both players
         TCPServer tcpServer = applicationContext.getBean(TCPServer.class);
         Map<String, Object> endData = new HashMap<>();
@@ -364,10 +401,21 @@ public class GameSessionService {
                 finishRequest.setPlayer1Score(exitedIsHost ? exitedPairs : remainingPairs);
                 finishRequest.setPlayer2Score(exitedIsHost ? remainingPairs : exitedPairs);
                 
+                // Set rank points change: remaining player gets winner points, exited player gets -100
+                if (exitedIsHost) {
+                    finishRequest.setPlayer1RankPointsChange(-100); // Exited player (host = player1)
+                    finishRequest.setPlayer2RankPointsChange(winnerRankPoints); // Remaining player (guest = player2)
+                } else {
+                    finishRequest.setPlayer1RankPointsChange(winnerRankPoints); // Remaining player (host = player1)
+                    finishRequest.setPlayer2RankPointsChange(-100); // Exited player (guest = player2)
+                }
+                
                 try {
                     matchService.finishMatch(match.getId(), finishRequest);
                     System.out.println("[GameSessionService] ✓ Finished match " + match.getId() + " due to player exit - Scores: P1=" + 
-                                     finishRequest.getPlayer1Score() + ", P2=" + finishRequest.getPlayer2Score());
+                                     finishRequest.getPlayer1Score() + ", P2=" + finishRequest.getPlayer2Score() +
+                                     ", RankPoints: P1=" + finishRequest.getPlayer1RankPointsChange() + 
+                                     ", P2=" + finishRequest.getPlayer2RankPointsChange());
                 } catch (Exception e) {
                     System.err.println("[GameSessionService] ✗ Failed to finish match " + match.getId() + ": " + e.getMessage());
                     e.printStackTrace();

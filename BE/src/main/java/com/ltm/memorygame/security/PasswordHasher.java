@@ -1,12 +1,13 @@
 package com.ltm.memorygame.security;
 
-import org.springframework.stereotype.Component;
-
-import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.PBEKeySpec;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Base64;
+
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.PBEKeySpec;
+
+import org.springframework.stereotype.Component;
 
 @Component
 public class PasswordHasher {

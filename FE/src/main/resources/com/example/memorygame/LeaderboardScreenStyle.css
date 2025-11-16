@@ -1,0 +1,384 @@
+/* Leaderboard Screen Styles - giống ảnh */
+.main-container {
+    -fx-background-color: #E0F2F7;
+    /* Light blue background như ảnh */
+}
+
+/* Header Section */
+.leaderboard-header {
+    -fx-background-color: transparent;
+    /* Transparent để hiện background màu xanh */
+    -fx-padding: 20;
+    -fx-alignment: center;
+    /* Căn giữa */
+}
+
+.leaderboard-title-main {
+    -fx-font-size: 36px;
+    -fx-font-weight: bold;
+    /* In đậm */
+    -fx-text-fill: #2C3E50;
+    /* Dark brown/black như ảnh */
+    -fx-alignment: center;
+    /* Căn giữa */
+    -fx-font-family: serif;
+    /* Serif font như ảnh */
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.3), 8, 0, 0, 2);
+    /* Đổ bóng */
+}
+
+/* Tabs - bo góc như ảnh */
+.leaderboard-tab {
+    -fx-background-color: #D3D3D3;
+    /* Light gray khi inactive như ảnh */
+    -fx-background-radius: 12;
+    /* Bo góc */
+    -fx-padding: 12 30;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2C3E50;
+    /* Black text */
+    -fx-cursor: hand;
+    -fx-border-width: 0;
+    -fx-border-color: transparent;
+}
+
+.leaderboard-tab:hover {
+    -fx-background-color: #C0C0C0;
+    /* Slightly darker gray on hover */
+}
+
+.leaderboard-tab:selected {
+    -fx-background-color: #FFD700;
+    /* Yellow khi active như ảnh */
+    -fx-text-fill: #2C3E50;
+    /* Black text */
+}
+
+.leaderboard-tab:selected:hover {
+    -fx-background-color: #FFD700;
+    /* Keep yellow when selected and hovered */
+}
+
+/* Header Row */
+.leaderboard-header-row {
+    -fx-background-color: #6B8E9F;
+    /* Darker blue cho content area như ảnh */
+    -fx-background-radius: 0;
+    -fx-padding: 12 15 12 15;
+    /* Match CHÍNH XÁC với items padding */
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
+    -fx-spacing: 0;
+    -fx-alignment: center-left;
+}
+
+.header-label {
+    -fx-font-size: 14px;
+    -fx-font-weight: normal;
+    -fx-text-fill: #D3D3D3;
+    /* Light gray text như ảnh */
+    -fx-content-display: text-only;
+    -fx-wrap-text: false;
+    -fx-padding: 0;
+    -fx-text-alignment: center;
+}
+
+/* Leaderboard Scroll - darker blue như ảnh */
+.leaderboard-scroll {
+    -fx-background-color: #6B8E9F;
+    /* Darker blue cho content area như ảnh */
+    -fx-background-radius: 0;
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
+    -fx-padding: 0;
+}
+
+.leaderboard-scroll .viewport {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.leaderboard-scroll .scroll-bar:vertical {
+    -fx-background-color: transparent;
+    -fx-pref-width: 12;
+}
+
+.leaderboard-scroll .scroll-bar:vertical .track {
+    -fx-background-color: rgba(255, 255, 255, 0.5);
+    -fx-background-radius: 8;
+}
+
+.leaderboard-scroll .scroll-bar:vertical .thumb {
+    -fx-background-color: #3498DB;
+    -fx-background-radius: 8;
+}
+
+.leaderboard-scroll .scroll-bar:vertical .thumb:hover {
+    -fx-background-color: #2980B9;
+}
+
+/* Leaderboard Item - rounded corners như ảnh */
+.leaderboard-item {
+    -fx-background-color: rgba(255, 255, 255, 0.95);
+    -fx-background-radius: 12;
+    -fx-padding: 12 15 12 15;
+    /* Match CHÍNH XÁC với header padding */
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.1), 5, 0, 0, 2);
+    -fx-spacing: 0;
+    /* NO spacing - dùng fixed widths để thẳng hàng */
+    -fx-alignment: center-left;
+}
+
+.leaderboard-item>* {
+    -fx-padding: 0;
+}
+
+.leaderboard-item:hover {
+    -fx-background-color: rgba(255, 255, 255, 1.0);
+}
+
+/* Rank number - màu sắc khác nhau theo rank như ảnh */
+.rank-number {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-min-width: 50;
+    -fx-pref-width: 50;
+    -fx-max-width: 50;
+    -fx-padding: 0;
+    -fx-alignment: center;
+}
+
+/* Rank 1 - Gold */
+.rank-number.rank-1 {
+    -fx-text-fill: #FFD700;
+    /* Gold */
+}
+
+/* Rank 2 - Blue */
+.rank-number.rank-2 {
+    -fx-text-fill: #4169E1;
+    /* Blue */
+}
+
+/* Rank 3 - Light brown */
+.rank-number.rank-3 {
+    -fx-text-fill: #CD7F32;
+    /* Bronze/Light brown */
+}
+
+/* Rank 4+ - Light blue */
+.rank-number.rank-4-plus {
+    -fx-text-fill: #87CEEB;
+    /* Light blue */
+}
+
+.player-avatar {
+    -fx-background-radius: 25;
+}
+
+.player-name {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2C3E50;
+    -fx-pref-width: 250;
+    -fx-min-width: 250;
+    -fx-max-width: 250;
+    -fx-alignment: center-left;
+    -fx-content-display: text-only;
+    -fx-wrap-text: false;
+    -fx-text-alignment: left;
+    -fx-padding: 0;
+    -fx-background-insets: 0;
+}
+
+/* Highlight cho entry của user */
+.player-name.its-me {
+    -fx-font-weight: bold;
+    -fx-text-fill: #2C3E50;
+}
+
+.player-elo {
+    -fx-font-size: 15px;
+    -fx-text-fill: #34495E;
+    -fx-pref-width: 100;
+    -fx-min-width: 100;
+    -fx-max-width: 100;
+    -fx-alignment: center-right;
+    -fx-content-display: text-only;
+    -fx-wrap-text: false;
+    -fx-text-alignment: right;
+    -fx-padding: 0;
+    -fx-background-insets: 0;
+}
+
+.player-wins {
+    -fx-font-size: 15px;
+    -fx-text-fill: #34495E;
+    -fx-pref-width: 100;
+    -fx-min-width: 100;
+    -fx-max-width: 100;
+    -fx-alignment: center-right;
+    -fx-content-display: text-only;
+    -fx-wrap-text: false;
+    -fx-text-alignment: right;
+    -fx-padding: 0;
+    -fx-background-insets: 0;
+}
+
+/* Friends Side Panel */
+.friends-side-panel {
+    -fx-background-color: rgba(255, 255, 255, 0.9);
+    -fx-background-radius: 12;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.15), 8, 0, 0, 2);
+    -fx-border-color: rgba(52, 152, 219, 0.3);
+    -fx-border-width: 1;
+    -fx-border-radius: 12;
+    -fx-pref-width: 280;
+}
+
+.panel-toggle-btn {
+    -fx-background-color: #95A5A6;
+    -fx-background-radius: 0 8 8 0;
+    -fx-padding: 15 8;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 5, 0, 0, 2);
+}
+
+.panel-toggle-btn:hover {
+    -fx-background-color: #7F8C8D;
+}
+
+.friends-side-panel.collapsed {
+    -fx-pref-width: 0;
+    -fx-opacity: 0;
+}
+
+/* Top Icons */
+.top-icons-container {
+    -fx-padding: 15 20;
+}
+
+.top-icon-button {
+    -fx-background-color: #2d6f99;
+    -fx-background-radius: 50%;
+    -fx-padding: 10;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.3), 8, 0, 0, 2);
+    -fx-pref-width: 45;
+    -fx-pref-height: 45;
+    -fx-border-color: white;
+    -fx-border-width: 2;
+    -fx-border-radius: 50%;
+}
+
+.top-icon-button:hover {
+    -fx-background-color: #154f79;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.4), 12, 0, 0, 4);
+    -fx-scale-x: 1.1;
+    -fx-scale-y: 1.1;
+}
+
+.top-icon-text {
+    -fx-font-size: 22px;
+}
+
+/* Bottom Action Container */
+.bottom-action-container {
+    -fx-padding: 15 40;
+}
+
+.start-button-container {
+    -fx-background-color: rgba(255, 255, 255, 0.9);
+    -fx-background-radius: 12;
+    -fx-padding: 15;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.15), 8, 0, 0, 2);
+    -fx-border-color: rgba(255, 215, 0, 0.3);
+    -fx-border-width: 1;
+    -fx-border-radius: 12;
+}
+
+.bottom-elo-label {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #F39C12;
+}
+
+.bottom-start-button {
+    -fx-background-color: linear-gradient(to bottom, #FFD700, #FFA500);
+    -fx-text-fill: white;
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 0;
+    -fx-padding: 20 50;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.4), 15, 0, 0, 5);
+    -fx-min-width: 150;
+    -fx-min-height: 80;
+}
+
+.bottom-start-button:hover {
+    -fx-background-color: linear-gradient(to bottom, #FFA500, #FF8C00);
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.5), 20, 0, 0, 7);
+    -fx-scale-x: 1.05;
+    -fx-scale-y: 1.05;
+}
+
+.bottom-start-button:pressed {
+    -fx-background-color: linear-gradient(to bottom, #FF8C00, #FF6347);
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.3), 10, 0, 0, 3);
+}
+
+/* Friend Item in Side Panel */
+.friend-item {
+    -fx-background-color: white;
+    -fx-background-radius: 10;
+    -fx-padding: 10;
+    -fx-spacing: 10;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.1), 5, 0, 0, 2);
+}
+
+.friend-item:hover {
+    -fx-background-color: #F0F8FF;
+}
+
+.friend-name {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2C3E50;
+}
+
+.friend-status {
+    -fx-font-size: 12px;
+    -fx-text-fill: #7F8C8D;
+}
+
+.friend-elo {
+    -fx-font-size: 12px;
+    -fx-text-fill: #7F8C8D;
+}
+
+/* Status Indicators */
+.status-online {
+    -fx-fill: #2ECC71;
+    -fx-stroke: white;
+    -fx-stroke-width: 2;
+}
+
+.status-offline {
+    -fx-fill: #95A5A6;
+    -fx-stroke: white;
+    -fx-stroke-width: 2;
+}
+
+.status-busy {
+    -fx-fill: #E74C3C;
+    -fx-stroke: white;
+    -fx-stroke-width: 2;
+}
+
+.status-ingame {
+    -fx-fill: #F39C12;
+    -fx-stroke: white;
+    -fx-stroke-width: 2;
+}

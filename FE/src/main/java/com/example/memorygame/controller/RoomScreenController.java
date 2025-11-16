@@ -28,8 +28,11 @@ import javafx.scene.control.ToggleButton;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
+import javafx.scene.Node;
+import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.geometry.Bounds;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
@@ -45,32 +48,66 @@ import java.util.Map;
  */
 public class RoomScreenController {
     private final RoomScreen screen;
+    // Reuse RoomStateManager across screens (e.g., rematch from GameScreen)
+    private static RoomStateManager staticRoomStateManager;
     
     // Helper classes
     private RoomStateManager stateManager;
     private RoomUIUpdater uiUpdater;
     
     // FXML Components
-    @FXML private VBox listContainer;
-    @FXML private HBox searchContainer;
-    @FXML private TextField txtSearch;
-    @FXML private Button btnSearch;
-    @FXML private ToggleButton tabFriends;
-    @FXML private ToggleButton tabStrangers;
-    @FXML private ToggleButton tabRecent;
-    @FXML private Label titleLabel;
-    @FXML private ImageView hostAvatar;
-    @FXML private ImageView guestAvatar;
-    @FXML private Label hostStatus;
-    @FXML private Label guestStatus;
-    @FXML private Label guestPlaceholder;
-    @FXML private StackPane playButton;
-    @FXML private StackPane questionButton;
-    @FXML private StackPane popupOverlay;
+    @FXML
+    private VBox listContainer;
+    @FXML
+    private HBox searchContainer;
+    @FXML
+    private TextField txtSearch;
+    @FXML
+    private Button btnSearch;
+    @FXML
+    private ToggleButton tabFriends;
+    @FXML
+    private ToggleButton tabStrangers;
+    @FXML
+    private ToggleButton tabRecent;
+    @FXML
+    private Label titleLabel;
+    @FXML
+    private ImageView hostAvatar;
+    @FXML
+    private ImageView guestAvatar;
+    @FXML
+    private Label hostStatus;
+    @FXML
+    private Label guestStatus;
+    @FXML
+    private Label guestPlaceholder;
+    @FXML
+    private StackPane playButton;
+    @FXML
+    private StackPane questionButton;
+    @FXML private HBox openLobbyChatButton;
+    @FXML private StackPane lobbyOverlay;
+    @FXML private AnchorPane lobbyChatContainer;
+    @FXML
+    private StackPane popupOverlay; // For settings popup
+    @FXML
+    private StackPane rulesPopupOverlay; // For game rules popup
+    // Note: JavaFX creates key "settingsPopupComponentController" from fx:id="settingsPopupComponent"
+    @FXML
+    private SettingsPopupController settingsPopupComponentController;
     @FXML private StackPane backButton;
-    @FXML private Button closePopupButton;
-    @FXML private VBox inviteListContainer;
-    @FXML private VBox inviteList;
+    
+    // Convenience getter
+    private SettingsPopupController getSettingsPopupController() {
+        return settingsPopupComponentController;
+    }
+    @FXML
+    private Button closePopupButton;
+    @FXML
+    private VBox inviteListContainer;
+    @FXML
+    private VBox inviteList;
     @FXML private ComboBox<ThemeDTO> themeComboBox;
     @FXML private ComboBox<String> sizeComboBox;
     @FXML private ComboBox<String> timeComboBox;
@@ -84,20 +121,26 @@ public class RoomScreenController {
     private FriendListManager friendListManager;
     private InviteItemBuilder inviteItemBuilder;
     private TCPMessageHandler tcpHandler;
-    
+
     public RoomScreenController() {
-        this.screen = new RoomScreen(this);
+        try {
+            this.screen = new RoomScreen(this);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to load RoomScreen", e);
+        }
     }
-    
+
     public RoomScreen getScreen() {
         return screen;
     }
-    
+
     @FXML
     private void initialize() {
         setupFont();
         initializeHelpers();
         setupUI();
+        setupLobbyChat();
+        setupSettingsPopup();
         
         // Start background music after UI is loaded to avoid module access issues during FXML loading
         Platform.runLater(() -> {
@@ -105,37 +148,241 @@ public class RoomScreenController {
         });
         
         // Start room operations
-        roomManager.createRoom();
+        if (stateManager.getCurrentRoomId() != null) {
+            // Coming back from game with an existing room (rematch)
+            hydrateExistingRoomState();
+        } else {
+            roomManager.createRoom();
+        }
         loadInvites();
         friendListManager.switchTab(FriendListManager.Tab.FRIENDS);
     }
     
+    /**
+     * Load room info from server for current room ID and update state/UI.
+     */
+    private void hydrateExistingRoomState() {
+        new Thread(() -> {
+            try {
+                Long roomId = stateManager.getCurrentRoomId();
+                if (roomId == null) {
+                    roomManager.createRoom();
+                    return;
+                }
+                
+                com.example.memorygame.model.game.RoomResponseDTO room =
+                        com.example.memorygame.utils.RoomApi.getRoom(roomId);
+                com.example.memorygame.model.user.UserSummary me =
+                        com.example.memorygame.utils.UserApi.getCurrentUser();
+                if (room == null || me == null) {
+                    roomManager.createRoom();
+                    return;
+                }
+                
+                boolean iAmHost = room.hostId != null && room.hostId.equals(me.id);
+                boolean iAmGuest = room.guestId != null && room.guestId.equals(me.id);
+                
+                // Update state
+                stateManager.setHost(iAmHost);
+                if (room.hostId != null) stateManager.setCurrentHostId(room.hostId);
+                if (room.guestId != null) stateManager.setCurrentGuestId(room.guestId);
+                
+                Platform.runLater(() -> {
+                    if (iAmHost) {
+                        if (room.guestId != null) {
+                            loadExistingGuestInfo();
+                        } else {
+                            uiUpdater.clearGuestInfo();
+                        }
+                        uiUpdater.setPlayButtonEnabled(stateManager.canStartGame());
+                    } else if (iAmGuest) {
+                        if (room.hostId != null) {
+                            loadExistingHostInfo();
+                        }
+                        uiUpdater.setPlayButtonEnabled(false);
+                    } else {
+                        // Not a member of this room anymore – create/use available room
+                        roomManager.createRoom();
+                    }
+                    updateComboBoxStates();
+                });
+            } catch (Exception e) {
+                System.err.println("[RoomScreen] Failed to hydrate existing room: " + e.getMessage());
+                roomManager.createRoom();
+            }
+        }).start();
+    }
+    
+    /**
+     * Allow other controllers to pass an existing RoomStateManager
+     * so we return to the same room on rematch.
+     */
+    public static void setRoomStateManager(RoomStateManager manager) {
+        staticRoomStateManager = manager;
+    }
+    
+    private void setupSettingsPopup() {
+        SettingsPopupController controller = getSettingsPopupController();
+        if (controller != null) {
+            UserSummary currentUser = UserApi.getCurrentUser();
+            if (currentUser != null) {
+                controller.setCurrentUser(currentUser);
+                // Set parent overlay reference
+                controller.setParentOverlay(popupOverlay);
+                // Load settings on start to apply notification enabled state
+                loadSettingsOnStart();
+            }
+        }
+    }
+    
+    /**
+     * Load user settings on start to apply notification enabled state
+     */
+    private void loadSettingsOnStart() {
+        UserSummary currentUser = UserApi.getCurrentUser();
+        if (currentUser == null) {
+            return;
+        }
+        new Thread(() -> {
+            try {
+                com.example.memorygame.model.user.UserSettingDTO settings = UserApi.getSettings(currentUser.id);
+                if (settings != null) {
+                    javafx.application.Platform.runLater(() -> {
+                        // Apply notification enabled state to SoundManager
+                        SoundManager.setNotificationEnabled(settings.notification);
+                        // Also apply volume settings
+                        SoundManager.setBackgroundMusicVolume(settings.musicVolume / 100.0);
+                        SoundManager.setSoundFxVolume(settings.soundFxVolume / 100.0);
+                    });
+                }
+            } catch (Exception e) {
+                System.err.println("[RoomScreen] Failed to load settings on start: " + e.getMessage());
+            }
+        }).start();
+    }
+    
+    @FXML
+    private void handleSettingsClick() {
+        SoundManager.playSound("button.wav");
+        SettingsPopupController controller = getSettingsPopupController();
+        if (controller == null) {
+            System.err.println("[RoomScreen] SettingsPopupController is null! Cannot show settings.");
+            return;
+        }
+        
+        VBox settingsPopup = controller.getSettingsPopup();
+        if (settingsPopup == null) {
+            System.err.println("[RoomScreen] SettingsPopup VBox is null!");
+            return;
+        }
+        
+        if (settingsPopup.isVisible()) {
+            // If already visible, close it
+            controller.hide();
+        } else {
+            // Close other popups if open
+            if (rulesPopupOverlay != null && rulesPopupOverlay.isVisible()) {
+                hidePopup(); // Close game rules
+            }
+            if (inviteListContainer != null && inviteListContainer.isVisible()) {
+                inviteListContainer.setVisible(false);
+                inviteListContainer.setManaged(false);
+            }
+            controller.show();
+        }
+    }
+    
+    @FXML
+    private void handleOverlayClick(javafx.scene.input.MouseEvent event) {
+        SettingsPopupController controller = getSettingsPopupController();
+        if (controller != null) {
+            VBox settingsPopup = controller.getSettingsPopup();
+            if (settingsPopup != null && settingsPopup.isVisible()) {
+                controller.hide();
+            }
+        }
+    }
+    
+    
+    /**
+     * Lấy LobbyChatController từ namespace
+     */
+    private com.example.memorygame.controller.chat.LobbyChatController getLobbyChatController() {
+        try {
+            if (screen != null && screen.getLoader() != null) {
+                Object lobbyController = screen.getLoader().getNamespace().get("lobbyChatController");
+                if (lobbyController instanceof com.example.memorygame.controller.chat.LobbyChatController) {
+                    return (com.example.memorygame.controller.chat.LobbyChatController) lobbyController;
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("[RoomScreen] Failed to get LobbyChatController: " + e.getMessage());
+        }
+        return null;
+    }
+    
+    /**
+     * Khởi tạo lobby chat với roomId hiện tại
+     */
+    private void initializeLobbyChat() {
+        com.example.memorygame.controller.chat.LobbyChatController ctrl = getLobbyChatController();
+        if (ctrl != null) {
+            ctrl.setRoomStateManager(stateManager);
+            Long roomId = stateManager.getCurrentRoomId();
+            if (roomId != null) {
+                com.example.memorygame.model.user.UserSummary currentUser = com.example.memorygame.utils.UserApi.getCurrentUser();
+                if (currentUser != null) {
+                    ctrl.setupLobby(null, currentUser);
+                }
+            }
+        }
+    }
+    
+    /**
+     * Setup LobbyChatController với RoomStateManager
+     */
+    private void setupLobbyChat() {
+        com.example.memorygame.controller.chat.LobbyChatController ctrl = getLobbyChatController();
+        if (ctrl != null) {
+            ctrl.setRoomStateManager(stateManager);
+            initializeLobbyChat();
+        }
+    }
+    
+    /**
+     * Callback được gọi khi user join room - khởi tạo lobby chat
+     */
+    private void onRoomJoined() {
+        initializeLobbyChat();
+    }
+    
+
     private void setupFont() {
         try {
             Font loaded = Font.loadFont(
-                getClass().getResourceAsStream("/com/example/memorygame/assets/fonts/PlaywriteDESAS-VariableFont_wght.ttf"), 
-                26
-            );
+                    getClass().getResourceAsStream(
+                            "/com/example/memorygame/assets/fonts/PlaywriteDESAS-VariableFont_wght.ttf"),
+                    26);
             if (loaded != null && titleLabel != null) {
                 String fam = loaded.getFamily();
                 titleLabel.setFont(Font.font(fam, FontWeight.BOLD, 26));
                 titleLabel.setStyle("-fx-font-family: '" + fam + "'; -fx-font-size: 26px; -fx-font-weight: bold;");
             }
-        } catch (Exception ignored) { }
+        } catch (Exception ignored) {
+        }
     }
-    
+
     private void initializeHelpers() {
         // State manager
-        this.stateManager = new RoomStateManager();
+        this.stateManager = (staticRoomStateManager != null) ? staticRoomStateManager : new RoomStateManager();
         
         // UI updater
         this.uiUpdater = new RoomUIUpdater(
                 hostAvatar, guestAvatar,
                 hostStatus, guestStatus, guestPlaceholder,
                 playButton,
-                this::loadUserAvatarOrFallback
-        );
-        
+                this::loadUserAvatarOrFallback);
+
         // Room manager
         roomManager = new RoomManager(stateManager, this::showAlert);
         roomManager.setOnLoadGuestInfo(this::loadExistingGuestInfo);
@@ -145,23 +392,20 @@ public class RoomScreenController {
         FriendItemBuilder friendItemBuilder = new FriendItemBuilder(
                 stateManager,
                 this::loadUserAvatarOrFallback,
-                roomManager::handleInviteUser
-        );
-        
+                roomManager::handleInviteUser);
+
         // Friend list manager
         friendListManager = new FriendListManager(
-            listContainer, searchContainer, txtSearch,
-            tabFriends, tabStrangers, tabRecent,
-                friendItemBuilder
-        );
-        
+                listContainer, searchContainer, txtSearch,
+                tabFriends, tabStrangers, tabRecent,
+                friendItemBuilder);
+
         // Invite item builder
         inviteItemBuilder = new InviteItemBuilder(
-            this::loadUserAvatarOrFallback,
-            this::handleAcceptInvite,
-            this::handleRejectInvite
-        );
-        
+                this::loadUserAvatarOrFallback,
+                this::handleAcceptInvite,
+                this::handleRejectInvite);
+
         // TCP handler
         tcpHandler = new TCPMessageHandler(
                 uiUpdater,
@@ -171,10 +415,11 @@ public class RoomScreenController {
                 this::updateComboBoxStates,
                 this::updateLabelsFromSettings,
                 this::sendCurrentSettingsToGuest,
-                this::handleGameStart
+                this::handleGameStart,
+                this::onRoomJoined
         );
     }
-    
+
     private void setupUI() {
         friendListManager.setupTabs();
         
@@ -209,10 +454,116 @@ public class RoomScreenController {
         
         setupRoomAvatars();
         setupPopup();
+        setupLobbyOverlay();
         loadThemes();
         setupGameOptions();
         updateComboBoxStates();
         tcpHandler.setupListeners();
+    }
+
+    /**
+     * Setup Lobby overlay show/hide
+     */
+    private void setupLobbyOverlay() {
+        // Mở overlay khi click vào chat box
+        if (openLobbyChatButton != null) {
+            openLobbyChatButton.setOnMouseClicked(e -> {
+                SoundManager.playSound("button.wav");
+                showLobbyOverlay();
+            });
+        }
+
+        // Đóng overlay khi click bên ngoài chat content
+        if (lobbyOverlay != null) {
+            lobbyOverlay.setOnMouseClicked(e -> {
+                Node target = (Node) e.getTarget();
+                Node lobbyChatNode = getLobbyChatNode();
+                
+                // Kiểm tra xem click có phải trong chat content không
+                boolean clickedOnChat = false;
+                if (lobbyChatNode != null) {
+                    Node current = target;
+                    while (current != null) {
+                        if (current == lobbyChatNode) {
+                            clickedOnChat = true;
+                            break;
+                        }
+                        current = current.getParent();
+                    }
+                }
+                
+                // Đóng nếu click bên ngoài chat content
+                if (!clickedOnChat && (target == lobbyChatContainer || target == lobbyOverlay)) {
+                    hideLobbyOverlay();
+                }
+            });
+        }
+    }
+    
+    /**
+     * Lấy lobbyChat node từ namespace
+     */
+    private Node getLobbyChatNode() {
+        try {
+            if (screen != null && screen.getLoader() != null) {
+                Object lobbyChatObj = screen.getLoader().getNamespace().get("lobbyChat");
+                if (lobbyChatObj instanceof Node) {
+                    return (Node) lobbyChatObj;
+                }
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+        return null;
+    }
+
+    /**
+     * Hiển thị lobby chat overlay
+     */
+    private void showLobbyOverlay() {
+        // Đảm bảo lobby chat đã được khởi tạo
+        com.example.memorygame.controller.chat.LobbyChatController ctrl = getLobbyChatController();
+        if (ctrl != null) {
+            ctrl.setRoomStateManager(stateManager);
+            com.example.memorygame.model.user.UserSummary currentUser = com.example.memorygame.utils.UserApi.getCurrentUser();
+            if (currentUser != null) {
+                ctrl.setupLobby(null, currentUser);
+            }
+        }
+
+        if (lobbyOverlay != null) {
+            lobbyOverlay.setVisible(true);
+            lobbyOverlay.setManaged(true);
+            
+            // Đặt vị trí LobbyChat phía trên chat box
+            Platform.runLater(() -> {
+                if (openLobbyChatButton != null && lobbyChatContainer != null) {
+                    Bounds buttonBounds = openLobbyChatButton.localToScene(openLobbyChatButton.getBoundsInLocal());
+                    Bounds overlayBounds = lobbyOverlay.localToScene(lobbyOverlay.getBoundsInLocal());
+                    
+                    double x = buttonBounds.getMinX() - overlayBounds.getMinX();
+                    double y = buttonBounds.getMinY() - overlayBounds.getMinY() - 500; // 500px phía trên
+                    
+                    Node lobbyChatNode = getLobbyChatNode();
+                    if (lobbyChatNode != null) {
+                        AnchorPane.setLeftAnchor(lobbyChatNode, x);
+                        AnchorPane.setTopAnchor(lobbyChatNode, y);
+                        AnchorPane.setRightAnchor(lobbyChatNode, null);
+                        AnchorPane.setBottomAnchor(lobbyChatNode, null);
+                    }
+                }
+            });
+        }
+    }
+
+    /**
+     * Ẩn lobby chat overlay
+     */
+    private void hideLobbyOverlay() {
+        if (lobbyOverlay != null) {
+            lobbyOverlay.setVisible(false);
+            lobbyOverlay.setManaged(false);
+        }
     }
     
     private void setupRoomAvatars() {
@@ -221,19 +572,19 @@ public class RoomScreenController {
             Platform.runLater(() -> {
                 if (hostAvatar != null) {
                     hostAvatar.setVisible(true);
-                    
+
                     if (currentUser != null && currentUser.avatarUrl != null) {
                         hostAvatar.setImage(loadUserAvatarOrFallback(currentUser.avatarUrl));
                     } else {
                         hostAvatar.setImage(loadUserAvatarOrFallback(null));
                     }
-                    
+
                     Rectangle clip = new Rectangle(96, 96);
                     clip.setArcWidth(12);
                     clip.setArcHeight(12);
                     hostAvatar.setClip(clip);
                 }
-                
+
                 if (hostStatus != null) {
                     String displayName = "Player";
                     if (currentUser != null) {
@@ -252,7 +603,7 @@ public class RoomScreenController {
                 uiUpdater.setPlayButtonEnabled(canStart);
             });
         }).start();
-        
+
         if (guestAvatar != null) {
             guestAvatar.setVisible(false);
             Rectangle guestClip = new Rectangle(96, 96);
@@ -264,7 +615,7 @@ public class RoomScreenController {
             guestStatus.setText("Waiting for player...");
         }
     }
-    
+
     private void setupPopup() {
         if (questionButton != null) {
             questionButton.setOnMouseClicked(e -> {
@@ -278,29 +629,38 @@ public class RoomScreenController {
                 hidePopup();
             });
         }
-        if (popupOverlay != null) {
-            popupOverlay.setOnMouseClicked(e -> {
-                if (e.getTarget() == popupOverlay) {
+        if (rulesPopupOverlay != null) {
+            rulesPopupOverlay.setOnMouseClicked(e -> {
+                if (e.getTarget() == rulesPopupOverlay) {
                     hidePopup();
                 }
             });
         }
     }
-    
+
     private void showPopup() {
-        if (popupOverlay != null) {
-            popupOverlay.setVisible(true);
-            popupOverlay.setManaged(true);
+        // Close settings if open
+        SettingsPopupController controller = getSettingsPopupController();
+        if (controller != null) {
+            VBox settingsPopup = controller.getSettingsPopup();
+            if (settingsPopup != null && settingsPopup.isVisible()) {
+                controller.hide();
+            }
+        }
+        
+        if (rulesPopupOverlay != null) {
+            rulesPopupOverlay.setVisible(true);
+            rulesPopupOverlay.setManaged(true);
         }
     }
-    
+
     private void hidePopup() {
-        if (popupOverlay != null) {
-            popupOverlay.setVisible(false);
-            popupOverlay.setManaged(false);
+        if (rulesPopupOverlay != null) {
+            rulesPopupOverlay.setVisible(false);
+            rulesPopupOverlay.setManaged(false);
         }
     }
-    
+
     private void loadInvites() {
         roomManager.loadInvites(invites -> {
             if (invites == null || invites.isEmpty()) {
@@ -316,15 +676,17 @@ public class RoomScreenController {
             }
         });
     }
-    
+
     private void handleAcceptInvite(InviteDTO invite) {
+        SoundManager.playSound("button.wav");
         roomManager.handleAcceptInvite(invite, this::loadInvites);
     }
-    
+
     private void handleRejectInvite(InviteDTO invite) {
+        SoundManager.playSound("button.wav");
         roomManager.handleRejectInvite(invite, this::loadInvites);
     }
-    
+
     private void showAlert(String message, Alert.AlertType type) {
         Alert alert = new Alert(type);
         alert.setContentText(message);
@@ -342,6 +704,9 @@ public class RoomScreenController {
                         Platform.runLater(() -> {
                             uiUpdater.updateGuestInfo(displayName, guest.avatarUrl);
                             uiUpdater.setPlayButtonEnabled(stateManager.isHost() && stateManager.canStartGame());
+                            
+                            // Khởi tạo lobby chat khi guest join
+                            onRoomJoined();
                         });
                         System.out.println("[RoomScreen] Loaded guest info: " + displayName);
                     }
@@ -374,6 +739,9 @@ public class RoomScreenController {
                             
                             // Update ComboBox states for guest (hide combo boxes)
                             updateComboBoxStates();
+                            
+                            // Khởi tạo lobby chat khi guest join room
+                            onRoomJoined();
                         });
                         System.out.println("[RoomScreen] Loaded host info: " + displayName);
                     }
@@ -384,6 +752,7 @@ public class RoomScreenController {
         }).start();
     }
     
+
     private Image loadUserAvatarOrFallback(String candidateUrl) {
         // Default avatar URL from server using ApiClient base URL
         String serverDefaultAvatarUrl = ApiClient.getBaseUrl() + "/static/avatars/default_avatar.png";
@@ -393,9 +762,13 @@ public class RoomScreenController {
                 String trimmed = candidateUrl.trim();
                 if (!trimmed.isEmpty()) {
                     String lower = trimmed.toLowerCase();
-                    
-                    // Check if it's already a full URL
-                    if (lower.startsWith("http://") || lower.startsWith("https://")) {
+                    // Check if it's a resource path (starts with /)
+                    if (lower.startsWith("/")) {
+                        var resourceUrl = getClass().getResource(trimmed);
+                        if (resourceUrl != null) {
+                            return new Image(resourceUrl.toExternalForm(), true);
+                        }
+                    } else if (lower.startsWith("http://") || lower.startsWith("https://")) {
                         return new Image(trimmed, true);
                     }
                     
@@ -598,6 +971,7 @@ public class RoomScreenController {
     }
     
     private void handlePlayButton() {
+        SoundManager.playSound("button.wav");
         System.out.println("[RoomScreen] Play button clicked");
         
         // Check if game can start
@@ -753,6 +1127,10 @@ public class RoomScreenController {
             // Set game settings for CoinFlipScreenController
             com.example.memorygame.controller.CoinFlipScreenController.setGameSettings(gameSettings);
             
+            // Set RoomStateManager để GameScreenController có thể lấy opponent ID sau này
+            // (khi CoinFlipScreen navigate sang GameScreen)
+            com.example.memorygame.controller.GameScreenController.setRoomStateManager(stateManager);
+            
             // Create coin flip screen controller
             com.example.memorygame.controller.CoinFlipScreenController coinFlipController = 
                 new com.example.memorygame.controller.CoinFlipScreenController();
@@ -785,14 +1163,19 @@ public class RoomScreenController {
             // Set game settings for GameScreenController
             GameScreenController.setGameSettings(gameSettings);
             
+            // Set RoomStateManager để GameScreenController có thể lấy opponent ID
+            GameScreenController.setRoomStateManager(stateManager);
+            
             // Create game screen controller
             GameScreenController gameController = new GameScreenController();
             
             // Create scene
             Scene gameScene = new Scene(gameController.getScreen().getRoot());
             
-            // Apply CSS
+            // Apply CSS - GameScreenStyle trước
             gameScene.getStylesheets().add(getClass().getResource("/com/example/memorygame/GameScreenStyle.css").toExternalForm());
+            // MatchChatStyle.css sau để override GameScreenStyle.css cho các component trong MatchChat
+            gameScene.getStylesheets().add(getClass().getResource("/com/example/memorygame/chat/chatstyles/MatchChatStyle.css").toExternalForm());
             
             // Set scene and show
             stage.setScene(gameScene);
@@ -876,6 +1259,7 @@ public class RoomScreenController {
     }
     
     private void handleBack() {
+        SoundManager.playSound("button.wav");
         System.out.println("[RoomScreen] Back button clicked - exiting room");
         
         new Thread(() -> {
@@ -948,4 +1332,3 @@ public class RoomScreenController {
         return fallbackTheme;
     }
 }
-

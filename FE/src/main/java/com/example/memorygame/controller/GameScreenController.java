@@ -1,35 +1,41 @@
 package com.example.memorygame.controller;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.example.memorygame.controller.chat.MatchChatController;
+import com.example.memorygame.controller.game.MemoryCard;
+import com.example.memorygame.controller.room.RoomStateManager;
+import com.example.memorygame.model.game.CardDTO;
 import com.example.memorygame.model.game.GameSettings;
 import com.example.memorygame.model.game.ThemeDTO;
-import com.example.memorygame.model.game.CardDTO;
-import com.example.memorygame.controller.game.MemoryCard;
 import com.example.memorygame.utils.CardApi;
+import com.example.memorygame.utils.SoundManager;
 import com.example.memorygame.utils.TCPClient;
+import com.example.memorygame.utils.UserApi;
 import com.example.memorygame.view.GameScreen;
-import javafx.fxml.FXML;
+
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Platform;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.image.ImageView;
-import javafx.scene.image.Image;
-import javafx.scene.control.Label;
-import javafx.scene.control.TextField;
-import javafx.scene.control.Button;
+import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
-import javafx.fxml.FXMLLoader;
-import javafx.animation.Timeline;
-import javafx.animation.KeyFrame;
-import javafx.util.Duration;
-import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.text.Font;
 import javafx.stage.Stage;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import javafx.util.Duration;
 
 /**
  * Controller for the Game Screen
@@ -39,6 +45,7 @@ public class GameScreenController {
     // Game settings
     private GameSettings gameSettings;
     private static GameSettings staticGameSettings;
+    private static RoomStateManager staticRoomStateManager;
     
     // Game state
     private List<MemoryCard> cards = new ArrayList<>();
@@ -65,21 +72,25 @@ public class GameScreenController {
     @FXML private GridPane cardGrid;
     @FXML private ImageView backgroundImage;
     @FXML private StackPane backButton;
-    @FXML private HBox myPanel;
-    @FXML private HBox opponentPanel;
-    @FXML private Label myNameLabel;
-    @FXML private Label opponentNameLabel;
-    @FXML private ImageView myAvatar;
-    @FXML private ImageView opponentAvatar;
+    @FXML private StackPane settingsButton;
+    @FXML private StackPane popupOverlay;
+    // Note: JavaFX creates key "settingsPopupComponentController" from fx:id="settingsPopupComponent"
+    @FXML private SettingsPopupController settingsPopupComponentController;
+    
+    // Convenience getter
+    private SettingsPopupController getSettingsPopupController() {
+        return settingsPopupComponentController;
+    }
     @FXML private Label myScoreLabel;
     @FXML private Label opponentScoreLabel;
-    @FXML private TextField myChatField;
-    @FXML private TextField opponentChatField;
     @FXML private Label timerLabel;
     @FXML private Label turnIndicatorLabel;
+    @FXML private AnchorPane overlayPane;
     
     private GameScreen screen;
     private volatile boolean gameEndReceived = false;
+    private MatchChatController matchChatController;
+    private RoomStateManager roomStateManager;
     
     public GameScreenController() {
         this.gameSettings = staticGameSettings;
@@ -110,6 +121,13 @@ public class GameScreenController {
         staticGameSettings = settings;
     }
     
+    /**
+     * Set RoomStateManager từ RoomScreenController để có thể lấy opponent ID
+     */
+    public static void setRoomStateManager(RoomStateManager stateManager) {
+        staticRoomStateManager = stateManager;
+    }
+    
     public GameScreen getScreen() {
         if (screen == null) {
             this.screen = new GameScreen();
@@ -123,9 +141,86 @@ public class GameScreenController {
         setupGame();
         setupResizeListener();
         setupOverlayUI();
+        setupMatchChat();
+        setupSettingsPopup();
         updateTurnIndicator();
         startTurnTimer();
     }
+    
+    private void setupSettingsPopup() {
+        SettingsPopupController controller = getSettingsPopupController();
+        if (controller != null) {
+            com.example.memorygame.model.user.UserSummary currentUser = com.example.memorygame.utils.UserApi.getCurrentUser();
+            if (currentUser != null) {
+                controller.setCurrentUser(currentUser);
+                // Set parent overlay reference
+                controller.setParentOverlay(popupOverlay);
+                // Load settings on start to apply notification enabled state
+                loadSettingsOnStart();
+            }
+        }
+    }
+    
+    /**
+     * Load user settings on start to apply notification enabled state
+     */
+    private void loadSettingsOnStart() {
+        com.example.memorygame.model.user.UserSummary currentUser = com.example.memorygame.utils.UserApi.getCurrentUser();
+        if (currentUser == null) {
+            return;
+        }
+        new Thread(() -> {
+            try {
+                com.example.memorygame.model.user.UserSettingDTO settings = com.example.memorygame.utils.UserApi.getSettings(currentUser.id);
+                if (settings != null) {
+                    javafx.application.Platform.runLater(() -> {
+                        // Apply notification enabled state to SoundManager
+                        com.example.memorygame.utils.SoundManager.setNotificationEnabled(settings.notification);
+                        // Also apply volume settings
+                        com.example.memorygame.utils.SoundManager.setBackgroundMusicVolume(settings.musicVolume / 100.0);
+                        com.example.memorygame.utils.SoundManager.setSoundFxVolume(settings.soundFxVolume / 100.0);
+                    });
+                }
+            } catch (Exception e) {
+                System.err.println("[GameScreen] Failed to load settings on start: " + e.getMessage());
+            }
+        }).start();
+    }
+    
+    @FXML
+    private void handleSettingsClick() {
+        SoundManager.playSound("button.wav");
+        SettingsPopupController controller = getSettingsPopupController();
+        if (controller == null) {
+            System.err.println("[GameScreen] SettingsPopupController is null! Cannot show settings.");
+            return;
+        }
+        
+        VBox settingsPopup = controller.getSettingsPopup();
+        if (settingsPopup == null) {
+            System.err.println("[GameScreen] SettingsPopup VBox is null!");
+            return;
+        }
+        
+        if (settingsPopup.isVisible()) {
+            // If already visible, close it
+            controller.hide();
+        } else {
+            controller.show();
+        }
+    }
+    
+    @FXML
+    private void handleOverlayClick(javafx.scene.input.MouseEvent event) {
+        SettingsPopupController controller = getSettingsPopupController();
+        if (controller != null) {
+            VBox settingsPopup = controller.getSettingsPopup();
+            if (settingsPopup != null && settingsPopup.isVisible()) {
+                controller.hide();
+            }
+        }
+    }
+    
     
     private void setupGame() {
         if (gameSettings == null) {
@@ -134,6 +229,7 @@ public class GameScreenController {
         }
         
         setupThemeBackground();
+        setupThemeMusic();
         setupCardGrid();
         
         System.out.println("[GameScreen] Game setup completed");
@@ -144,47 +240,8 @@ public class GameScreenController {
             backButton.setOnMouseClicked(e -> handleBack());
         }
         
-        // Load user names based on host/guest role
-        if (gameSettings != null) {
-            if (gameSettings.isHost()) {
-                // Host: myName = player1Name, opponentName = player2Name
-                if (myNameLabel != null) {
-                    myNameLabel.setText(gameSettings.getPlayer1Name());
-                }
-                if (opponentNameLabel != null) {
-                    opponentNameLabel.setText(gameSettings.getPlayer2Name());
-                }
-            } else {
-                // Guest: myName = player2Name, opponentName = player1Name
-                if (myNameLabel != null) {
-                    myNameLabel.setText(gameSettings.getPlayer2Name());
-                }
-                if (opponentNameLabel != null) {
-                    opponentNameLabel.setText(gameSettings.getPlayer1Name());
-                }
-            }
-        } else {
-            // Fallback
-            if (myNameLabel != null) {
-                myNameLabel.setText("Me");
-            }
-            if (opponentNameLabel != null) {
-                opponentNameLabel.setText("Opponent");
-            }
-        }
-        
-        // Load default avatars (can be replaced with real URLs later)
-        String defaultAvatar = "http://localhost:8080/static/avatars/default_avatar.png";
-        try {
-            if (myAvatar != null) {
-                myAvatar.setImage(new Image(defaultAvatar));
-            }
-            if (opponentAvatar != null) {
-                opponentAvatar.setImage(new Image(defaultAvatar));
-            }
-        } catch (Exception e) {
-            System.err.println("[GameScreen] Failed to load avatars: " + e.getMessage());
-        }
+        // Load VT323 font for timer label
+        loadVT323Font();
         
         // Set initial scores based on host/guest role
         if (gameSettings != null) {
@@ -216,8 +273,131 @@ public class GameScreenController {
         }
     }
     
+    /**
+     * Load VT323 font for timer label
+     */
+    private void loadVT323Font() {
+        try {
+            Font loadedFont = Font.loadFont(
+                getClass().getResourceAsStream("/com/example/memorygame/assets/fonts/VT323-Regular.ttf"),
+                17
+            );
+            if (loadedFont != null && timerLabel != null) {
+                String fontFamily = loadedFont.getFamily();
+                Platform.runLater(() -> {
+                    if (timerLabel != null) {
+                        timerLabel.setFont(Font.font(fontFamily, 17));
+                    }
+                });
+                System.out.println("[GameScreen] VT323 font loaded successfully for timer. Family: " + fontFamily);
+            }
+        } catch (Exception e) {
+            System.err.println("[GameScreen] Failed to load VT323 font: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Thiết lập MatchChat với GameSettings và RoomStateManager
+     */
+    private void setupMatchChat() {
+        if (gameSettings == null || overlayPane == null) {
+            System.err.println("[GameScreen] Cannot setup MatchChat - gameSettings or overlayPane is null");
+            return;
+        }
+
+        try {
+            // Tạo RoomStateManager
+            roomStateManager = createRoomStateManagerFromSettings();
+            
+            // Load MatchChat.fxml để lấy Controller và Panes
+            FXMLLoader loader = new FXMLLoader(
+                getClass().getResource("/com/example/memorygame/chat/MatchChat.fxml")
+            );
+            loader.load();
+            
+            // Lấy Controller và thiết lập
+            matchChatController = loader.getController();
+            if (matchChatController == null) {
+                System.err.println("[GameScreen] MatchChatController is null after load!");
+                return;
+            }
+            
+            matchChatController.setRoomStateManager(roomStateManager);
+            matchChatController.setupMatchFromGameSettings(gameSettings, roomStateManager);
+
+            // Trích xuất các panes từ Controller và thêm vào overlayPane
+            StackPane leftPane = matchChatController.getLeftPane();
+            StackPane rightPane = matchChatController.getRightPane();
+
+            if (leftPane != null) {
+                overlayPane.getChildren().add(leftPane);
+                AnchorPane.setBottomAnchor(leftPane, 10.0);
+                AnchorPane.setLeftAnchor(leftPane, 10.0);
+            }
+            
+            if (rightPane != null) {
+                overlayPane.getChildren().add(rightPane);
+                // Lùi xuống để tránh bị che bởi settings button (settings button ở Y=10, height=36)
+                AnchorPane.setTopAnchor(rightPane, 70.0);
+                AnchorPane.setRightAnchor(rightPane, 10.0);
+            }
+            
+        } catch (Exception e) {
+            System.err.println("[GameScreen] Failed to setup MatchChat: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    /**
+     * Tạo RoomStateManager từ GameSettings hoặc sử dụng static RoomStateManager nếu có
+     */
+    private RoomStateManager createRoomStateManagerFromSettings() {
+        // Ưu tiên sử dụng RoomStateManager từ RoomScreenController
+        if (staticRoomStateManager != null) {
+            return staticRoomStateManager;
+        }
+        
+        // Fallback: Tạo mới từ GameSettings
+        RoomStateManager stateManager = new RoomStateManager();
+        
+        if (gameSettings != null) {
+            if (gameSettings.getRoomId() != null) {
+                stateManager.setCurrentRoomId(gameSettings.getRoomId());
+            }
+            
+            stateManager.setHost(gameSettings.isHost());
+            
+            try {
+                com.example.memorygame.model.user.UserSummary currentUser = UserApi.getCurrentUser();
+                if (currentUser != null) {
+                    if (gameSettings.isHost()) {
+                        stateManager.setCurrentHostId(currentUser.id);
+                    } else {
+                        stateManager.setCurrentGuestId(currentUser.id);
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("[GameScreen] Failed to set user IDs in RoomStateManager: " + e.getMessage());
+            }
+        }
+        
+        return stateManager;
+    }
+    
+    /**
+     * Cleanup MatchChat khi thoát game
+     */
+    private void cleanupMatchChat() {
+        if (matchChatController != null) {
+            matchChatController.cleanup();
+            matchChatController = null;
+        }
+    }
+    
     private void handleBack() {
-        // Show confirmation dialog
+        // Play button sound
+        SoundManager.playSound("button.wav");
+        
+        // Show confirmation dialogngan
         Alert alert = new Alert(AlertType.CONFIRMATION);
         alert.setTitle("Xác nhận thoát");
         alert.setHeaderText("Bạn có chắc chắn muốn thoát khỏi trò chơi?");
@@ -257,6 +437,9 @@ public class GameScreenController {
                     if (turnTimer != null) {
                         turnTimer.stop();
                     }
+                    
+                    // Cleanup MatchChat
+                    cleanupMatchChat();
                     
                     // Navigate back to MainScreen
                     MainScreenController mainController = new MainScreenController();
@@ -317,6 +500,56 @@ public class GameScreenController {
             System.out.println("[GameScreen] Fallback background loaded");
         } catch (Exception e) {
             System.err.println("[GameScreen] Failed to load fallback background: " + e.getMessage());
+        }
+    }
+    
+    private void setupThemeMusic() {
+        ThemeDTO theme = gameSettings.getTheme();
+        if (theme == null || theme.name == null) {
+            System.err.println("[GameScreen] No theme or theme name found, using default music");
+            loadFallbackMusic();
+            return;
+        }
+        
+        loadThemeMusic(theme.name);
+    }
+    
+    private void loadThemeMusic(String themeName) {
+        String musicFile = getThemeMusicFile(themeName);
+        System.out.println("[GameScreen] Loading theme music: " + musicFile + " for theme: " + themeName);
+        
+        try {
+            SoundManager.playBackgroundMusic(musicFile);
+            System.out.println("[GameScreen] Theme music loaded successfully");
+        } catch (Exception e) {
+            System.err.println("[GameScreen] Error loading theme music: " + e.getMessage());
+            loadFallbackMusic();
+        }
+    }
+    
+    private String getThemeMusicFile(String themeName) {
+        // Map theme names to their corresponding music files
+        switch (themeName.toLowerCase()) {
+            case "christmas":
+                return "Christmas.WAV";
+            case "mid-autumn festival":
+                return "Mid-Autumn Festival.wav";
+            case "navy":
+                return "Navy.wav";
+            case "pirate":
+                return "Pirate.wav";
+            default:
+                System.out.println("[GameScreen] Unknown theme: " + themeName + ", using default music");
+                return "game_music_loop.wav";
+        }
+    }
+    
+    private void loadFallbackMusic() {
+        try {
+            SoundManager.playBackgroundMusic("game_music_loop.wav");
+            System.out.println("[GameScreen] Fallback music loaded");
+        } catch (Exception e) {
+            System.err.println("[GameScreen] Failed to load fallback music: " + e.getMessage());
         }
     }
     
@@ -595,18 +828,44 @@ public class GameScreenController {
                         boolean cardsMatch = (isMatch != null && isMatch);
                         
                         if (cardsMatch) {
-                            // Cards match - make them disappear after 1s delay
+                            // Cards match - play match sound with delay and make them disappear after 1s delay
                             System.out.println("[GameScreen] Cards match - will disappear after delay");
                             new Thread(() -> {
                                 try {
-                                    Thread.sleep(1000); // wait 1s to let second card finish flip and be visible
+                                    Thread.sleep(200); // Delay 0.2s for sound to match animation
+                                    SoundManager.playSound("match.wav");
+                                    Thread.sleep(800); // wait remaining time to let second card finish flip and be visible (total 1s)
                                     Platform.runLater(() -> {
+                                        // Mark cards as matched first
                                         if (savedCard1 != null) {
-                                            savedCard1.setVisible(false);
+                                            savedCard1.markAsMatched();
                                         }
                                         if (savedCard2 != null) {
-                                            savedCard2.setVisible(false);
+                                            savedCard2.markAsMatched();
                                         }
+                                        
+                                        // Fade out and hide cards with animation
+                                        if (savedCard1 != null) {
+                                            javafx.animation.FadeTransition fadeOut = new javafx.animation.FadeTransition(javafx.util.Duration.millis(300), savedCard1);
+                                            fadeOut.setFromValue(1.0);
+                                            fadeOut.setToValue(0.0);
+                                            fadeOut.setOnFinished(e -> {
+                                                savedCard1.setVisible(false);
+                                                savedCard1.setManaged(false); // Remove from layout
+                                            });
+                                            fadeOut.play();
+                                        }
+                                        if (savedCard2 != null) {
+                                            javafx.animation.FadeTransition fadeOut = new javafx.animation.FadeTransition(javafx.util.Duration.millis(300), savedCard2);
+                                            fadeOut.setFromValue(1.0);
+                                            fadeOut.setToValue(0.0);
+                                            fadeOut.setOnFinished(e -> {
+                                                savedCard2.setVisible(false);
+                                                savedCard2.setManaged(false); // Remove from layout
+                                            });
+                                            fadeOut.play();
+                                        }
+                                        
                                         // Update scores
                                         if (player1Score != null) this.player1Score = player1Score;
                                         if (player2Score != null) this.player2Score = player2Score;
@@ -622,51 +881,92 @@ public class GameScreenController {
                             }).start();
                             return; // Defer rest until disappearance completes
                         } else {
-                            // Cards don't match (or isMatch is null) - flip them back after 1s delay
+                            // Cards don't match (or isMatch is null) - play miss match sound with delay and flip them back after 1s delay
                             System.out.println("[GameScreen] Cards don't match (isMatch=" + isMatch + ") - starting flip back process");
                             System.out.println("[GameScreen] Card1 flipped state: " + (savedCard1 != null ? savedCard1.isFlipped() : "null") +
                                               ", Card2 flipped state: " + (savedCard2 != null ? savedCard2.isFlipped() : "null"));
                             new Thread(() -> {
                                 try {
-                                    Thread.sleep(1000); // Show cards briefly (1s)
+                                    Thread.sleep(200); // Delay 0.2s for sound to match animation
+                                    SoundManager.playSound("miss_match.wav");
+                                    Thread.sleep(800); // Show cards briefly (remaining time, total 1s)
                                     Platform.runLater(() -> {
                                         System.out.println("[GameScreen] Flipping back cards after 1s delay");
                                         
+                                        // Track flip back completion using AtomicInteger for thread safety
+                                        final java.util.concurrent.atomic.AtomicInteger completedCount = new java.util.concurrent.atomic.AtomicInteger(0);
+                                        final int totalCards = (savedCard1 != null && savedCard1.isFlipped() && !savedCard1.isMatched() ? 1 : 0) +
+                                                              (savedCard2 != null && savedCard2.isFlipped() && !savedCard2.isMatched() ? 1 : 0);
+                                        
+                                        // If no cards need flipping, complete immediately
+                                        if (totalCards == 0) {
+                                            System.out.println("[GameScreen] No cards need flipping back");
+                                            resetFlippedCards();
+                                            if (shouldSwitchTurn != null && shouldSwitchTurn) {
+                                                isMyTurn = !isMyTurn;
+                                                updateTurnIndicator();
+                                                resetTurnTimer();
+                                            }
+                                            isResolving = false;
+                                            return;
+                                        }
+                                        
+                                        // Helper to check if all flips are complete
+                                        Runnable checkComplete = () -> {
+                                            if (completedCount.incrementAndGet() >= totalCards) {
+                                                Platform.runLater(() -> {
+                                                    System.out.println("[GameScreen] All cards finished flipping back");
+                                                    resetFlippedCards();
+                                                    if (shouldSwitchTurn != null && shouldSwitchTurn) {
+                                                        isMyTurn = !isMyTurn;
+                                                        updateTurnIndicator();
+                                                        resetTurnTimer();
+                                                    }
+                                                    isResolving = false;
+                                                });
+                                            }
+                                        };
+                                        
                                         // Flip back both cards if they are flipped
-                                        if (savedCard1 != null && savedCard1.isFlipped()) {
+                                        if (savedCard1 != null && savedCard1.isFlipped() && !savedCard1.isMatched()) {
                                             System.out.println("[GameScreen] Flipping back card 1");
                                             savedCard1.flipToBack();
-                                        } else if (savedCard1 != null) {
-                                            System.out.println("[GameScreen] Card 1 is not flipped, skipping");
+                                            // Wait for animation to complete (600ms total: 300ms flip + 300ms complete)
+                                            new Thread(() -> {
+                                                try {
+                                                    Thread.sleep(650);
+                                                    checkComplete.run();
+                                                } catch (InterruptedException e) {
+                                                    Thread.currentThread().interrupt();
+                                                }
+                                            }).start();
                                         } else {
-                                            System.out.println("[GameScreen] Card 1 is null, cannot flip back");
+                                            if (savedCard1 != null) {
+                                                System.out.println("[GameScreen] Card 1 is not flipped or already matched, skipping");
+                                            } else {
+                                                System.out.println("[GameScreen] Card 1 is null, cannot flip back");
+                                            }
                                         }
                                         
-                                        if (savedCard2 != null && savedCard2.isFlipped()) {
+                                        if (savedCard2 != null && savedCard2.isFlipped() && !savedCard2.isMatched()) {
                                             System.out.println("[GameScreen] Flipping back card 2");
                                             savedCard2.flipToBack();
-                                        } else if (savedCard2 != null) {
-                                            System.out.println("[GameScreen] Card 2 is not flipped, skipping");
+                                            // Wait for animation to complete (600ms total: 300ms flip + 300ms complete)
+                                            new Thread(() -> {
+                                                try {
+                                                    Thread.sleep(650);
+                                                    checkComplete.run();
+                                                } catch (InterruptedException e) {
+                                                    Thread.currentThread().interrupt();
+                                                }
+                                            }).start();
                                         } else {
-                                            System.out.println("[GameScreen] Card 2 is null, cannot flip back");
+                                            if (savedCard2 != null) {
+                                                System.out.println("[GameScreen] Card 2 is not flipped or already matched, skipping");
+                                            } else {
+                                                System.out.println("[GameScreen] Card 2 is null, cannot flip back");
+                                            }
                                         }
-                                        
-                                        // Reset state AFTER flip-back completes
-                                        resetFlippedCards();
-                                        
-                                        // Switch turn if needed
-                                        if (shouldSwitchTurn != null && shouldSwitchTurn) {
-                                            System.out.println("[GameScreen] Switching turn - was my turn: " + isMyTurn);
-                                            isMyTurn = !isMyTurn;
-                                            System.out.println("[GameScreen] Turn switched via server. Is my turn: " + isMyTurn);
-                                            updateTurnIndicator();
-                                            resetTurnTimer(); // Reset timer for the new turn
-                                        } else {
-                                            System.out.println("[GameScreen] No turn switch needed - shouldSwitchTurn: " + shouldSwitchTurn);
-                                        }
-                                        
-                                        isResolving = false; // Unlock input
-                                        System.out.println("[GameScreen] Cards don't match - flipped back and state reset");
                                     });
                                 } catch (InterruptedException e) {
                                     Thread.currentThread().interrupt();
@@ -848,6 +1148,7 @@ public class GameScreenController {
         
         // Get display names for winner (use displayName from GameSettings for display)
         String winnerDisplayName = "Unknown";
+		String opponentDisplayName = "Unknown";
         if (gameSettings != null) {
             if (iWon) {
                 // I won - use my displayName from GameSettings
@@ -858,8 +1159,11 @@ public class GameScreenController {
                 winnerDisplayName = gameSettings.isHost() ? gameSettings.getPlayer2Name() : gameSettings.getPlayer1Name();
                 System.out.println("[GameScreen] I lost - winnerDisplayName: " + winnerDisplayName);
             }
+			// Opponent display name is always the other player
+			opponentDisplayName = gameSettings.isHost() ? gameSettings.getPlayer2Name() : gameSettings.getPlayer1Name();
         } else {
             System.err.println("[GameScreen] gameSettings is null, cannot determine winnerDisplayName");
+			System.err.println("[GameScreen] gameSettings is null, cannot determine opponentDisplayName");
         }
         
         // Build final message with score info
@@ -880,7 +1184,7 @@ public class GameScreenController {
                                loserRankPoints != null ? loserRankPoints : 0);
         }
         
-        String finalWinnerDisplayName = winnerDisplayName;
+		String finalOpponentDisplayName = opponentDisplayName;
         boolean finalIWon = iWon;
         
         // Show end game dialog on JavaFX thread
@@ -890,6 +1194,9 @@ public class GameScreenController {
                 turnTimer.stop();
                 System.out.println("[GameScreen] Timer stopped");
             }
+            
+            // Cleanup MatchChat
+            cleanupMatchChat();
             
             // Show custom result popup
             // Calculate my score and opponent score
@@ -907,7 +1214,8 @@ public class GameScreenController {
             }
             
             try {
-                showGameResultPopup(finalIWon, finalWinnerDisplayName, 
+				// Pass opponent's display name to popup to avoid duplicating my name
+				showGameResultPopup(finalIWon, finalOpponentDisplayName, 
                                    myScore, opponentScore,
                                    myRankPoints, opponentRankPoints);
             } catch (Exception e) {
@@ -921,6 +1229,13 @@ public class GameScreenController {
 
     private void showGameResultPopup(boolean iWon, String opponentName, int myScore, int opponentScore, 
                                      int myRankPoints, int opponentRankPoints) throws Exception {
+        // Play win/lose sound
+        if (iWon) {
+            SoundManager.playSound("win.wav");
+        } else {
+            SoundManager.playSound("lose.wav");
+        }
+        
         // Load FXML
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/example/memorygame/GameResultPopup.fxml"));
         StackPane popupRoot = loader.load();
@@ -957,8 +1272,7 @@ public class GameScreenController {
         com.example.memorygame.model.user.UserSummary currentUser = com.example.memorygame.utils.UserApi.getCurrentUser();
         String myName = currentUser != null && currentUser.displayName != null ? currentUser.displayName : 
                        (currentUser != null ? currentUser.username : "Player 1");
-        String myAvatarUrl = currentUser != null && currentUser.avatarUrl != null ? currentUser.avatarUrl : 
-                            "http://localhost:8080/static/avatars/default_avatar.png";
+		String myAvatarUrl = sanitizeAvatarUrl(currentUser != null ? currentUser.avatarUrl : null);
         
         String opponentDisplayName = opponentName != null ? opponentName : "Player 2";
         String opponentAvatarUrl = "http://localhost:8080/static/avatars/default_avatar.png";
@@ -1040,12 +1354,18 @@ public class GameScreenController {
         
         // Button handlers
         rematchButton.setOnAction(e -> {
+            // Play button sound
+            SoundManager.playSound("button.wav");
+            
             // Remove popup
             gameContainer.getChildren().remove(popupRoot);
             
             // Navigate to RoomScreen (waiting lobby)
             try {
                 Stage stage = (Stage) gameContainer.getScene().getWindow();
+                
+                // Keep using the same room by passing current RoomStateManager back to RoomScreen
+                com.example.memorygame.controller.RoomScreenController.setRoomStateManager(roomStateManager);
                 
                 RoomScreenController roomController = new RoomScreenController();
                 Scene roomScene = new Scene(roomController.getScreen().getRoot());
@@ -1063,6 +1383,9 @@ public class GameScreenController {
         });
         
         leaveButton.setOnAction(e -> {
+            // Play button sound
+            SoundManager.playSound("button.wav");
+            
             // Remove popup
             gameContainer.getChildren().remove(popupRoot);
             
@@ -1098,6 +1421,13 @@ public class GameScreenController {
     }
     
     private void showGameEndAlert(boolean iWon, String message) {
+        // Play win/lose sound for fallback alert
+        if (iWon) {
+            SoundManager.playSound("win.wav");
+        } else {
+            SoundManager.playSound("lose.wav");
+        }
+        
         // Fallback: Show end game dialog (old Alert method)
         Alert alert = new Alert(AlertType.INFORMATION);
         alert.setTitle("Game Over");
@@ -1281,23 +1611,62 @@ public class GameScreenController {
         // Server didn't respond - flip back the cards as they don't match
         System.out.println("[GameScreen] Handling match timeout - flipping back cards");
         
-        if (firstFlippedCard != null && firstFlippedCard.isFlipped()) {
-            firstFlippedCard.flipToBack();
-            System.out.println("[GameScreen] Flipped back first card due to timeout");
-        }
-        if (secondFlippedCard != null && secondFlippedCard.isFlipped()) {
-            secondFlippedCard.flipToBack();
-            System.out.println("[GameScreen] Flipped back second card due to timeout");
+        // Play miss match sound for timeout case
+        SoundManager.playSound("miss_match.wav");
+        
+        final MemoryCard savedCard1 = firstFlippedCard;
+        final MemoryCard savedCard2 = secondFlippedCard;
+        
+        // Track flip back completion
+        final java.util.concurrent.atomic.AtomicInteger completedCount = new java.util.concurrent.atomic.AtomicInteger(0);
+        final int totalCards = (savedCard1 != null && savedCard1.isFlipped() && !savedCard1.isMatched() ? 1 : 0) +
+                              (savedCard2 != null && savedCard2.isFlipped() && !savedCard2.isMatched() ? 1 : 0);
+        
+        if (totalCards == 0) {
+            resetFlippedCards();
+            isResolving = false;
+            isMyTurn = !isMyTurn;
+            updateTurnIndicator();
+            resetTurnTimer();
+            return;
         }
         
-        resetFlippedCards();
-        isResolving = false;
+        Runnable checkComplete = () -> {
+            if (completedCount.incrementAndGet() >= totalCards) {
+                Platform.runLater(() -> {
+                    resetFlippedCards();
+                    isResolving = false;
+                    isMyTurn = !isMyTurn;
+                    updateTurnIndicator();
+                    resetTurnTimer();
+                    System.out.println("[GameScreen] Match timeout - flipped back and switched turn");
+                });
+            }
+        };
         
-        // Switch turn since cards don't match
-        isMyTurn = !isMyTurn;
-        updateTurnIndicator();
-        resetTurnTimer();
-        System.out.println("[GameScreen] Match timeout - flipped back and switched turn");
+        if (savedCard1 != null && savedCard1.isFlipped() && !savedCard1.isMatched()) {
+            savedCard1.flipToBack();
+            new Thread(() -> {
+                try {
+                    Thread.sleep(650);
+                    checkComplete.run();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }).start();
+        }
+        
+        if (savedCard2 != null && savedCard2.isFlipped() && !savedCard2.isMatched()) {
+            savedCard2.flipToBack();
+            new Thread(() -> {
+                try {
+                    Thread.sleep(650);
+                    checkComplete.run();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }).start();
+        }
     }
     
     private void flipCardAtPosition(int cardIndex, int row, int col) {
@@ -1454,4 +1823,22 @@ public class GameScreenController {
             return null;
         }
     }
+	
+	/**
+	 * Ensure avatar URL is usable; fall back to default if null/blank/invalid.
+	 */
+	private String sanitizeAvatarUrl(String url) {
+		try {
+			if (url == null || url.isBlank()) {
+				return "http://localhost:8080/static/avatars/default_avatar.png";
+			}
+			String lower = url.toLowerCase();
+			if (!(lower.startsWith("http://") || lower.startsWith("https://"))) {
+				return "http://localhost:8080/static/avatars/default_avatar.png";
+			}
+			return url;
+		} catch (Exception ignored) {
+			return "http://localhost:8080/static/avatars/default_avatar.png";
+		}
+	}
 }

@@ -14,4 +14,6 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
     List<Match> findByPlayer1OrPlayer2(User player1, User player2);
     
     Optional<Match> findByRoomAndStatus(Room room, MatchStatus status);
+    
+    boolean existsByRoom(Room room);
 }

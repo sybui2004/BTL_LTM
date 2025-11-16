@@ -68,9 +68,19 @@
 }
 
 .player-score {
-  -fx-font-size: 32px;
+  -fx-font-size: 38px;
   -fx-font-weight: bold;
-  -fx-text-fill: #ff4444;
+  -fx-text-fill: #CF0404;
+  -fx-background-color: white;
+  -fx-background-radius: 0;
+  -fx-border-radius: 0;
+  -fx-padding: 0;
+  -fx-min-height: 72px;
+  -fx-pref-height: 72px;
+  -fx-min-width: 72px;
+  -fx-pref-width: 72px;
+  -fx-alignment: center;
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.35), 12, 0.2, 0, 6);
 }
 
 /* Game Screen Styles */
@@ -137,10 +147,7 @@
   -fx-text-fill: #333;
 }
 
-.player-score {
-  -fx-font-size: 16px;
-  -fx-text-fill: #666;
-}
+
 
 .player-status {
   -fx-font-size: 14px;
@@ -273,4 +280,17 @@
   -fx-background-radius: 10;
   -fx-padding: 8 16 8 16;
   -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 5, 0.2, 0, 2);
+}
+
+/* Load VT323 font */
+@font-face {
+  font-family: "VT323";
+  src: url("/com/example/memorygame/assets/fonts/VT323-Regular.ttf");
+}
+
+/* Timer Label */
+.timer-label {
+  -fx-font-family: "VT323", "Consolas", "Courier New", monospace;
+  -fx-font-size: 17px;
+  -fx-text-fill: #333333;
 }

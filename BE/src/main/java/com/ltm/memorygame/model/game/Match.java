@@ -1,13 +1,24 @@
 package com.ltm.memorygame.model.game;
 
+import java.util.Date;
+
 import com.ltm.memorygame.model.enums.MatchStatus;
 import com.ltm.memorygame.model.user.User;
+
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.*;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.Temporal;
+import jakarta.persistence.TemporalType;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.util.Date;
 
 @Entity
 @Table(name = "game_match")
@@ -35,6 +46,12 @@ public class Match {
 
     @Column(name = "player2_score")
     private int player2Score;
+
+    @Column(name = "player1_rank_points_change")
+    private Integer player1RankPointsChange;
+
+    @Column(name = "player2_rank_points_change")
+    private Integer player2RankPointsChange;
 
     @ManyToOne
     @JoinColumn(name = "theme_id")
@@ -80,5 +97,12 @@ public class Match {
         Long winnerId = getWinnerId();
         if (winnerId == null) return MatchStatus.PLAYING;
         return winnerId.equals(user.getId()) ? MatchStatus.WIN : MatchStatus.LOSE;
+    }
+
+    public Integer getRankPointsChangeFor(User user) {
+        if (user == null) return null;
+        if (user.equals(player1)) return player1RankPointsChange;
+        if (user.equals(player2)) return player2RankPointsChange;
+        return null;
     }
 }

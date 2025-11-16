@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.shape.Circle?>
+<?import javafx.scene.text.Text?>
+<?import javafx.scene.layout.Region?>
+
+<StackPane xmlns="http://javafx.com/javafx"
+           xmlns:fx="http://javafx.com/fxml"
+           prefHeight="720.0" prefWidth="1024.0"
+           styleClass="main-container"
+           stylesheets="@LeaderboardScreenStyle.css">
+    
+    <BorderPane>
+        <!-- Main Content -->
+        <center>
+            <BorderPane>
+                <!-- Top Bar with Title and Tabs -->
+                <top>
+                    <VBox spacing="15" styleClass="leaderboard-header">
+                        <Label text="LEADERBOARD" styleClass="leaderboard-title-main"/>
+                        
+                        <!-- Tabs: Bạn bè / Thế giới -->
+                        <HBox spacing="0" alignment="CENTER">
+                            <ToggleButton fx:id="tabFriends" text="Bạn bè" styleClass="leaderboard-tab" selected="true">
+                                <toggleGroup>
+                                    <ToggleGroup fx:id="leaderboardTabGroup"/>
+                                </toggleGroup>
+                            </ToggleButton>
+                            <ToggleButton fx:id="tabGlobal" text="Thế giới" styleClass="leaderboard-tab" toggleGroup="$leaderboardTabGroup">
+                            </ToggleButton>
+                        </HBox>
+                    </VBox>
+                </top>
+                
+                <!-- Leaderboard Content -->
+                <center>
+                    <ScrollPane styleClass="leaderboard-scroll" fitToWidth="true" VBox.vgrow="ALWAYS">
+                        <VBox spacing="0">
+                            <!-- Column Headers - ĐẶT TRONG ScrollPane để tránh lệch do scrollbar -->
+                            <HBox styleClass="leaderboard-header-row" alignment="CENTER_LEFT" spacing="0">
+                                <Label text="#" styleClass="header-label" prefWidth="50" minWidth="50" maxWidth="50" alignment="CENTER"/>
+                                <Label text="" prefWidth="45" minWidth="45" maxWidth="45"/> <!-- Avatar spacer -->
+                                <Label text="Name" styleClass="header-label" prefWidth="250" minWidth="250" maxWidth="250" alignment="CENTER_LEFT"/>
+                                <Region prefWidth="50" minWidth="50" maxWidth="50" HBox.hgrow="NEVER"/> <!-- Spacer cố định -->
+                                <Label text="Elo" styleClass="header-label" prefWidth="100" minWidth="100" maxWidth="100" alignment="CENTER_RIGHT"/>
+                                <Region prefWidth="20" minWidth="20" maxWidth="20" HBox.hgrow="NEVER"/> <!-- Spacer nhỏ -->
+                                <Label text="Win" styleClass="header-label" prefWidth="100" minWidth="100" maxWidth="100" alignment="CENTER_RIGHT"/>
+                            </HBox>
+                            
+                            <!-- Leaderboard Items Container -->
+                            <VBox fx:id="leaderboardContainer" spacing="8">
+                                <!-- KHÔNG có padding để đảm bảo items thẳng hàng với header -->
+                            </VBox>
+                        </VBox>
+                    </ScrollPane>
+                </center>
+            </BorderPane>
+        </center>
+        
+        <!-- Right Side Panel (Friends List) - Collapsible -->
+        <right>
+            <StackPane>
+                <!-- Collapse/Expand Button -->
+                <Button fx:id="togglePanelButton" styleClass="panel-toggle-btn" 
+                        onAction="#handleTogglePanel">
+                    <graphic>
+                        <ImageView fitWidth="20" fitHeight="20" preserveRatio="true">
+                            <Image url="@assets/images/icon/back.png"/>
+                        </ImageView>
+                    </graphic>
+                </Button>
+                
+                <!-- Friends Panel -->
+                <BorderPane fx:id="friendsPanel" styleClass="friends-side-panel">
+                    <top>
+                        <VBox spacing="10">
+                            <padding>
+                                <Insets top="14" right="14" bottom="8" left="14"/>
+                            </padding>
+                            <!-- Icons Row -->
+                            <HBox spacing="8" alignment="CENTER_LEFT">
+                                <ImageView fitWidth="24" fitHeight="24" preserveRatio="true">
+                                    <Image url="@assets/images/icon/friend.png"/>
+                                </ImageView>
+                                <ImageView fitWidth="24" fitHeight="24" preserveRatio="true">
+                                    <Image url="@assets/images/icon/host.png"/>
+                                </ImageView>
+                            </HBox>
+                        </VBox>
+                    </top>
+                    
+                    <center>
+                        <ScrollPane styleClass="list-scroll" fitToWidth="true" hbarPolicy="NEVER">
+                            <VBox fx:id="friendsListContainer" spacing="8">
+                                <padding>
+                                    <Insets top="4" right="14" bottom="8" left="14"/>
+                                </padding>
+                            </VBox>
+                        </ScrollPane>
+                    </center>
+                </BorderPane>
+            </StackPane>
+        </right>
+        
+        <!-- Top Right Icons -->
+        <top>
+            <HBox spacing="12" alignment="CENTER_RIGHT" styleClass="top-icons-container">
+                <StackPane styleClass="top-icon-button" onMouseClicked="#handleHelpClick">
+                    <Text text="❓" styleClass="top-icon-text"/>
+                </StackPane>
+                <StackPane styleClass="top-icon-button" onMouseClicked="#handleSettingsClick">
+                    <Text text="⚙️" styleClass="top-icon-text"/>
+                </StackPane>
+            </HBox>
+        </top>
+        
+        <!-- Bottom Right: START Button with Elo -->
+        <bottom>
+            <HBox alignment="CENTER_RIGHT" styleClass="bottom-action-container">
+                <VBox spacing="8" alignment="CENTER" styleClass="start-button-container">
+                    <Label fx:id="personalElo" text="Elo: 0" styleClass="bottom-elo-label"/>
+                    <Button fx:id="startButton" text="START" onAction="#handleStartGame" styleClass="bottom-start-button"/>
+                </VBox>
+            </HBox>
+        </bottom>
+    </BorderPane>
+</StackPane>
+
