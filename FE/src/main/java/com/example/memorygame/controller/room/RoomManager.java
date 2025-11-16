@@ -81,6 +81,44 @@ public class RoomManager {
                     }
                 }
                 
+                // No existing room for me yet.
+                // Rematch strategy:
+                // - If I'm host: create a new room and auto-send invite to opponent (if known).
+                // - If I'm guest: auto-accept invite from opponent (if any, with a few quick retries).
+                Long opponentId = stateManager.isHost() ? stateManager.getCurrentGuestId() : stateManager.getCurrentHostId();
+                
+                if (!stateManager.isHost()) {
+                    // Guest side: auto-accept invite from opponent host if present
+                    for (int attempt = 0; attempt < 3; attempt++) {
+                        try {
+                            List<InviteDTO> invites = com.example.memorygame.utils.InviteApi.getPendingInvites(currentUser.id);
+                            if (invites != null && !invites.isEmpty()) {
+                                for (InviteDTO inv : invites) {
+                                    if (opponentId != null && inv.senderId != null && inv.senderId.equals(opponentId)) {
+                                        boolean ok = com.example.memorygame.utils.InviteApi.acceptInvite(inv.roomId, currentUser.id);
+                                        if (ok) {
+                                            stateManager.setCurrentRoomId(inv.roomId);
+                                            stateManager.setHost(false);
+                                            if (opponentId != null) stateManager.setCurrentHostId(opponentId);
+                                            stateManager.setCurrentGuestId(currentUser.id);
+                                            Platform.runLater(() -> {
+                                                if (onLoadHostInfo != null) onLoadHostInfo.run();
+                                            });
+                                            System.out.println("[Room] ✓ Auto-accepted rematch invite to room " + inv.roomId);
+                                            return;
+                                        }
+                                    }
+                                }
+                            }
+                            // If not found, wait briefly for host to create+send invite
+                            Thread.sleep(400);
+                        } catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                            break;
+                        } catch (Exception ignore) {}
+                    }
+                }
+                
                 // No existing room, create new one
                 RoomResponseDTO room = RoomApi.createRoom(currentUser.id, null);
                 if (room == null) {
@@ -89,7 +127,23 @@ public class RoomManager {
                 }
                 
                 stateManager.setCurrentRoomId(room.id);
+                // I just created this room -> I'm host, and currently no guest
+                stateManager.setHost(true);
+                try {
+                    stateManager.setCurrentHostId(currentUser.id);
+                } catch (Exception ignore) {}
+                stateManager.setCurrentGuestId(null);
                 System.out.println("[Room] Created new room ID: " + room.id);
+                
+                // If we are host and know the opponent, auto-send an invite for rematch
+                if (stateManager.isHost() && opponentId != null) {
+                    try {
+                        boolean sent = com.example.memorygame.utils.RoomApi.sendInvite(room.id, currentUser.id, opponentId);
+                        System.out.println("[Room] Auto-sent rematch invite to opponent " + opponentId + " => " + sent);
+                    } catch (Exception e) {
+                        System.err.println("[Room] Failed to auto-send rematch invite: " + e.getMessage());
+                    }
+                }
             } catch (Exception e) {
                 System.err.println("[Room] Error creating room: " + e.getMessage());
             }

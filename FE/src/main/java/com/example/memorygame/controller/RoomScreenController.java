@@ -48,6 +48,8 @@ import java.util.Map;
  */
 public class RoomScreenController {
     private final RoomScreen screen;
+    // Reuse RoomStateManager across screens (e.g., rematch from GameScreen)
+    private static RoomStateManager staticRoomStateManager;
     
     // Helper classes
     private RoomStateManager stateManager;
@@ -146,9 +148,77 @@ public class RoomScreenController {
         });
         
         // Start room operations
-        roomManager.createRoom();
+        if (stateManager.getCurrentRoomId() != null) {
+            // Coming back from game with an existing room (rematch)
+            hydrateExistingRoomState();
+        } else {
+            roomManager.createRoom();
+        }
         loadInvites();
         friendListManager.switchTab(FriendListManager.Tab.FRIENDS);
+    }
+    
+    /**
+     * Load room info from server for current room ID and update state/UI.
+     */
+    private void hydrateExistingRoomState() {
+        new Thread(() -> {
+            try {
+                Long roomId = stateManager.getCurrentRoomId();
+                if (roomId == null) {
+                    roomManager.createRoom();
+                    return;
+                }
+                
+                com.example.memorygame.model.game.RoomResponseDTO room =
+                        com.example.memorygame.utils.RoomApi.getRoom(roomId);
+                com.example.memorygame.model.user.UserSummary me =
+                        com.example.memorygame.utils.UserApi.getCurrentUser();
+                if (room == null || me == null) {
+                    roomManager.createRoom();
+                    return;
+                }
+                
+                boolean iAmHost = room.hostId != null && room.hostId.equals(me.id);
+                boolean iAmGuest = room.guestId != null && room.guestId.equals(me.id);
+                
+                // Update state
+                stateManager.setHost(iAmHost);
+                if (room.hostId != null) stateManager.setCurrentHostId(room.hostId);
+                if (room.guestId != null) stateManager.setCurrentGuestId(room.guestId);
+                
+                Platform.runLater(() -> {
+                    if (iAmHost) {
+                        if (room.guestId != null) {
+                            loadExistingGuestInfo();
+                        } else {
+                            uiUpdater.clearGuestInfo();
+                        }
+                        uiUpdater.setPlayButtonEnabled(stateManager.canStartGame());
+                    } else if (iAmGuest) {
+                        if (room.hostId != null) {
+                            loadExistingHostInfo();
+                        }
+                        uiUpdater.setPlayButtonEnabled(false);
+                    } else {
+                        // Not a member of this room anymore – create/use available room
+                        roomManager.createRoom();
+                    }
+                    updateComboBoxStates();
+                });
+            } catch (Exception e) {
+                System.err.println("[RoomScreen] Failed to hydrate existing room: " + e.getMessage());
+                roomManager.createRoom();
+            }
+        }).start();
+    }
+    
+    /**
+     * Allow other controllers to pass an existing RoomStateManager
+     * so we return to the same room on rematch.
+     */
+    public static void setRoomStateManager(RoomStateManager manager) {
+        staticRoomStateManager = manager;
     }
     
     private void setupSettingsPopup() {
@@ -304,7 +374,7 @@ public class RoomScreenController {
 
     private void initializeHelpers() {
         // State manager
-        this.stateManager = new RoomStateManager();
+        this.stateManager = (staticRoomStateManager != null) ? staticRoomStateManager : new RoomStateManager();
         
         // UI updater
         this.uiUpdater = new RoomUIUpdater(

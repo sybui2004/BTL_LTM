@@ -883,8 +883,8 @@ public class GameScreenController {
                         } else {
                             // Cards don't match (or isMatch is null) - play miss match sound with delay and flip them back after 1s delay
                             System.out.println("[GameScreen] Cards don't match (isMatch=" + isMatch + ") - starting flip back process");
-                            System.out.println("[GameScreen] Card1: " + (savedCard1 != null ? "exists, flipped=" + savedCard1.isFlipped() + ", matched=" + savedCard1.isMatched() : "null") +
-                                              ", Card2: " + (savedCard2 != null ? "exists, flipped=" + savedCard2.isFlipped() + ", matched=" + savedCard2.isMatched() : "null"));
+                            System.out.println("[GameScreen] Card1 flipped state: " + (savedCard1 != null ? savedCard1.isFlipped() : "null") +
+                                              ", Card2 flipped state: " + (savedCard2 != null ? savedCard2.isFlipped() : "null"));
                             new Thread(() -> {
                                 try {
                                     Thread.sleep(200); // Delay 0.2s for sound to match animation
@@ -895,16 +895,12 @@ public class GameScreenController {
                                         
                                         // Track flip back completion using AtomicInteger for thread safety
                                         final java.util.concurrent.atomic.AtomicInteger completedCount = new java.util.concurrent.atomic.AtomicInteger(0);
-                                        
-                                        // Count cards that need to be flipped back (must exist, not matched, and currently flipped)
-                                        final int totalCards = (savedCard1 != null && !savedCard1.isMatched() && savedCard1.isFlipped() ? 1 : 0) +
-                                                              (savedCard2 != null && !savedCard2.isMatched() && savedCard2.isFlipped() ? 1 : 0);
-                                        
-                                        System.out.println("[GameScreen] Total cards to flip back: " + totalCards);
+                                        final int totalCards = (savedCard1 != null && savedCard1.isFlipped() && !savedCard1.isMatched() ? 1 : 0) +
+                                                              (savedCard2 != null && savedCard2.isFlipped() && !savedCard2.isMatched() ? 1 : 0);
                                         
                                         // If no cards need flipping, complete immediately
                                         if (totalCards == 0) {
-                                            System.out.println("[GameScreen] No cards need flipping back - completing immediately");
+                                            System.out.println("[GameScreen] No cards need flipping back");
                                             resetFlippedCards();
                                             if (shouldSwitchTurn != null && shouldSwitchTurn) {
                                                 isMyTurn = !isMyTurn;
@@ -917,9 +913,7 @@ public class GameScreenController {
                                         
                                         // Helper to check if all flips are complete
                                         Runnable checkComplete = () -> {
-                                            int current = completedCount.incrementAndGet();
-                                            System.out.println("[GameScreen] Flip back progress: " + current + "/" + totalCards);
-                                            if (current >= totalCards) {
+                                            if (completedCount.incrementAndGet() >= totalCards) {
                                                 Platform.runLater(() -> {
                                                     System.out.println("[GameScreen] All cards finished flipping back");
                                                     resetFlippedCards();
@@ -933,72 +927,45 @@ public class GameScreenController {
                                             }
                                         };
                                         
-                                        // Flip back card 1 if it exists and is not matched
-                                        // Always try to flip back, flipToBack() will handle state correctly
-                                        if (savedCard1 != null && !savedCard1.isMatched()) {
-                                            boolean wasFlipped = savedCard1.isFlipped();
-                                            System.out.println("[GameScreen] Flipping back card 1 (index: " + cardIndex1 + 
-                                                              ", wasFlipped: " + wasFlipped + ")");
-                                            
-                                            // Always call flipToBack - it will handle the state correctly
+                                        // Flip back both cards if they are flipped
+                                        if (savedCard1 != null && savedCard1.isFlipped() && !savedCard1.isMatched()) {
+                                            System.out.println("[GameScreen] Flipping back card 1");
                                             savedCard1.flipToBack();
-                                            
-                                            // If card was flipped, wait for animation; otherwise complete immediately
-                                            if (wasFlipped) {
-                                                // Wait for animation to complete (600ms total: 300ms flip + 300ms complete)
-                                                new Thread(() -> {
-                                                    try {
-                                                        Thread.sleep(650);
-                                                        checkComplete.run();
-                                                    } catch (InterruptedException e) {
-                                                        Thread.currentThread().interrupt();
-                                                        checkComplete.run(); // Still call to ensure state is reset
-                                                    }
-                                                }).start();
-                                            } else {
-                                                // Card was already back, complete immediately
-                                                System.out.println("[GameScreen] Card 1 was already back, completing immediately");
-                                                checkComplete.run();
-                                            }
+                                            // Wait for animation to complete (600ms total: 300ms flip + 300ms complete)
+                                            new Thread(() -> {
+                                                try {
+                                                    Thread.sleep(650);
+                                                    checkComplete.run();
+                                                } catch (InterruptedException e) {
+                                                    Thread.currentThread().interrupt();
+                                                }
+                                            }).start();
                                         } else {
-                                            System.out.println("[GameScreen] Card 1 skipped - null: " + (savedCard1 == null) + 
-                                                              ", matched: " + (savedCard1 != null ? savedCard1.isMatched() : "N/A"));
-                                            // If card is null or matched, still count it as complete
-                                            checkComplete.run();
+                                            if (savedCard1 != null) {
+                                                System.out.println("[GameScreen] Card 1 is not flipped or already matched, skipping");
+                                            } else {
+                                                System.out.println("[GameScreen] Card 1 is null, cannot flip back");
+                                            }
                                         }
                                         
-                                        // Flip back card 2 if it exists and is not matched
-                                        // Always try to flip back, flipToBack() will handle state correctly
-                                        if (savedCard2 != null && !savedCard2.isMatched()) {
-                                            boolean wasFlipped = savedCard2.isFlipped();
-                                            System.out.println("[GameScreen] Flipping back card 2 (index: " + cardIndex2 + 
-                                                              ", wasFlipped: " + wasFlipped + ")");
-                                            
-                                            // Always call flipToBack - it will handle the state correctly
+                                        if (savedCard2 != null && savedCard2.isFlipped() && !savedCard2.isMatched()) {
+                                            System.out.println("[GameScreen] Flipping back card 2");
                                             savedCard2.flipToBack();
-                                            
-                                            // If card was flipped, wait for animation; otherwise complete immediately
-                                            if (wasFlipped) {
-                                                // Wait for animation to complete (600ms total: 300ms flip + 300ms complete)
-                                                new Thread(() -> {
-                                                    try {
-                                                        Thread.sleep(650);
-                                                        checkComplete.run();
-                                                    } catch (InterruptedException e) {
-                                                        Thread.currentThread().interrupt();
-                                                        checkComplete.run(); // Still call to ensure state is reset
-                                                    }
-                                                }).start();
-                                            } else {
-                                                // Card was already back, complete immediately
-                                                System.out.println("[GameScreen] Card 2 was already back, completing immediately");
-                                                checkComplete.run();
-                                            }
+                                            // Wait for animation to complete (600ms total: 300ms flip + 300ms complete)
+                                            new Thread(() -> {
+                                                try {
+                                                    Thread.sleep(650);
+                                                    checkComplete.run();
+                                                } catch (InterruptedException e) {
+                                                    Thread.currentThread().interrupt();
+                                                }
+                                            }).start();
                                         } else {
-                                            System.out.println("[GameScreen] Card 2 skipped - null: " + (savedCard2 == null) + 
-                                                              ", matched: " + (savedCard2 != null ? savedCard2.isMatched() : "N/A"));
-                                            // If card is null or matched, still count it as complete
-                                            checkComplete.run();
+                                            if (savedCard2 != null) {
+                                                System.out.println("[GameScreen] Card 2 is not flipped or already matched, skipping");
+                                            } else {
+                                                System.out.println("[GameScreen] Card 2 is null, cannot flip back");
+                                            }
                                         }
                                     });
                                 } catch (InterruptedException e) {
@@ -1181,6 +1148,7 @@ public class GameScreenController {
         
         // Get display names for winner (use displayName from GameSettings for display)
         String winnerDisplayName = "Unknown";
+		String opponentDisplayName = "Unknown";
         if (gameSettings != null) {
             if (iWon) {
                 // I won - use my displayName from GameSettings
@@ -1191,8 +1159,11 @@ public class GameScreenController {
                 winnerDisplayName = gameSettings.isHost() ? gameSettings.getPlayer2Name() : gameSettings.getPlayer1Name();
                 System.out.println("[GameScreen] I lost - winnerDisplayName: " + winnerDisplayName);
             }
+			// Opponent display name is always the other player
+			opponentDisplayName = gameSettings.isHost() ? gameSettings.getPlayer2Name() : gameSettings.getPlayer1Name();
         } else {
             System.err.println("[GameScreen] gameSettings is null, cannot determine winnerDisplayName");
+			System.err.println("[GameScreen] gameSettings is null, cannot determine opponentDisplayName");
         }
         
         // Build final message with score info
@@ -1213,7 +1184,7 @@ public class GameScreenController {
                                loserRankPoints != null ? loserRankPoints : 0);
         }
         
-        String finalWinnerDisplayName = winnerDisplayName;
+		String finalOpponentDisplayName = opponentDisplayName;
         boolean finalIWon = iWon;
         
         // Show end game dialog on JavaFX thread
@@ -1243,7 +1214,8 @@ public class GameScreenController {
             }
             
             try {
-                showGameResultPopup(finalIWon, finalWinnerDisplayName, 
+				// Pass opponent's display name to popup to avoid duplicating my name
+				showGameResultPopup(finalIWon, finalOpponentDisplayName, 
                                    myScore, opponentScore,
                                    myRankPoints, opponentRankPoints);
             } catch (Exception e) {
@@ -1300,8 +1272,7 @@ public class GameScreenController {
         com.example.memorygame.model.user.UserSummary currentUser = com.example.memorygame.utils.UserApi.getCurrentUser();
         String myName = currentUser != null && currentUser.displayName != null ? currentUser.displayName : 
                        (currentUser != null ? currentUser.username : "Player 1");
-        String myAvatarUrl = currentUser != null && currentUser.avatarUrl != null ? currentUser.avatarUrl : 
-                            "http://localhost:8080/static/avatars/default_avatar.png";
+		String myAvatarUrl = sanitizeAvatarUrl(currentUser != null ? currentUser.avatarUrl : null);
         
         String opponentDisplayName = opponentName != null ? opponentName : "Player 2";
         String opponentAvatarUrl = "http://localhost:8080/static/avatars/default_avatar.png";
@@ -1392,6 +1363,9 @@ public class GameScreenController {
             // Navigate to RoomScreen (waiting lobby)
             try {
                 Stage stage = (Stage) gameContainer.getScene().getWindow();
+                
+                // Keep using the same room by passing current RoomStateManager back to RoomScreen
+                com.example.memorygame.controller.RoomScreenController.setRoomStateManager(roomStateManager);
                 
                 RoomScreenController roomController = new RoomScreenController();
                 Scene roomScene = new Scene(roomController.getScreen().getRoot());
@@ -1849,4 +1823,22 @@ public class GameScreenController {
             return null;
         }
     }
+	
+	/**
+	 * Ensure avatar URL is usable; fall back to default if null/blank/invalid.
+	 */
+	private String sanitizeAvatarUrl(String url) {
+		try {
+			if (url == null || url.isBlank()) {
+				return "http://localhost:8080/static/avatars/default_avatar.png";
+			}
+			String lower = url.toLowerCase();
+			if (!(lower.startsWith("http://") || lower.startsWith("https://"))) {
+				return "http://localhost:8080/static/avatars/default_avatar.png";
+			}
+			return url;
+		} catch (Exception ignored) {
+			return "http://localhost:8080/static/avatars/default_avatar.png";
+		}
+	}
 }
